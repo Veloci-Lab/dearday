@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/utils/authStore";
-import { createMemory } from "@/utils/createMemory";
-import { getKSTDateString } from '@/utils/date';
+import { createMemory } from '@/utils/createMemory';
+import { getLocalDateString, localToUTC } from '@/utils/date';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
 import React, { useState } from 'react';
 import { Alert, Button, Platform, Text, View } from "react-native";
@@ -14,23 +14,28 @@ export default function OnboardingNotificationPermissionScreen() {
   const handleCompleteOnboarding = async () => {
     if (!profileId) return;
 
-    const today = getKSTDateString();
+    // 추후 필요시 timezone 추가
+    const today = getLocalDateString();      // 오늘
+    const tomorrow = getLocalDateString(1);  // 내일
+    console.log(today);
+    console.log(tomorrow);
 
     try {
-      await createMemory(supabase, profileId, today);
+      await createMemory(supabase, profileId, today, localToUTC);
+      await createMemory(supabase, profileId, tomorrow, localToUTC);
     } catch (error) {
       Alert.alert("오류", "오늘의 memory 데이터를 생성하지 못했습니다.");
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ has_completed_onboarding: true })
-      .eq("profile_id", profileId);
+    // const { error: updateError } = await supabase
+    //   .from("profiles")
+    //   .update({ has_completed_onboarding: true })
+    //   .eq("profile_id", profileId);
 
-    if (updateError) {
-      Alert.alert("오류", "온보딩 완료 상태를 저장하지 못했습니다.");
-    }
+    // if (updateError) {
+    //   Alert.alert("오류", "온보딩 완료 상태를 저장하지 못했습니다.");
+    // }
 
     setHasCompletedOnboarding(true);
   };
@@ -42,7 +47,6 @@ export default function OnboardingNotificationPermissionScreen() {
     if (!token) return;
 
     setPushToken(token);
-    console.log('Expo Push Token', token);
 
     let updateColumn = '';
     if (Platform.OS === 'android') {

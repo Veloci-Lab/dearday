@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime } from "npm:luxon@3.4.4";
 
 /**
  * 주어진 타임존 기준으로 현재 날짜를 yyyy-MM-dd 문자열로 반환

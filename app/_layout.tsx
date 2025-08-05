@@ -22,6 +22,7 @@ export default function RootLayout() {
         setPendingRedirectUrl(url);
       }
     });
+    setPendingRedirectUrl('/camera?memory_id=10&notification_id=37');
 
     // ✅ 실시간 푸시 클릭 감지 리스너 등록
     const subscription = Notifications.addNotificationResponseReceivedListener(res => {
@@ -47,7 +48,6 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoggedIn && pendingRedirectUrl) {
       const tmp = pendingRedirectUrl; // ✅ 변수로 분리
-      console.log('초기화');
       clearPendingRedirectUrl(); // ✅ 리디렉션 후 초기화
       router.replace(tmp); // ✅ 변수 사용
     }

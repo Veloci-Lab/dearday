@@ -12,20 +12,26 @@ import * as FileSystem from 'expo-file-system';
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Button,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-export default function App() {
+export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const ref = useRef<CameraView>(null);
-  const [uri, setUri] = useState<string | null>(null);
   const [mode, setMode] = useState<CameraMode>("picture");
   const [facing, setFacing] = useState<CameraType>("back");
   const [recording, setRecording] = useState(false);
-  const { memory_entry_id } = useLocalSearchParams();
+  const [photos, setPhotos] = useState<string[]>([]);
+  const { memory_id, notification_id } = useLocalSearchParams();
 
-  if (!permission) {
-    return null;
-  }
+  if (!permission) return null;
 
   if (!permission.granted) {
     return (
@@ -38,71 +44,78 @@ export default function App() {
     );
   }
 
-  const uploadPhotoToSupabase = async (uri: string) => {
-    const session = await supabase.auth.getSession();
-
-  try {
-    // 1. base64로 파일 읽기
-    const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    // 2. base64 → Uint8Array 변환
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+  const takePicture = async () => {
+     if (photos.length >= 3) {
+        alert("최대 3장까지 등록할 수 있어요.");
+        return;
+      }
+      
+    const photo = await ref.current?.takePictureAsync();
+    if (photo?.uri) {
+      setPhotos((prev) => [...prev, photo.uri]);
     }
+  };
 
-    // 3. 파일 이름 지정
-    const fileName = `photo_${Date.now()}.jpg`;
+  const deletePhoto = (uriToDelete: string) => {
+    setPhotos((prev) => prev.filter((uri) => uri !== uriToDelete));
+  };
 
-    // 4. Supabase Storage에 업로드
-    const { data, error } = await supabase.storage
-      .from('photos')
-      .upload(fileName, bytes, {
-        contentType: 'image/jpeg',
-        upsert: true,
+  const uploadPhotos = async () => {
+  console.log("uploadPhotos");
+
+  // ✅ 먼저 compose 화면으로 uri 전달하고 이동
+  router.push({
+    pathname: "/compose",
+    params: {
+      uris: JSON.stringify(photos),
+      memory_id,
+      notification_id,
+    },
+  });
+
+  // ✅ 이후에 업로드는 백그라운드에서 진행
+  for (const uri of photos) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
       });
 
-    if (error) {
-      console.error('here Upload error:', error.message);
-      return;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const fileName = `photo_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("photos")
+        .upload(fileName, bytes, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error("❌ Upload error:", uploadError.message);
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("photos")
+        .getPublicUrl(fileName);
+
+      console.log("✅ Uploaded:", urlData.publicUrl);
+      // TODO: 사진 업로드는 오래 걸려서 미리 하고 최종적으로 업로드때 혹시 안올라간거 있으면 올리고 db 업데이트.
+    } catch (e) {
+      console.error("Upload threw an error:", e);
     }
-
-    // 5. Public URL 가져오기
-    const { data: urlData } = supabase.storage
-      .from('photos')
-      .getPublicUrl(fileName);
-
-    console.log('✅ Public URL:', urlData?.publicUrl);
-    if(memory_entry_id) {
-      // memory_entries table update
-      const { error } = await supabase
-      .from('memory_entries')
-      .update({ image_url: urlData?.publicUrl })
-      .eq('memory_entry_id', memory_entry_id);
-
-    if (error) {
-      console.error('❌ 업데이트 실패:', error.message);
-    } else {
-      console.log('✅ 이미지 URL 업데이트 완료');
-      router.push('/');
-    }
-
-    } else {
-      // TODO: memory_entries table에 insert
-    }
-  } catch (e) {
-    console.error('Upload threw an error:', e);
   }
 };
 
-
-  const takePicture = async () => {
-    const photo = await ref.current?.takePictureAsync();
-    setUri(photo?.uri);
-  };
 
   const recordVideo = async () => {
     if (recording) {
@@ -123,80 +136,132 @@ export default function App() {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   };
 
-  const renderPicture = () => {
-    return (
-      <View>
-        <Image
-          source={{ uri }}
-          contentFit="contain"
-          style={{ width: 300, aspectRatio: 1 }}
-        />
-        <Button onPress={() => setUri(null)} title="Take another picture" />
-        <Button onPress={() => uploadPhotoToSupabase(uri)} title="Use this picture" />
-      </View>
-    );
-  };
-
-  const renderCamera = () => {
-    return (
-      <CameraView
-        style={styles.camera}
-        ref={ref}
-        mode={mode}
-        facing={facing}
-        mute={false}
-        responsiveOrientationWhenOrientationLocked
-      >
-        <View style={styles.shutterContainer}>
-          <Pressable onPress={toggleMode}>
-            {mode === "picture" ? (
-              <AntDesign name="picture" size={32} color="white" />
-            ) : (
-              <Feather name="video" size={32} color="white" />
-            )}
-          </Pressable>
-          <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
-            {({ pressed }) => (
-              <View
-                style={[
-                  styles.shutterBtn,
-                  {
-                    opacity: pressed ? 0.5 : 1,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.shutterBtnInner,
-                    {
-                      backgroundColor: mode === "picture" ? "white" : "red",
-                    },
-                  ]}
-                />
-              </View>
-            )}
-          </Pressable>
-          <Pressable onPress={toggleFacing}>
-            <FontAwesome6 name="rotate-left" size={32} color="white" />
-          </Pressable>
-        </View>
-      </CameraView>
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      {uri ? renderPicture() : renderCamera()}
+    <View style={{ flex: 1 }}>
+      {/* (1) 미리보기 썸네일 영역 - 고정 높이 */}
+      <View style={styles.thumbnailWrapper}>
+        {photos.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbnailRow}
+          >
+            {photos.map((uri, index) => (
+              <View key={index} style={{ marginRight: 8 }}>
+                <Image
+                  source={{ uri }}
+                  style={styles.thumbnail}
+                  contentFit="cover"
+                />
+                <TouchableOpacity
+                  onPress={() => deletePhoto(uri)}
+                  style={styles.deleteButton}
+                >
+                  <Text style={{ color: "white", fontSize: 12 }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyThumbnail}>
+            <Text style={{ color: "#aaa" }}>사진을 촬영해보세요</Text>
+          </View>
+        )}
+      </View>
+
+      {/* (2) 카메라 영역 - flex 1 */}
+      <View style={{ flex: 1 }}>
+        <CameraView
+          style={styles.camera}
+          ref={ref}
+          mode={mode}
+          facing={facing}
+          mute={false}
+          responsiveOrientationWhenOrientationLocked
+        >
+          <View style={styles.shutterContainer}>
+            <Pressable onPress={toggleMode}>
+              {mode === "picture" ? (
+                <AntDesign name="picture" size={32} color="white" />
+              ) : (
+                <Feather name="video" size={32} color="white" />
+              )}
+            </Pressable>
+
+            <Pressable
+  onPress={mode === "picture" ? takePicture : recordVideo}
+  disabled={mode === "picture" && photos.length >= 3}
+>
+  {({ pressed }) => (
+    <View
+      style={[
+        styles.shutterBtn,
+        {
+          opacity:
+            photos.length >= 3
+              ? 0.3
+              : pressed
+              ? 0.5
+              : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.shutterBtnInner,
+          {
+            backgroundColor: mode === "picture" ? "white" : "red",
+          },
+        ]}
+      />
+    </View>
+  )}
+</Pressable>
+
+
+            <Pressable onPress={toggleFacing}>
+              <FontAwesome6 name="rotate-left" size={32} color="white" />
+            </Pressable>
+          </View>
+        </CameraView>
+      </View>
+
+      {/* (3) 하단 선택 완료 버튼 - 고정 높이 */}
+      <View style={styles.confirmContainer}>
+        <Button title="선택 완료" onPress={uploadPhotos} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  thumbnailWrapper: {
+    height: 90,
+    backgroundColor: "#111",
+    justifyContent: "center",
+  },
+  thumbnailRow: {
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  emptyThumbnail: {
     flex: 1,
-    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  thumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  deleteButton: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "black",
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   camera: {
     flex: 1,
@@ -204,7 +269,7 @@ const styles = StyleSheet.create({
   },
   shutterContainer: {
     position: "absolute",
-    bottom: 44,
+    bottom: 100,
     left: 0,
     width: "100%",
     alignItems: "center",
@@ -226,5 +291,13 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 50,
+  },
+  confirmContainer: {
+    height: 72,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
   },
 });

@@ -5,14 +5,11 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { DateTime } from "npm:luxon@3.4.4";
 import { sendPushNotification } from "../../../utils/sendPushNotification.ts";
 
 Deno.serve(async (req: Request) => {
-  const now = new Date(Date.now() + 9 * 60 * 60 * 1000); // UTC+9
-  now.setSeconds(0, 0); // 초, 밀리초 제거
-  const nowIso = now.toISOString();
-  const todayDate = nowIso.split("T")[0]; // 'YYYY-MM-DD'
-  const formattedTime = now.toTimeString().split(" ")[0]; // ex: '14:23:00'
+  const nowUTC = DateTime.utc().startOf("minute").toISO(); // ex: '2025-08-05T09:48:00.000Z'
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -26,51 +23,63 @@ Deno.serve(async (req: Request) => {
     }
   );
 
-  const { data: memoryEntries, error } = await supabaseClient
-  .from("memory_entries")
-  .select(
-    "*, memories!inner(date, profile_id, profiles!inner(expo_push_token_ios, expo_push_token_android))"
-  )
-  .eq("memories.date", todayDate)
-  .eq("is_from_noti", true)
-  .eq("noti_scheduled_time", formattedTime)
-  .is("noti_sent_at", null);
+  const { data: notifications, error } = await supabaseClient
+  .from("notifications")
+  .select(`
+    notification_id,
+    memory_id,
+    scheduled_at,
+    sent_at,
+    memories:memory_id (
+      profile_id,
+      profiles:profile_id (
+        expo_push_token_ios,
+        expo_push_token_android,
+        is_deleted
+      )
+    )
+  `)
+  .eq("scheduled_at", nowUTC)
+  .is("sent_at", null); 
 
   if (error) {
-    console.log(error);
-    return new Response("Database error", { status: 500 });
+    console.error("❌ 알림 조회 실패:", error.message);
+    return new Response("알림 조회 실패", { status: 500 });
   }
 
-for (const memoryEntry of memoryEntries ?? []) {
-  const iosToken = memoryEntry.memories.profiles.expo_push_token_ios;
-  const androidToken = memoryEntry.memories.profiles.expo_push_token_android;
-  const tokens = [iosToken, androidToken].filter(Boolean);
+  const valid = (notifications ?? []).filter(
+  (n) => n.memories?.profiles?.is_deleted === false
+);
 
-  let success = false;
+for (const notification of valid) {
+    const iosToken = notification.memories.profiles.expo_push_token_ios;
+    const androidToken = notification.memories.profiles.expo_push_token_android;
+    const tokens = [iosToken, androidToken].filter(Boolean);
+    
+    let success = false;
+    
+    for (const token of tokens) {
+      const result = await sendPushNotification(
+        token,
+        "지금을 기록할 시간이에요 📝",
+        "오늘 하루 어땠나요?",
+        {
+          url: "/camera?memory_id=" + notification.memory_id + "&notification_id=" + notification.notification
+        }
+      );
 
-  for (const token of tokens) {
-    const result = await sendPushNotification(
-      token,
-      "지금을 기록할 시간이에요 📝",
-      "오늘 하루 어땠나요?",
-      {
-        url: "/camera?memory_entry_id=" + memoryEntry.memory_entry_id
-      }
-    );
+      if (result) success = true;
+    }
 
-    if (result) success = true;
+    if (success) {
+      await supabaseClient
+        .from("notifications")
+        .update({ sent_at: new Date().toISOString() })
+        .eq("notification_id", notification.notification_id);
+    }
   }
 
-  if (success) {
-    await supabaseClient
-      .from("memory_entries")
-      .update({ noti_sent_at: new Date().toISOString() })
-      .eq("memory_entry_id", memoryEntry.memory_entry_id);
-  }
-}
-
-
-  return new Response(JSON.stringify({ data: {memoryEntries: memoryEntries}, error }), {
+  return new Response(JSON.stringify({ data: {nowUTC:nowUTC, notifications: notifications, valid: valid}, error }), {
     headers: { "Content-Type": "application/json" },
   });
 });
