@@ -1,4 +1,3 @@
-import { supabase } from "@/utils/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -8,7 +7,6 @@ import {
   CameraView,
   useCameraPermissions,
 } from "expo-camera";
-import * as FileSystem from 'expo-file-system';
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from "react";
@@ -29,7 +27,7 @@ export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [recording, setRecording] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
-  const { memory_id, notification_id } = useLocalSearchParams();
+  const { memory_id, notification_id, insert_index } = useLocalSearchParams();
 
   if (!permission) return null;
 
@@ -70,50 +68,51 @@ export default function CameraScreen() {
       uris: JSON.stringify(photos),
       memory_id,
       notification_id,
+      insert_index,
     },
   });
 
   // ✅ 이후에 업로드는 백그라운드에서 진행
-  for (const uri of photos) {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  // for (const uri of photos) {
+  //   try {
+  //     const {
+  //       data: { session },
+  //     } = await supabase.auth.getSession();
 
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+  //     const base64 = await FileSystem.readAsStringAsync(uri, {
+  //       encoding: FileSystem.EncodingType.Base64,
+  //     });
 
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
+  //     const binary = atob(base64);
+  //     const bytes = new Uint8Array(binary.length);
+  //     for (let i = 0; i < binary.length; i++) {
+  //       bytes[i] = binary.charCodeAt(i);
+  //     }
 
-      const fileName = `photo_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
+  //     const fileName = `photo_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("photos")
-        .upload(fileName, bytes, {
-          contentType: "image/jpeg",
-          upsert: true,
-        });
+  //     const { error: uploadError } = await supabase.storage
+  //       .from("photos")
+  //       .upload(fileName, bytes, {
+  //         contentType: "image/jpeg",
+  //         upsert: true,
+  //       });
 
-      if (uploadError) {
-        console.error("❌ Upload error:", uploadError.message);
-        continue;
-      }
+  //     if (uploadError) {
+  //       console.error("❌ Upload error:", uploadError.message);
+  //       continue;
+  //     }
 
-      const { data: urlData } = supabase.storage
-        .from("photos")
-        .getPublicUrl(fileName);
+  //     const { data: urlData } = supabase.storage
+  //       .from("photos")
+  //       .getPublicUrl(fileName);
 
-      console.log("✅ Uploaded:", urlData.publicUrl);
-      // TODO: 사진 업로드는 오래 걸려서 미리 하고 최종적으로 업로드때 혹시 안올라간거 있으면 올리고 db 업데이트.
-    } catch (e) {
-      console.error("Upload threw an error:", e);
-    }
-  }
+  //     console.log("✅ Uploaded:", urlData.publicUrl);
+  //     // TODO: 사진 업로드는 오래 걸려서 미리 하고 최종적으로 업로드때 혹시 안올라간거 있으면 올리고 db 업데이트.
+  //   } catch (e) {
+  //     console.error("Upload threw an error:", e);
+  //   }
+  // }
 };
 
 

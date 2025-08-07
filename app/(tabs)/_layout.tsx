@@ -5,6 +5,7 @@ export default function TabsLayout() {
     <Tabs>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="memories" />
+      <Tabs.Screen name="mypage" />
     </Tabs>
   )
 }

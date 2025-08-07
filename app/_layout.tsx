@@ -22,7 +22,7 @@ export default function RootLayout() {
         setPendingRedirectUrl(url);
       }
     });
-    setPendingRedirectUrl('/camera?memory_id=10&notification_id=37');
+    // setPendingRedirectUrl('/camera?memory_id=13&notification_id=52');
 
     // ✅ 실시간 푸시 클릭 감지 리스너 등록
     const subscription = Notifications.addNotificationResponseReceivedListener(res => {

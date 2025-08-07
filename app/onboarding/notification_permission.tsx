@@ -28,14 +28,14 @@ export default function OnboardingNotificationPermissionScreen() {
       return;
     }
 
-    // const { error: updateError } = await supabase
-    //   .from("profiles")
-    //   .update({ has_completed_onboarding: true })
-    //   .eq("profile_id", profileId);
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ has_completed_onboarding: true })
+      .eq("profile_id", profileId);
 
-    // if (updateError) {
-    //   Alert.alert("오류", "온보딩 완료 상태를 저장하지 못했습니다.");
-    // }
+    if (updateError) {
+      Alert.alert("오류", "온보딩 완료 상태를 저장하지 못했습니다.");
+    }
 
     setHasCompletedOnboarding(true);
   };

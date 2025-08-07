@@ -1,17 +1,44 @@
 import { useAuthStore } from "@/utils/authStore";
-import { getUserMemoryBundles, type MemoryBundle } from '@/utils/memoryBundles';
+import { getUserMemoryBundleByMonth } from "@/utils/memoryBundles";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, Text, View } from "react-native";
 import { supabase } from "../../utils/supabase";
+
+// 📦 MemoryBundleWithoutNotifications 타입
+type MemoryBundle = {
+  memory: {
+    memory_id: string;
+    date: string;
+    profile_id: string;
+    created_at: string;
+    updated_at: string | null;
+  };
+  entries: {
+    entry: {
+      memory_entry_id: string;
+      content: string;
+      created_at: string;
+    };
+    images: {
+      image_id: string;
+      image_url: string;
+    }[];
+  }[];
+};
 
 export default function MemoriesScreen() {
   const { profileId } = useAuthStore();
   const [memories, setMemories] = useState<MemoryBundle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState<string>("");
 
-  const loadAllMemories = async (profileId: string) => {
+  const loadMonthMemories = async (profileId: string) => {
     try {
-      const result = await getUserMemoryBundles(supabase, profileId);
+      const today = new Date();
+      const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+      setCurrentMonth(month);
+
+      const result = await getUserMemoryBundleByMonth(supabase, profileId, month);
       setMemories(result);
     } catch (e) {
       console.error("메모리 불러오기 실패:", e);
@@ -22,7 +49,7 @@ export default function MemoriesScreen() {
 
   useEffect(() => {
     if (profileId) {
-      loadAllMemories(profileId);
+      loadMonthMemories(profileId);
     }
   }, [profileId]);
 
@@ -32,6 +59,10 @@ export default function MemoriesScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        📅 {currentMonth} 메모리
+      </Text>
+
       {memories.length === 0 ? (
         <Text style={{ textAlign: "center" }}>메모리가 없습니다.</Text>
       ) : (
