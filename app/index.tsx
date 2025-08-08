@@ -46,45 +46,51 @@ export default function IndexScreen() {
     if (!profileId) return;
 
     const fetchThumbnails = async () => {
-      setMemoriesLoading(true);
+  setMemoriesLoading(true);
 
-      const { data, error } = await supabase
-        .from("memories")
-        .select(`
-          date,
-          memory_entries (
-            memory_entry_id,
-            content,
-            image_url,
-            location,
-            is_thumbnail
-          )
-        `)
-        .eq("profile_id", profileId)
-        .eq("is_completed", true)
-        .order("date", { ascending: false });
+  const { data, error } = await supabase
+    .from("memories")
+    .select(`
+      date,
+      memory_entries (
+        memory_entry_id,
+        content,
+        image_url,
+        location,
+        is_thumbnail,
+        entry_index
+      )
+    `)
+    .eq("profile_id", profileId)
+    .eq("is_completed", true)
+    .order("date", { ascending: false });
 
-      if (error) {
-        console.error("❌ memory fetch error:", error.message);
-        setMemoriesLoading(false);
-        return;
-      }
+  if (error) {
+    console.error("❌ memory fetch error:", error.message);
+    setMemoriesLoading(false);
+    return;
+  }
 
-      const grouped: { [date: string]: any[] } = {};
+  const grouped: { [date: string]: any[] } = {};
 
-      for (const memory of data) {
-        const date = memory.date;
-        const thumbnails = (memory.memory_entries || []).filter(
-          (e: any) => e.is_thumbnail
-        );
-        if (thumbnails.length > 0) {
-          grouped[date] = [thumbnails[0]]; // 썸네일 1개만
-        }
-      }
+  for (const memory of data) {
+    const date = memory.date;
+    const entries = memory.memory_entries || [];
 
-      setGroupedMemories(grouped);
-      setMemoriesLoading(false);
-    };
+    // 썸네일 우선순위: is_thumbnail → entry_index === 0
+    const thumbnail =
+      entries.find((e: any) => e.is_thumbnail) ||
+      entries.find((e: any) => e.entry_index === 0);
+
+    if (thumbnail) {
+      grouped[date] = [thumbnail];
+    }
+  }
+
+  setGroupedMemories(grouped);
+  setMemoriesLoading(false);
+};
+
 
     fetchThumbnails();
   }, [profileId]);
@@ -157,6 +163,9 @@ export default function IndexScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Button title="카메라 열기" onPress={() => router.push("/camera")} />
+      <Button title="오늘 하루 찍은 사진 열기" onPress={() => router.push("/today")} />
+      <Button title="기록 안된 사진들" onPress={() => router.push("/pending")} />
+      <Button title="마이페이지 열기" onPress={() => router.push("/mypage")} />
 
       {/* memory 목록 렌더링 */}
       <ScrollView style={{ marginTop: 24, paddingHorizontal: 16, width: "100%" }}>
@@ -201,14 +210,14 @@ export default function IndexScreen() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>필요한 권한 요청이 있어요.</Text>
             <Text style={styles.modalDesc}>
-              Dearday를 원활히 사용하기 위해서,{"\n"}알림과 사진 권한을 요청드릴 예정이에요.
+              Dearday를 원활히 사용하기 위해서,{"\n"}알림 권한을 요청드릴 예정이에요.
             </Text>
 
             <Pressable
               style={styles.confirmButton}
               onPress={handleRequestPermissions}
             >
-              <Text style={styles.confirmText}>디어데이 시작하기</Text>
+              <Text style={styles.confirmText}>확인했어요</Text>
             </Pressable>
           </View>
         </View>

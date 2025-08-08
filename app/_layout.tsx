@@ -65,7 +65,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="index" />
         </Stack.Protected>
       </Stack>
     </>

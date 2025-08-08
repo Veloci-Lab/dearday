@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   SafeAreaView,
   ScrollView,
@@ -19,56 +20,65 @@ export default function TodayScreen() {
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [today] = useState(getLocalDateString());
 
   useEffect(() => {
     if (!profileId) return;
 
     const fetchTodayImages = async () => {
-  setLoading(true);
+      setLoading(true);
 
-  // ✅ 메모리 ID 가져오기
-  const { data: memoryData, error: memoryError } = await supabase
-    .from("memories")
-    .select("memory_id")
-    .eq("profile_id", profileId)
-    .eq("date", getLocalDateString())
-    .single();
+      // ✅ 메모리 ID 가져오기
+      const { data: memoryData, error: memoryError } = await supabase
+        .from("memories")
+        .select("memory_id")
+        .eq("profile_id", profileId)
+        .eq("date", today)
+        .maybeSingle();
 
-  if (memoryError || !memoryData) {
-    console.error("❌ 메모리 조회 실패:", memoryError?.message);
-    setEntries([]);
-    setSelectedIds([]);
-    setLoading(false);
-    return;
-  }
+      if (memoryError) {
+        console.log('memoryError', memoryError);
+        
+        Alert.alert("문제가 발생했어요. 잠시 후 다시 시도해주세요.")
+        setEntries([]);
+        setSelectedIds([]);
+        setLoading(false);
+        return;
+      }
 
-  // ✅ memory_entries 직접 조회 + 정렬
-  const { data: entriesData, error: entriesError } = await supabase
-    .from("memory_entries")
-    .select("memory_entry_id, image_url, is_selected, entry_index")
-    .eq("memory_id", memoryData.memory_id)
-    .order("entry_index", { ascending: true });
+      if (!memoryData) {
+        // 데이터 없음 (오늘 메모리가 아직 생성되지 않음)
+        setEntries([]);
+        setSelectedIds([]);
+        setLoading(false);
+        return;
+      }
 
-    if (entriesError) {
-      console.error("❌ 메모리 엔트리 조회 실패:", entriesError.message);
-      setEntries([]);
-      setSelectedIds([]);
+      // ✅ memory_entries 직접 조회 + 정렬
+      const { data: entriesData, error: entriesError } = await supabase
+        .from("memory_entries")
+        .select("memory_entry_id, image_url, is_selected, entry_index")
+        .eq("memory_id", memoryData.memory_id)
+        .order("entry_index", { ascending: true });
+
+      if (entriesError) {
+        console.error("❌ 메모리 엔트리 조회 실패:", entriesError.message);
+        setEntries([]);
+        setSelectedIds([]);
+        setLoading(false);
+        return;
+      }
+
+      const entriesWithImages = entriesData.filter((e) => !!e.image_url);
+      setEntries(entriesWithImages);
+
+      const preSelected = entriesWithImages
+        .filter((e) => e.is_selected)
+        .map((e) => e.memory_entry_id);
+
+      setSelectedIds(preSelected);
       setLoading(false);
-      return;
-    }
-
-    const entriesWithImages = entriesData.filter((e) => !!e.image_url);
-    setEntries(entriesWithImages);
-
-    const preSelected = entriesWithImages
-      .filter((e) => e.is_selected)
-      .map((e) => e.memory_entry_id);
-
-    setSelectedIds(preSelected);
-    setLoading(false);
-  };
-
-
+    };
     fetchTodayImages();
   }, [profileId]);
 
@@ -108,7 +118,10 @@ export default function TodayScreen() {
         }
       }
 
-      router.push("/compose");
+      router.push({
+        pathname: "/compose",
+        params: { date: today },
+      });
     } catch (err) {
       console.error("❌ handleNext 실행 오류:", err);
     }

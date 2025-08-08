@@ -19,8 +19,13 @@ export default function OnboardingV1IndexScreen() {
     useCallback(() => {
       setFooter({
         label: "다음",
-        progress: 0.33,
+        progress: 0.5,
         onPress: async () => {
+          if (!profileId) {
+            Alert.alert("오류", "사용자 정보가 없습니다.");
+            return;
+          }
+
           if (status === "available") {
             const trimmed = nickname.trim();
 
@@ -41,7 +46,7 @@ export default function OnboardingV1IndexScreen() {
               return;
             }
 
-            router.push("/onboarding/(v1)/second");
+            router.replace("/onboarding/(v1)/second");
           } else {
             Alert.alert("닉네임 중복 확인을 먼저 완료해주세요.");
           }

@@ -182,14 +182,22 @@ export default function App() {
         image_url: imageUrl,
       };
 
-      const { error: entryErr } = await supabase
+      const { data, error: entryErr } = await supabase
         .from("memory_entries")
-        .insert(insertData);
+        .insert(insertData)
+        .select("memory_entry_id") // ✅ 삽입한 row의 id 반환
+        .single(); // ✅ 단일 row 반환
 
       if (entryErr) throw entryErr;
 
       console.log("✅ 사진 업로드 및 DB 저장 완료");
-      router.replace("/");
+
+      router.replace({
+        pathname: "/quick-memo",
+        params: {
+          memory_entry_id: data.memory_entry_id, // ✅ 전달
+        },
+      });
     } catch (err) {
       console.error("❌ handleConfirmPhoto 오류:", err);
     }
