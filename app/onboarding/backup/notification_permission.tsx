@@ -4,7 +4,7 @@ import { getLocalDateString, localToUTC } from '@/utils/date';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
 import React, { useState } from 'react';
 import { Alert, Button, Platform, Text, View } from "react-native";
-import { supabase } from "../../utils/supabase";
+import { supabase } from "../../../utils/supabase";
 
 export default function OnboardingNotificationPermissionScreen() {
   const { profileId } = useAuthStore();

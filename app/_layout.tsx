@@ -22,7 +22,8 @@ export default function RootLayout() {
         setPendingRedirectUrl(url);
       }
     });
-    // setPendingRedirectUrl('/camera?memory_id=13&notification_id=52');
+    setPendingRedirectUrl('/onboarding');
+    // camera?memory_id=13&notification_id=52
 
     // ✅ 실시간 푸시 클릭 감지 리스너 등록
     const subscription = Notifications.addNotificationResponseReceivedListener(res => {
@@ -64,7 +65,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" />
         </Stack.Protected>
       </Stack>
     </>

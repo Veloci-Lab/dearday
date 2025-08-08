@@ -4,7 +4,7 @@ export default function TabsLayout() {
   return (
     <Tabs>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="memories" />
+      <Tabs.Screen name="today" />
       <Tabs.Screen name="mypage" />
     </Tabs>
   )
