@@ -73,17 +73,45 @@ export default function OnboardingSecondScreen() {
       return;
     }
 
-    // 유효성 검사
-    if (!skipSleepSetting && (!sleepTime || !wakeTime || wakeTime <= sleepTime)) {
-      Alert.alert("수면 시간 오류", "수면 시간과 기상 시간을 바르게 설정해주세요.");
-      return;
+    // ✅ 수면시간 유효성 검사
+    if (!skipSleepSetting) {
+      if (!sleepTime || !wakeTime) {
+        Alert.alert("수면 시간 오류", "수면 시간과 기상 시간을 설정해주세요.");
+        return;
+      }
+
+      const sleep = new Date(sleepTime);
+      const wake = new Date(wakeTime);
+      if (wake <= sleep) wake.setDate(wake.getDate() + 1);
+
+      const duration = wake.getTime() - sleep.getTime();
+      const max = 1000 * 60 * 60 * 12; // 12시간
+      if (duration <= 0 || duration > max) {
+        Alert.alert("수면 시간 오류", "수면 시간은 최대 12시간 이내여야 합니다.");
+        return;
+      }
     }
 
-    if (!skipWorkSetting && (!workStartTime || !workEndTime || workEndTime <= workStartTime)) {
-      Alert.alert("그 외 시간 오류", "시작과 종료 시간을 바르게 설정해주세요.");
-      return;
+    // ✅ 근무시간 유효성 검사
+    if (!skipWorkSetting) {
+      if (!workStartTime || !workEndTime) {
+        Alert.alert("그 외 시간 오류", "시작과 종료 시간을 설정해주세요.");
+        return;
+      }
+
+      const start = new Date(workStartTime);
+      const end = new Date(workEndTime);
+      if (end <= start) end.setDate(end.getDate() + 1);
+
+      const duration = end.getTime() - start.getTime();
+      const max = 1000 * 60 * 60 * 12; // 12시간
+      if (duration <= 0 || duration > max) {
+        Alert.alert("그 외 시간 오류", "그 외 시간은 최대 12시간 이내여야 합니다.");
+        return;
+      }
     }
 
+    // ✅ Supabase 업데이트
     const updates = {
       sleep_time: skipSleepSetting ? null : sleepTime?.toTimeString().slice(0, 8) ?? null,
       wake_time: skipSleepSetting ? null : wakeTime?.toTimeString().slice(0, 8) ?? null,
@@ -91,7 +119,11 @@ export default function OnboardingSecondScreen() {
       work_end_time: skipWorkSetting ? null : workEndTime?.toTimeString().slice(0, 8) ?? null,
     };
 
-    const { error } = await supabase.from("profiles").update(updates).eq("profile_id", profileId);
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("profile_id", profileId);
+
     if (error) {
       Alert.alert("업데이트 실패", error.message);
       return;
@@ -103,8 +135,8 @@ export default function OnboardingSecondScreen() {
   useFocusEffect(
     useCallback(() => {
       setFooter({
-        label: "완료",
-        progress: 0.5,
+        label: "다음",
+        progress: 0.66,
         onPress: handleNext,
       });
     }, [

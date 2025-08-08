@@ -18,8 +18,8 @@ export default function OnboardingV1IndexScreen() {
   useFocusEffect(
     useCallback(() => {
       setFooter({
-        label: "완료",
-        progress: 0.25,
+        label: "다음",
+        progress: 0.33,
         onPress: async () => {
           if (status === "available") {
             const trimmed = nickname.trim();

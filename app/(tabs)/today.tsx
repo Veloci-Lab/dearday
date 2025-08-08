@@ -16,7 +16,6 @@ import {
 
 export default function TodayScreen() {
   const { profileId } = useAuthStore();
-  const today = getLocalDateString();
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +31,7 @@ export default function TodayScreen() {
     .from("memories")
     .select("memory_id")
     .eq("profile_id", profileId)
-    .eq("date", today)
+    .eq("date", getLocalDateString())
     .single();
 
   if (memoryError || !memoryData) {

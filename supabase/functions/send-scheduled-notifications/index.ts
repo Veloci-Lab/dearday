@@ -27,7 +27,6 @@ Deno.serve(async (req: Request) => {
   .from("notifications")
   .select(`
     notification_id,
-    memory_id,
     scheduled_at,
     sent_at,
     memories:memory_id (
@@ -64,7 +63,7 @@ for (const notification of valid) {
         "지금을 기록할 시간이에요 📝",
         "오늘 하루 어땠나요?",
         {
-          url: "/camera?memory_id=" + notification.memory_id + "&notification_id=" + notification.notification
+          url: "/camera?notification_id=" + notification.notification
         }
       );
 
