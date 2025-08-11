@@ -1,18 +1,17 @@
+import MasonryGrid, { type FeedItem } from "@/components/MasonryGrid";
 import { useAuthStore } from "@/utils/authStore";
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Button,
-  Image,
   Modal,
   Platform,
   Pressable,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View
@@ -24,6 +23,20 @@ export default function IndexScreen() {
   // const [, requestCameraPermission] = useCameraPermissions();
   const [groupedMemories, setGroupedMemories] = useState<{ [date: string]: any[] }>({});
   const [memoriesLoading, setMemoriesLoading] = useState(true);
+
+  const feedItems: FeedItem[] = useMemo(() => {
+    console.log(groupedMemories);
+    
+    return Object.entries(groupedMemories).flatMap(([date, entries]) =>
+      entries
+        .map((e) => ({
+          id: String(e.memory_entry_id),
+          imageUrl: e.image_url as string,
+          dateISO: date,                   // Masonry에서 안 쓰더라도 보존
+          place: e.location ?? "",         // 장소 있으면 넣기
+        }))
+    );
+  }, [groupedMemories]);
 
   // 권한 요청 여부 확인
   useEffect(() => {
@@ -166,43 +179,30 @@ export default function IndexScreen() {
       <Button title="오늘 하루 찍은 사진 열기" onPress={() => router.push("/today")} />
       <Button title="기록 안된 사진들" onPress={() => router.push("/pending")} />
       <Button title="마이페이지 열기" onPress={() => router.push("/mypage")} />
+      <Button title="레이아웃테스트" onPress={() => router.push("/layout")} />
 
       {/* memory 목록 렌더링 */}
-      <ScrollView style={{ marginTop: 24, paddingHorizontal: 16, width: "100%" }}>
-        {memoriesLoading ? (
-          <ActivityIndicator size="small" color="#3478F6" />
-        ) : (
-          Object.entries(groupedMemories).map(([date, entries]) => (
-            <View key={date} style={{ marginBottom: 32 }}>
-              <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
-                {date}
-              </Text>
+<View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
+  {memoriesLoading ? (
+    <ActivityIndicator size="small" color="#3478F6" style={{ marginTop: 24 }} />
+  ) : (
+    <MasonryGrid
+      items={feedItems}
+      gap={6}
+      padding={14}
+      options={{
+        seed: 20250810,
+        initialOrder: ["L1", "L2", "L3"], // 처음 3개 고정 시퀀스
+        noConsecutive: true,              // 연속 중복 방지
+        allowed: ["L1", "L2", "L3"],
+      }}
+      onPressItem={(item) => router.push(`/day/${item.id}`)}
+      // header={<YourHeader/>}   // 필요 시 상단 고정 헤더도 넣을 수 있음
+      // stickyHeader
+    />
+  )}
+</View>
 
-              {entries.map((entry) => (
-                <View key={entry.memory_entry_id} style={{ marginBottom: 20 }}>
-                  {entry.image_url && (
-                    <Image
-                      source={{ uri: entry.image_url }}
-                      style={{
-                        width: "100%",
-                        aspectRatio: 3 / 2,
-                        borderRadius: 10,
-                        backgroundColor: "#eee",
-                      }}
-                    />
-                  )}
-                  {entry.location && (
-                    <Text style={{ marginTop: 8, fontSize: 15 }}>{entry.location}</Text>
-                  )}
-                  {entry.content && (
-                    <Text style={{ marginTop: 8, fontSize: 15 }}>{entry.content}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          ))
-        )}
-      </ScrollView>
 
       {/* 기존 모달 유지 */}
       <Modal visible={visible} transparent animationType="slide">
