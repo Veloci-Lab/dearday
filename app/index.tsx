@@ -34,7 +34,6 @@ type MemoryThumbRow = {
 export default function IndexScreen() {
   const { profileId } = useAuthStore();
   const insets = useSafeAreaInsets();
-
   const [visible, setVisible] = useState(false);
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [rows, setRows] = useState<MemoryThumbRow[]>([]);
