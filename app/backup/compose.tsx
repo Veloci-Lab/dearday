@@ -3,17 +3,17 @@ import { supabase } from "@/utils/supabase";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -96,7 +96,10 @@ export default function ComposeScreen() {
       // memory is_completed 처리
       await supabase
         .from("memories")
-        .update({ is_completed: true })
+        .update({ 
+          is_completed: true,
+          thumbnail_entry_id: entries[0].memory_entry_id, // TODO: 썸네일 선택 기능 추가. 임시로 첫번째 사진
+         })
         .eq("memory_id", memoryId);
 
       Alert.alert("완료", "기록이 저장되었어요.");

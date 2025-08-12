@@ -59,13 +59,22 @@ export default function RootLayout() {
       <StatusBar style="auto" />
       <Stack>
         <Stack.Protected guard={!isLoggedIn}>
-          <Stack.Screen name="sign-in" />
+          <Stack.Screen 
+            name="sign-in" 
+            options={{ headerShown: false }} 
+          />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
-          <Stack.Screen name="onboarding" />
+          <Stack.Screen
+           name="onboarding"
+           options={{ headerShown: false }} 
+          />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
-          <Stack.Screen name="index" />
+          <Stack.Screen
+            name="index"
+            options={{ headerShown: false }} 
+          />
         </Stack.Protected>
       </Stack>
     </>

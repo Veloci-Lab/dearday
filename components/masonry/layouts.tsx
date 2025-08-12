@@ -1,7 +1,7 @@
 // layouts.tsx
 import { Image } from "expo-image";
 import React from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native"; // ✅ Text 추가
 import type { FeedItem } from "./types";
 import { isPH } from "./utils";
 
@@ -26,7 +26,6 @@ export function PlaceholderBox({
   );
 }
 
-/** 공통 타일: onPressItem 유무로 활성/비활성 결정 */
 export function Tile({
   it,
   width,
@@ -46,24 +45,73 @@ export function Tile({
 
   const pressable = !!onPressItem;
 
-  const content = (
+  const Img = (
     <Image
       source={{ uri: it.imageUrl }}
-      style={{ width, height, borderRadius: radius, opacity: pressable ? 1 : 0.5 }}
+      style={{ width, height, borderRadius: radius, opacity: 1 }}
       contentFit="cover"
+      transition={0}
+      placeholder={undefined}
     />
   );
 
-  if (!pressable) return content;
+  // ✅ 왼쪽 상단 오버레이
+  const Overlay = (
+    <View
+      style={{
+        position: "absolute",
+        left: 6,
+        top: 6,
+        // backgroundColor: "rgba(0,0,0,0.45)",
+        // borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        maxWidth: width - 12,
+      }}
+      pointerEvents="none"
+    >
+      {!!it.dateISO && (
+        <Text style={{ color: "#fff", fontSize: 16 }}>
+          {it.dateISO}
+        </Text>
+      )}
+      {!!it.place && (
+        <Text
+          numberOfLines={1}
+          style={{ color: "#fff", fontSize: 12 }}
+        >
+          {it.place}
+        </Text>
+      )}
+    </View>
+  );
+
+  // 공통 래퍼: 오버플로우 클립으로 둥근 모서리 안에 오버레이 포함
+  const WrapperStyle = {
+    width,
+    height,
+    borderRadius: radius,
+    overflow: "hidden" as const,
+  };
+
+  if (!pressable) {
+    return (
+      <View style={WrapperStyle}>
+        {Img}
+        {Overlay}
+      </View>
+    );
+  }
 
   return (
     <Pressable
       onPress={() => onPressItem?.(it)}
       accessibilityRole="button"
-      style={{ width, height, borderRadius: radius, overflow: "hidden" }}
+      style={WrapperStyle}
       android_ripple={{}}
     >
-      {content}
+      {Img}
+      {Overlay}
     </Pressable>
   );
 }

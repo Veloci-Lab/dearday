@@ -10,12 +10,14 @@ import {
   CameraView,
   useCameraPermissions,
 } from "expo-camera";
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import * as MediaLibrary from "expo-media-library";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   AppState,
   Button,
   Platform,
@@ -23,7 +25,7 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
+} from "react-native";
 
 export default function App() {
   const { profileId } = useAuthStore();
@@ -36,16 +38,14 @@ export default function App() {
   const [recording, setRecording] = useState(false);
 
   useEffect(() => {
-    if (permission?.status === 'undetermined') {
+    if (permission?.status === "undetermined") {
       requestPermission();
     }
-
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
         requestPermission();
       }
     });
-
     return () => {
       subscription.remove();
     };
@@ -83,9 +83,30 @@ export default function App() {
     );
   }
 
+  // ---------------------------
+  // 갤러리 저장 헬퍼 (앨범 만들지 않음)
+  // ---------------------------
+  const saveToGallery = async (localUri: string) => {
+    try {
+      const { status, canAskAgain } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        if (canAskAgain) {
+          Alert.alert("권한 필요", "갤러리에 저장하려면 사진/미디어 권한을 허용해주세요.");
+        }
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(localUri);
+    } catch (e) {
+      console.warn("갤러리 저장 실패:", e);
+    }
+  };
+
   const takePicture = async () => {
     const photo = await ref.current?.takePictureAsync();
-    setUri(photo?.uri);
+    if (!photo?.uri) return;
+    setUri(photo.uri);
+    // ✅ 촬영 직후 갤러리에 자동 저장
+    saveToGallery(photo.uri);
   };
 
   const recordVideo = async () => {
@@ -96,7 +117,12 @@ export default function App() {
     }
     setRecording(true);
     const video = await ref.current?.recordAsync();
-    console.log({ video });
+    setRecording(false);
+    if (video?.uri) {
+      // ✅ 녹화 완료 후 갤러리에 자동 저장
+      saveToGallery(video.uri);
+      console.log({ video });
+    }
   };
 
   const toggleMode = () => {
@@ -126,18 +152,15 @@ export default function App() {
       const fileName = `photo_${Date.now()}.jpg`;
 
       const { error } = await supabase.storage
-        .from('photos')
+        .from("photos")
         .upload(fileName, bytes, {
-          contentType: 'image/jpeg',
+          contentType: "image/jpeg",
           upsert: false,
         });
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
-        .from('photos')
-        .getPublicUrl(fileName);
-
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
       const imageUrl = urlData?.publicUrl;
       if (!imageUrl) throw new Error("Public URL 생성 실패");
 
@@ -185,8 +208,8 @@ export default function App() {
       const { data, error: entryErr } = await supabase
         .from("memory_entries")
         .insert(insertData)
-        .select("memory_entry_id") // ✅ 삽입한 row의 id 반환
-        .single(); // ✅ 단일 row 반환
+        .select("memory_entry_id")
+        .single();
 
       if (entryErr) throw entryErr;
 
@@ -195,7 +218,7 @@ export default function App() {
       router.replace({
         pathname: "/quick-memo",
         params: {
-          memory_entry_id: data.memory_entry_id, // ✅ 전달
+          memory_entry_id: data.memory_entry_id,
         },
       });
     } catch (err) {
@@ -206,11 +229,7 @@ export default function App() {
   const renderPicture = () => {
     return (
       <View>
-        <Image
-          source={{ uri }}
-          contentFit="contain"
-          style={{ width: 300, aspectRatio: 1 }}
-        />
+        <Image source={{ uri }} contentFit="contain" style={{ width: 300, aspectRatio: 1 }} />
         <Button onPress={() => setUri(null)} title="Take another picture" />
         <Button onPress={handleConfirmPhoto} title="Use this picture" />
       </View>
@@ -238,20 +257,11 @@ export default function App() {
           </Pressable>
           <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
             {({ pressed }) => (
-              <View
-                style={[
-                  styles.shutterBtn,
-                  {
-                    opacity: pressed ? 0.5 : 1,
-                  },
-                ]}
-              >
+              <View style={[styles.shutterBtn, { opacity: pressed ? 0.5 : 1 }]}>
                 <View
                   style={[
                     styles.shutterBtnInner,
-                    {
-                      backgroundColor: mode === "picture" ? "white" : "red",
-                    },
+                    { backgroundColor: mode === "picture" ? "white" : "red" },
                   ]}
                 />
               </View>
@@ -265,11 +275,7 @@ export default function App() {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      {uri ? renderPicture() : renderCamera()}
-    </View>
-  );
+  return <View style={styles.container}>{uri ? renderPicture() : renderCamera()}</View>;
 }
 
 const styles = StyleSheet.create({

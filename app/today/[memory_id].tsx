@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/utils/authStore";
 import { getLocalDateString } from "@/utils/date";
 import { supabase } from "@/utils/supabase";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,72 +15,66 @@ import {
   View,
 } from "react-native";
 
+
 export default function TodayScreen() {
   const { profileId } = useAuthStore();
+  // ✅ 무조건 id가 온다고 가정
+  const { memory_id } = useLocalSearchParams<{ memory_id: string }>();
+
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [today] = useState(getLocalDateString());
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId || !memory_id) return;
 
-    const fetchTodayImages = async () => {
+    // -1이면 오늘 메모리 찾아서 교체
+    if (memory_id === "-1") {
+      (async () => {
+        const today = getLocalDateString();
+        const { data, error } = await supabase
+          .from("memories")
+          .select("memory_id")
+          .eq("profile_id", profileId)
+          .eq("date", today)
+          .maybeSingle();
+
+        if (data?.memory_id) {
+          router.replace(`/today/${data.memory_id}`);
+        } else {
+          // 오늘 메모리 없음 → 빈 상태
+          setEntries([]); setSelectedIds([]); setLoading(false);
+        }
+      })();
+      return; // 아래 fetch 막기
+    }
+
+    // 정상 id일 때 로드
+    (async () => {
       setLoading(true);
 
-      // ✅ 메모리 ID 가져오기
-      const { data: memoryData, error: memoryError } = await supabase
+      const { data: mem } = await supabase
         .from("memories")
         .select("memory_id")
         .eq("profile_id", profileId)
-        .eq("date", today)
+        .eq("memory_id", memory_id)
         .maybeSingle();
+      if (!mem) { setEntries([]); setSelectedIds([]); setLoading(false); return; }
 
-      if (memoryError) {
-        console.log('memoryError', memoryError);
-        
-        Alert.alert("문제가 발생했어요. 잠시 후 다시 시도해주세요.")
-        setEntries([]);
-        setSelectedIds([]);
-        setLoading(false);
-        return;
-      }
-
-      if (!memoryData) {
-        // 데이터 없음 (오늘 메모리가 아직 생성되지 않음)
-        setEntries([]);
-        setSelectedIds([]);
-        setLoading(false);
-        return;
-      }
-
-      // ✅ memory_entries 직접 조회 + 정렬
-      const { data: entriesData, error: entriesError } = await supabase
+      const { data: rows, error: e2 } = await supabase
         .from("memory_entries")
         .select("memory_entry_id, image_url, is_selected, entry_index")
-        .eq("memory_id", memoryData.memory_id)
+        .eq("memory_id", memory_id)
         .order("entry_index", { ascending: true });
 
-      if (entriesError) {
-        console.error("❌ 메모리 엔트리 조회 실패:", entriesError.message);
-        setEntries([]);
-        setSelectedIds([]);
-        setLoading(false);
-        return;
-      }
+      if (e2 || !rows) { setEntries([]); setSelectedIds([]); setLoading(false); return; }
 
-      const entriesWithImages = entriesData.filter((e) => !!e.image_url);
-      setEntries(entriesWithImages);
-
-      const preSelected = entriesWithImages
-        .filter((e) => e.is_selected)
-        .map((e) => e.memory_entry_id);
-
-      setSelectedIds(preSelected);
+      const withImages = rows.filter(r => !!r.image_url);
+      setEntries(withImages);
+      setSelectedIds(withImages.filter(r => r.is_selected).map(r => String(r.memory_entry_id)));
       setLoading(false);
-    };
-    fetchTodayImages();
-  }, [profileId]);
+    })();
+  }, [profileId, memory_id]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
@@ -90,40 +84,30 @@ export default function TodayScreen() {
 
   const handleNext = async () => {
     try {
-      // 선택된 항목 업데이트
+      // 선택된 항목 true
       const { error: selectError } = await supabase
         .from("memory_entries")
         .update({ is_selected: true })
         .in("memory_entry_id", selectedIds);
+      if (selectError) throw selectError;
 
-      if (selectError) {
-        console.error("❌ 선택 항목 업데이트 실패:", selectError.message);
-        return;
-      }
-
-      // 선택되지 않은 항목 업데이트
+      // 나머지는 false
       const unselectedIds = entries
-        .map((e) => e.memory_entry_id)
+        .map((e) => String(e.memory_entry_id))
         .filter((id) => !selectedIds.includes(id));
 
-      if (unselectedIds.length > 0) {
+      if (unselectedIds.length) {
         const { error: unselectError } = await supabase
           .from("memory_entries")
           .update({ is_selected: false })
           .in("memory_entry_id", unselectedIds);
-
-        if (unselectError) {
-          console.error("❌ 선택 해제 항목 업데이트 실패:", unselectError.message);
-          return;
-        }
+        if (unselectError) throw unselectError;
       }
 
-      router.push({
-        pathname: "/compose",
-        params: { date: today },
-      });
+      router.push(`/compose/${memory_id}`);
     } catch (err) {
       console.error("❌ handleNext 실행 오류:", err);
+      Alert.alert("저장 중 오류가 발생했어요.");
     }
   };
 
@@ -152,22 +136,17 @@ export default function TodayScreen() {
         ) : (
           <View style={styles.grid}>
             {entries.map((entry) => {
-              const isSelected = selectedIds.includes(entry.memory_entry_id);
+              const id = String(entry.memory_entry_id);
+              const isSelected = selectedIds.includes(id);
               return (
                 <TouchableOpacity
-                  key={entry.memory_entry_id}
-                  onPress={() => toggleSelect(entry.memory_entry_id)}
-                  style={[
-                    styles.imageWrapper,
-                    isSelected && { opacity: 0.8 },
-                  ]}
+                  key={id}
+                  onPress={() => toggleSelect(id)}
+                  style={[styles.imageWrapper, isSelected && { opacity: 0.8 }]}
                 >
-                  <Image
-                    source={{ uri: entry.image_url }}
-                    style={styles.image}
-                  />
+                  <Image source={{ uri: entry.image_url }} style={styles.image} />
                   {isSelected && (
-                    <View style={styles.checkOverlay}>
+                    <View className="checkOverlay" style={styles.checkOverlay}>
                       <Text style={styles.checkMark}>✓</Text>
                     </View>
                   )}
@@ -182,12 +161,10 @@ export default function TodayScreen() {
       <View style={styles.footerWrapper}>
         <TouchableOpacity
           onPress={handleNext}
-          style={styles.footerButton}
+          style={[styles.footerButton, selectedIds.length === 0 && { opacity: 0.6 }]}
           disabled={selectedIds.length === 0}
         >
-          <Text style={styles.footerText}>
-            총 {selectedIds.length}장을 선택했어요
-          </Text>
+          <Text style={styles.footerText}>총 {selectedIds.length}장을 선택했어요</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

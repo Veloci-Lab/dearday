@@ -1,7 +1,9 @@
-import MasonryGrid, { type FeedItem } from "@/components/MasonryGrid";
+import MasonryGrid from "@/components/masonry/MasonryGrid";
+import type { FeedItem } from "@/components/masonry/types";
 import { useAuthStore } from "@/utils/authStore";
-import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+import { registerForPushNotificationsAsync } from "@/utils/registerForPushNotificationsAsync";
 import { supabase } from "@/utils/supabase";
+import { Feather } from "@expo/vector-icons"; // 추가
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -14,108 +16,93 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+type MemoryThumbRow = {
+  memory_id: number;
+  date: string; // DATE (YYYY-MM-DD)
+  thumb: {
+    memory_entry_id: number;
+    image_url: string | null;
+    location: string | null;
+  } | null;
+};
 
 export default function IndexScreen() {
   const { profileId } = useAuthStore();
-  const [visible, setVisible] = useState(false);
-  // const [, requestCameraPermission] = useCameraPermissions();
-  const [groupedMemories, setGroupedMemories] = useState<{ [date: string]: any[] }>({});
-  const [memoriesLoading, setMemoriesLoading] = useState(true);
+  const insets = useSafeAreaInsets();
 
-  const feedItems: FeedItem[] = useMemo(() => {
-    console.log(groupedMemories);
-    
-    return Object.entries(groupedMemories).flatMap(([date, entries]) =>
-      entries
-        .map((e) => ({
-          id: String(e.memory_entry_id),
-          imageUrl: e.image_url as string,
-          dateISO: date,                   // Masonry에서 안 쓰더라도 보존
-          place: e.location ?? "",         // 장소 있으면 넣기
-        }))
-    );
-  }, [groupedMemories]);
+  const [visible, setVisible] = useState(false);
+  const [memoriesLoading, setMemoriesLoading] = useState(true);
+  const [rows, setRows] = useState<MemoryThumbRow[]>([]);
+
+  // Masonry용 아이템
+  const feedItems: FeedItem[] = useMemo(
+    () =>
+      rows
+        .filter((m) => !!m.thumb?.image_url)
+        .map((m) => ({
+          id: String(m.memory_id),
+          imageUrl: m.thumb!.image_url as string,
+          dateISO: m.date,
+          place: m.thumb?.location ?? "",
+        })),
+    [rows]
+  );
 
   // 권한 요청 여부 확인
   useEffect(() => {
-    // AsyncStorage.setItem("hasRequestedPermissions", "false");
-    
     if (!profileId) return;
-
-    const checkPermissionRequested = async () => {
+    (async () => {
       const value = await AsyncStorage.getItem("hasRequestedPermissions");
-      if (value !== "true") {
-        setVisible(true);
-      }
-    };
-
-    checkPermissionRequested();
+      if (value !== "true") setVisible(true);
+    })();
   }, [profileId]);
 
-  // memory 불러오기
+  // ✅ thumbnail_entry_id를 이용해 대표 썸네일만 조인해서 가져오기
   useEffect(() => {
     if (!profileId) return;
 
     const fetchThumbnails = async () => {
-  setMemoriesLoading(true);
+      setMemoriesLoading(true);
 
-  const { data, error } = await supabase
-    .from("memories")
-    .select(`
-      date,
-      memory_entries (
-        memory_entry_id,
-        content,
-        image_url,
-        location,
-        is_thumbnail,
-        entry_index
-      )
-    `)
-    .eq("profile_id", profileId)
-    .eq("is_completed", true)
-    .order("date", { ascending: false });
+      const { data, error } = await supabase
+        .from("memories")
+        .select(`
+          memory_id,
+          date,
+          thumb:memory_entries!memories_thumbnail_entry_id_fkey (
+            memory_entry_id,
+            image_url,
+            location
+          )
+        `)
+        .eq("profile_id", profileId)
+        .eq("is_completed", true)
+        .order("date", { ascending: false });
 
-  if (error) {
-    console.error("❌ memory fetch error:", error.message);
-    setMemoriesLoading(false);
-    return;
-  }
-
-  const grouped: { [date: string]: any[] } = {};
-
-  for (const memory of data) {
-    const date = memory.date;
-    const entries = memory.memory_entries || [];
-
-    // 썸네일 우선순위: is_thumbnail → entry_index === 0
-    const thumbnail =
-      entries.find((e: any) => e.is_thumbnail) ||
-      entries.find((e: any) => e.entry_index === 0);
-
-    if (thumbnail) {
-      grouped[date] = [thumbnail];
-    }
-  }
-
-  setGroupedMemories(grouped);
-  setMemoriesLoading(false);
-};
-
+      if (error) {
+        console.error("❌ memory fetch error:", error.message);
+        setRows([]);
+      } else {
+        console.log(data);
+        
+        setRows((data as unknown as MemoryThumbRow[]) ?? []);
+      }
+      setMemoriesLoading(false);
+    };
 
     fetchThumbnails();
   }, [profileId]);
 
-
   const handleRequestPermissions = async () => {
-    if (!profileId) return; // 안전하게 더블체크 
+    if (!profileId) return;
 
-    // 1. 푸시 알림 권한 요청
     try {
       const token = await registerForPushNotificationsAsync();
-
       if (token) {
         const column =
           Platform.OS === "android"
@@ -129,38 +116,18 @@ export default function IndexScreen() {
             .from("profiles")
             .update({ [column]: token })
             .eq("profile_id", profileId);
-
-          if (updateError) {
-            console.log("푸시 토큰 업데이트 실패:", updateError.message);
-          } else {
-            console.log("푸시 토큰 저장 완료");
-          }
-        } else {
-          console.log("웹 플랫폼에서는 푸시 알림을 지원하지 않습니다.");
+          if (updateError) console.log("푸시 토큰 업데이트 실패:", updateError.message);
         }
       }
     } catch (err) {
       console.error("푸시 알림 권한 요청 실패:", err);
     }
 
-    // 2. 카메라 권한 요청
-    // try {
-    //   const { status } = await requestCameraPermission();
-    //   console.log("카메라 권한 상태:", status);
-    // } catch (err) {
-    //   console.error("카메라 권한 요청 실패:", err);
-    // }
-
-    // 3. 갤러리 권한 요청
-    // 4. 장소 권한 요청
-
-    // 권한 요청 완료 기록
     try {
       await AsyncStorage.setItem("hasRequestedPermissions", "true");
     } catch (err) {
       console.error("AsyncStorage 저장 실패:", err);
     }
-
     setVisible(false);
   };
 
@@ -168,43 +135,50 @@ export default function IndexScreen() {
   if (!profileId) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#3478F6" />
+        <ActivityIndicator size="large" color="#5B8DEF" />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <Button title="카메라 열기" onPress={() => router.push("/camera")} />
-      <Button title="오늘 하루 찍은 사진 열기" onPress={() => router.push("/today")} />
       <Button title="기록 안된 사진들" onPress={() => router.push("/pending")} />
       <Button title="마이페이지 열기" onPress={() => router.push("/mypage")} />
-      <Button title="레이아웃테스트" onPress={() => router.push("/layout")} />
+      <Button title="달력뷰 열기" onPress={() => router.push("/calendar")} />
+        <Button title="오늘 하루 찍은 사진 열기" onPress={() => router.push("/today/-1")} />
 
       {/* memory 목록 렌더링 */}
-<View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
-  {memoriesLoading ? (
-    <ActivityIndicator size="small" color="#3478F6" style={{ marginTop: 24 }} />
-  ) : (
-    <MasonryGrid
-      items={feedItems}
-      gap={6}
-      padding={14}
-      options={{
-        seed: 20250810,
-        initialOrder: ["L1", "L2", "L3"], // 처음 3개 고정 시퀀스
-        noConsecutive: true,              // 연속 중복 방지
-        allowed: ["L1", "L2", "L3"],
-      }}
-      onPressItem={(item) => router.push(`/day/${item.id}`)}
-      // header={<YourHeader/>}   // 필요 시 상단 고정 헤더도 넣을 수 있음
-      // stickyHeader
-    />
-  )}
-</View>
+      <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
+        {memoriesLoading ? (
+          <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
+        ) : (
+          <MasonryGrid
+            items={feedItems}
+            gap={6}
+            padding={0}
+            options={{
+              seed: 20250810,
+              initialOrder: ["L1", "L2", "L3"],
+              noConsecutive: true,
+              allowed: ["L1", "L2", "L3"],
+            }}
+            onPressItem={(item) => router.push(`/day/${item.id}`)}
+          />
+        )}
+      </View>
 
+      {/* 플로팅 버튼 */}
+      <TouchableOpacity
+        style={[
+          styles.fab,
+          { bottom: insets.bottom + 24 }, // 안전 영역 반영
+        ]}
+        onPress={() => router.push("/camera")}
+      >
+        <Feather name="camera" size={26} color="#fff" />
+      </TouchableOpacity>
 
-      {/* 기존 모달 유지 */}
+      {/* 권한 모달 */}
       <Modal visible={visible} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContainer}>
@@ -213,10 +187,7 @@ export default function IndexScreen() {
               Dearday를 원활히 사용하기 위해서,{"\n"}알림 권한을 요청드릴 예정이에요.
             </Text>
 
-            <Pressable
-              style={styles.confirmButton}
-              onPress={handleRequestPermissions}
-            >
+            <Pressable style={styles.confirmButton} onPress={handleRequestPermissions}>
               <Text style={styles.confirmText}>확인했어요</Text>
             </Pressable>
           </View>
@@ -228,7 +199,30 @@ export default function IndexScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
-
+  // FAB 버튼
+    fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    backgroundColor: "#5B8DEF",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 100, // iOS
+    elevation: 5, // Android
+  },
+  fabText: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  // 권한 요청 모달 
   modalBackdrop: {
     flex: 1,
     justifyContent: "flex-end",
@@ -239,25 +233,29 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
-    alignItems: "center",
+    // alignItems: "center",
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
   },
   modalDesc: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
-    textAlign: "center",
+    textAlign: "left",
     marginBottom: 24,
   },
   confirmButton: {
-    backgroundColor: "#3478F6",
+    backgroundColor: "#5B8DEF",
     paddingVertical: 12,
     paddingHorizontal: 32,
-    borderRadius: 12,
     marginBottom: 12,
+    borderRadius: 12,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 16,
   },
   confirmText: { color: "#fff", fontWeight: "bold" },
   dismissText: { color: "#999", fontSize: 14 },
