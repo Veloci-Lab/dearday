@@ -1,23 +1,39 @@
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
-import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Image,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-
 export default function MypageScreen() {
+  const navigation = useNavigation();
+
   const { profileId } = useAuthStore();
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+   useEffect(() => {
+    navigation.setOptions({
+       headerLeft: () => (
+        <Pressable
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => router.back()}
+        >
+          <Feather name="chevron-left" size={24} color="black" />
+        </Pressable>
+      ),
+      headerTitle: ""
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!profileId) return;

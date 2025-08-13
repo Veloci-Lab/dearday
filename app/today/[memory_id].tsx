@@ -1,12 +1,14 @@
 import { useAuthStore } from "@/utils/authStore";
 import { getLocalDateString } from "@/utils/date";
 import { supabase } from "@/utils/supabase";
-import { router, useLocalSearchParams } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -15,15 +17,29 @@ import {
   View,
 } from "react-native";
 
-
 export default function TodayScreen() {
+  const navigation = useNavigation();
+
   const { profileId } = useAuthStore();
-  // ✅ 무조건 id가 온다고 가정
   const { memory_id } = useLocalSearchParams<{ memory_id: string }>();
 
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    navigation.setOptions({
+       headerLeft: () => (
+        <Pressable
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => router.back()}
+        >
+          <Feather name="chevron-left" size={24} color="black" />
+        </Pressable>
+      ),
+      headerTitle: ""
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!profileId || !memory_id) return;
@@ -121,9 +137,8 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* 상단 안내 */}
+       {/* 상단 안내 */}
       <View style={styles.header}>
-        <Text style={styles.logo}>🟦Dearday</Text>
         <Text style={styles.title}>오늘 하루동안 찍으신 사진이에요</Text>
         <Text style={styles.subtitle}>N장을 골라서 기록해주세요</Text>
       </View>
@@ -164,7 +179,8 @@ export default function TodayScreen() {
           style={[styles.footerButton, selectedIds.length === 0 && { opacity: 0.6 }]}
           disabled={selectedIds.length === 0}
         >
-          <Text style={styles.footerText}>총 {selectedIds.length}장을 선택했어요</Text>
+          {/* <Text style={styles.footerText}>총 {selectedIds.length}장을 선택했어요</Text> */}
+          <Text style={styles.footerText}>선택 완료</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -177,20 +193,16 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#fff",
   },
-  logo: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#5B8DEF",
-    marginBottom: 16,
-  },
   title: {
-    fontSize: 17,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "700",
+    color: "#0F172A",
   },
   subtitle: {
+    marginTop: 6,
     fontSize: 13,
-    color: "#888",
+    color: "#929292",
   },
   gridContainer: {
     paddingHorizontal: 16,
@@ -218,16 +230,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 6,
     right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#333",
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    backgroundColor: "#5B8DEF",
     justifyContent: "center",
     alignItems: "center",
   },
   checkMark: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: "bold",
   },
   footerWrapper: {
@@ -237,7 +249,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#ddd",
   },
   footerButton: {
-    backgroundColor: "#444",
+    backgroundColor: "#5B8DEF",
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: "center",

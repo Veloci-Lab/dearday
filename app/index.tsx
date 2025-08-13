@@ -1,19 +1,22 @@
 import MasonryGrid from "@/components/masonry/MasonryGrid";
 import type { FeedItem } from "@/components/masonry/types";
 import { useAuthStore } from "@/utils/authStore";
+import { getLocalDateString } from "@/utils/date";
 import { registerForPushNotificationsAsync } from "@/utils/registerForPushNotificationsAsync";
 import { supabase } from "@/utils/supabase";
-import { Feather } from "@expo/vector-icons"; // 추가
+import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Button,
+  Dimensions,
+  Image,
   Modal,
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,6 +24,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/* =========================
+ * Types
+ * ========================= */
 type MemoryThumbRow = {
   memory_id: number;
   date: string; // DATE (YYYY-MM-DD)
@@ -31,95 +37,196 @@ type MemoryThumbRow = {
   } | null;
 };
 
+/* =========================
+ * Helpers
+ * ========================= */
+async function checkPermissions(): Promise<boolean> {
+  const v = await AsyncStorage.getItem("hasRequestedPermissions");
+  return v === "true";
+}
+
+async function updateExpoPushToken(profileId: string, token: string) {
+  const column =
+    Platform.OS === "android"
+      ? "expo_push_token_android"
+      : Platform.OS === "ios"
+      ? "expo_push_token_ios"
+      : null;
+
+  if (!column) return;
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ [column]: token })
+    .eq("profile_id", profileId);
+
+  if (error) throw error;
+}
+
+/* =========================
+ * Component
+ * ========================= */
 export default function IndexScreen() {
   const { profileId } = useAuthStore();
   const insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState(false);
+
+  const [visible, setVisible] = useState(false); // 권한 모달
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [rows, setRows] = useState<MemoryThumbRow[]>([]);
 
-  // Masonry용 아이템
+  // TODAY
+  const [todayImages, setTodayImages] = useState<string[]>([]);
+
+  // 화면 가로 폭/표시 썸네일 수 계산
+  const screenWidth = Dimensions.get("window").width;
+  const arrowWidth = 36;
+  const thumbSize = 40;
+  const thumbGap = 4;
+  const leftWidth = 50;
+  const horizontalPadding = 12 * 2;
+  const availableWidth = screenWidth - (arrowWidth + leftWidth + horizontalPadding + 16);
+  const maxThumbs = Math.floor(availableWidth / (thumbSize + thumbGap));
+
+  // Masonry
   const feedItems: FeedItem[] = useMemo(
     () =>
       rows
         .filter((m) => !!m.thumb?.image_url)
         .map((m) => ({
           id: String(m.memory_id),
-          imageUrl: m.thumb!.image_url as string,
-          dateISO: m.date,
-          place: m.thumb?.location ?? "",
+          imageUrl: m.thumb?.image_url ?? "./assets/images/thumbnail.png",
+          dateISO: m.date.replace(/-/g, ".") + ".",   
+          place: m.thumb?.location ?? "",       
         })),
     [rows]
   );
 
-  // 권한 요청 여부 확인
-  useEffect(() => {
-    if (!profileId) return;
-    (async () => {
-      const value = await AsyncStorage.getItem("hasRequestedPermissions");
-      if (value !== "true") setVisible(true);
-    })();
-  }, [profileId]);
-
-  // ✅ thumbnail_entry_id를 이용해 대표 썸네일만 조인해서 가져오기
-  useEffect(() => {
+  /* -------------------------
+   * Loaders 
+   * ------------------------- */
+  const fetchTodayImages = useCallback(async () => {
     if (!profileId) return;
 
-    const fetchThumbnails = async () => {
-      setMemoriesLoading(true);
+    try {
+      const today = getLocalDateString()
 
-      const { data, error } = await supabase
+      // 1) 오늘자 memory_id 조회
+      const { data: mem, error: memErr } = await supabase
         .from("memories")
-        .select(`
-          memory_id,
-          date,
-          thumb:memory_entries!memories_thumbnail_entry_id_fkey (
-            memory_entry_id,
-            image_url,
-            location
-          )
-        `)
+        .select("memory_id")
         .eq("profile_id", profileId)
-        .eq("is_completed", true)
-        .order("date", { ascending: false });
+        .eq("date", today)
+        .single();
 
-      if (error) {
-        console.error("❌ memory fetch error:", error.message);
-        setRows([]);
-      } else {
-        console.log(data);
-        
-        setRows((data as unknown as MemoryThumbRow[]) ?? []);
+      if (memErr || !mem) {
+        setTodayImages(prev => (prev.length ? [] : prev)); // 변경 시에만 업데이트
+        return;
       }
-      setMemoriesLoading(false);
-    };
 
-    fetchThumbnails();
+      // 2) 해당 memory의 entries 중 이미지 있는 것만
+      const { data: entries, error: entErr } = await supabase
+        .from("memory_entries")
+        .select("image_url, created_at")
+        .eq("memory_id", mem.memory_id)
+        .not("image_url", "is", null)
+        .order("created_at", { ascending: false });
+
+      if (entErr) throw entErr;
+
+      const urls = (entries ?? [])
+        .map((e: any) => e.image_url as string)
+        .filter(Boolean);
+
+      // 동일 데이터면 스킵 → 깜빡임 최소화
+      setTodayImages(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(urls)) return urls;
+        return prev;
+      });
+    } catch (e) {
+      console.error("❌ today images fetch error:", (e as Error).message);
+    }
   }, [profileId]);
 
-  const handleRequestPermissions = async () => {
+
+  const fetchThumbnails = useCallback(
+    async (showLoading: boolean = true) => {
+      if (!profileId) return;
+
+      if (showLoading) setMemoriesLoading(true);
+
+      try {
+        const { data, error } = await supabase
+          .from("memories")
+          .select(`
+            memory_id,
+            date,
+            thumb:memory_entries!memories_thumbnail_entry_id_fkey (
+              memory_entry_id,
+              image_url,
+              location
+            )
+          `)
+          .eq("profile_id", profileId)
+          .eq("is_completed", true)
+          .order("date", { ascending: false });
+
+        if (error) throw error;
+        const list = (data as unknown as MemoryThumbRow[]) ?? [];
+
+        // 동일 데이터면 setRows 스킵 → 재진입 시 깜빡임 최소화
+        setRows(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(list)) return list;
+          return prev;
+        });
+      } catch (e) {
+        console.error("❌ memory fetch error:", (e as Error).message);
+        if (showLoading) setRows([]);
+      } finally {
+        if (showLoading) setMemoriesLoading(false);
+      }
+    },
+    [profileId]
+  );
+
+  /* -------------------------
+   * Effects
+   * ------------------------- */
+  // 최초 진입
+  useEffect(() => {
+    if (!profileId) return;
+    let mounted = true;
+
+    (async () => {
+      const alreadyRequested = await checkPermissions();
+      if (mounted && !alreadyRequested) setVisible(true);
+
+      await fetchTodayImages(false); // TODAY 목록 로딩
+      await fetchThumbnails(true); // 메인 목록 로딩
+    })();
+
+    return () => { mounted = false; };
+  }, [profileId, fetchTodayImages, fetchThumbnails]);
+
+  // 재진입
+  useFocusEffect(
+    useCallback(() => {
+      fetchTodayImages(false);
+      fetchThumbnails(false);
+    }, [fetchTodayImages, fetchThumbnails])
+  );
+
+
+  /* -------------------------
+   * Handlers
+   * ------------------------- */
+  const handleRequestPermissions = useCallback(async () => {
     if (!profileId) return;
 
     try {
       const token = await registerForPushNotificationsAsync();
-      if (token) {
-        const column =
-          Platform.OS === "android"
-            ? "expo_push_token_android"
-            : Platform.OS === "ios"
-            ? "expo_push_token_ios"
-            : null;
-
-        if (column) {
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ [column]: token })
-            .eq("profile_id", profileId);
-          if (updateError) console.log("푸시 토큰 업데이트 실패:", updateError.message);
-        }
-      }
+      if (token) await updateExpoPushToken(profileId, token);
     } catch (err) {
-      console.error("푸시 알림 권한 요청 실패:", err);
+      console.error("푸시 알림 권한/토큰 처리 실패:", err);
     }
 
     try {
@@ -127,10 +234,13 @@ export default function IndexScreen() {
     } catch (err) {
       console.error("AsyncStorage 저장 실패:", err);
     }
-    setVisible(false);
-  };
 
-  // ✅ 로딩 화면 처리
+    setVisible(false);
+  }, [profileId]);
+
+  /* -------------------------
+   * Render
+   * ------------------------- */
   if (!profileId) {
     return (
       <SafeAreaView style={styles.container}>
@@ -141,37 +251,66 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Button title="기록 안된 사진들" onPress={() => router.push("/pending")} />
-      <Button title="마이페이지 열기" onPress={() => router.push("/mypage")} />
-      <Button title="달력뷰 열기" onPress={() => router.push("/calendar")} />
-        <Button title="오늘 하루 찍은 사진 열기" onPress={() => router.push("/today/-1")} />
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
+        {/* 대시보드 */}
+        <View style={styles.dashboardContainer}>
+          <Image source={{ uri: "https://picsum.photos/seed/1/200" }} style={styles.avatar} />
 
-      {/* memory 목록 렌더링 */}
-      <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
-        {memoriesLoading ? (
-          <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
-        ) : (
-          <MasonryGrid
-            items={feedItems}
-            gap={6}
-            padding={0}
-            options={{
-              seed: 20250810,
-              initialOrder: ["L1", "L2", "L3"],
-              noConsecutive: true,
-              allowed: ["L1", "L2", "L3"],
-            }}
-            onPressItem={(item) => router.push(`/day/${item.id}`)}
-          />
-        )}
-      </View>
+          <View style={styles.statsContainer}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>DAYS</Text>
+              <Text style={styles.statValue}>234</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>PHOTOS</Text>
+              <Text style={styles.statValue}>92</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 오늘 찍은 사진 */}
+        <View style={styles.todayContainer}>
+          <View style={styles.left}>
+            <Text style={styles.todayText}>TODAY</Text>
+            <Text style={styles.count}>{todayImages.length}</Text>
+          </View>
+
+          <View style={styles.center}>
+            {todayImages.slice(0, maxThumbs).map((uri, idx) => (
+              <Image key={idx} source={{ uri }} style={styles.thumb} />
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
+            <Feather name="arrow-right" size={20} color="#E75234" />
+          </TouchableOpacity>
+        </View>
+
+        {/* memory 목록 렌더링 */}
+        <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
+          {memoriesLoading ? (
+            <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
+          ) : (
+            <MasonryGrid
+              items={feedItems}
+              gap={6}
+              padding={0}
+              options={{
+                seed: 20250810,
+                initialOrder: ["L1", "L2", "L3"],
+                noConsecutive: true,
+                allowed: ["L1", "L2", "L3"],
+              }}
+              onPressItem={(item) => router.push(`/day/${item.id}`)}
+              scrollEnabled={false}
+            />
+          )}
+        </View>
+      </ScrollView>
 
       {/* 플로팅 버튼 */}
       <TouchableOpacity
-        style={[
-          styles.fab,
-          { bottom: insets.bottom + 24 }, // 안전 영역 반영
-        ]}
+        style={[styles.fab, { bottom: insets.bottom + 24 }]}
         onPress={() => router.push("/camera")}
       >
         <Feather name="camera" size={26} color="#fff" />
@@ -197,9 +336,10 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1, backgroundColor: "#fff" },
+
   // FAB 버튼
-    fab: {
+  fab: {
     position: "absolute",
     bottom: 24,
     right: 24,
@@ -216,11 +356,8 @@ const styles = StyleSheet.create({
     zIndex: 100, // iOS
     elevation: 5, // Android
   },
-  fabText: {
-    fontSize: 28,
-    color: "#fff",
-    fontWeight: "bold",
-  },
+  fabText: { fontSize: 28, color: "#fff", fontWeight: "bold" },
+
   // 권한 요청 모달 
   modalBackdrop: {
     flex: 1,
@@ -232,19 +369,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
-    // alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  modalDesc: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "left",
-    marginBottom: 24,
-  },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
+  modalDesc: { fontSize: 16, color: "#666", textAlign: "left", marginBottom: 24 },
   confirmButton: {
     backgroundColor: "#5B8DEF",
     paddingVertical: 12,
@@ -258,4 +385,52 @@ const styles = StyleSheet.create({
   },
   confirmText: { color: "#fff", fontWeight: "bold" },
   dismissText: { color: "#999", fontSize: 14 },
+
+  // 대시보드
+  dashboardContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginVertical: 16,
+  },
+  avatar: { width: 60, height: 60, borderRadius: 12, marginRight: 12 },
+  statsContainer: { flexDirection: "row", flex: 1 },
+  statBox: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#F2F2F2",
+  },
+  statLabel: { fontSize: 15, color: "#929292" },
+  statValue: { fontSize: 20, fontWeight: "bold", color: "#5B8DEF" },
+
+  // TODAY (데모)
+  todayContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderColor: "#F5978A",
+    marginHorizontal: 16,
+  },
+  left: { marginRight: 8 },
+  todayText: { fontSize: 15, fontWeight: "600", color: "#929292" },
+  count: { fontSize: 20, fontWeight: "bold", color: "#F5978A" },
+  center: { flexDirection: "row", flex: 1, gap: 2, overflow: "hidden" },
+  thumb: { width: 60, height: 60 },
+  arrowBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F3D7D3",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
 });

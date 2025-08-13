@@ -1,8 +1,8 @@
 // IncompleteMemoriesScreen.tsx
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from '@/utils/supabase';
-import { Ionicons } from "@expo/vector-icons";
-import { Stack, router } from 'expo-router';
+import { Feather } from "@expo/vector-icons";
+import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -26,6 +26,8 @@ type Card = {
 };
 
 export default function IncompleteMemoriesScreen() {
+  const navigation = useNavigation();
+
   const { profileId } = useAuthStore();
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,20 @@ export default function IncompleteMemoriesScreen() {
     const itemSize = (screenW - pad * 2 - gap * (visible - 1)) / visible;
     return { itemSize, gap, pad };
   }, []);
+
+  useEffect(() => {
+    navigation.setOptions({
+       headerLeft: () => (
+        <Pressable
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => router.back()}
+        >
+          <Feather name="chevron-left" size={24} color="black" />
+        </Pressable>
+      ),
+      headerTitle: ""
+    });
+  }, [navigation]);
 
   useEffect(() => {
     (async () => {
@@ -103,30 +119,6 @@ export default function IncompleteMemoriesScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: "기록 안 된 사진들",
-          headerTitleAlign: "center",
-          headerLeft: () => (
-            <Pressable
-              style={{ flexDirection: "row", alignItems: "center" }}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={24} color="black" />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable
-              style={{ flexDirection: "row", alignItems: "center" }}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="calendar" size={24} color="black" />
-              
-            </Pressable>
-          ),
-        }}
-      />
-
       {loading ? (
         <View style={styles.center}>
           <Text>불러오는 중…</Text>

@@ -1,7 +1,8 @@
 // CalendarWithEntries.horizontal.tsx
 import { useAuthStore } from '@/utils/authStore';
 import { supabase } from '@/utils/supabase';
-import { router } from 'expo-router';
+import { Feather } from "@expo/vector-icons";
+import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Calendar, DateObject } from 'react-native-calendars';
@@ -66,6 +67,8 @@ async function fetchEntries(memoryId: string): Promise<EntryRow[]> {
 }
 
 export default function CalendarWithEntries() {
+  const navigation = useNavigation();
+
   const profileId = useAuthStore((s) => s.profileId);
   const today = new Date();
   const initialMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
@@ -74,6 +77,19 @@ export default function CalendarWithEntries() {
   const [monthMap, setMonthMap] = useState<PhotoMap>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [entries, setEntries] = useState<EntryRow[]>([]);
+
+  // selectedDate, entries, monthMap가 이미 있음
+  const hasPhotosForSelectedDate = useMemo(() => {
+    if (!selectedDate) return false;
+
+    // 1) entries에 이미지가 하나라도 있으면 true
+    const hasInEntries = (entries ?? []).some(e => !!e.image_url);
+    if (hasInEntries) return true;
+
+    // 2) fallback: monthMap의 썸네일 신호
+    return !!monthMap[selectedDate]?.thumb;
+  }, [selectedDate, entries, monthMap]);
+
 
   // 가로 리스트: 3.5장 보이도록 계산
   const { itemSize, gap, pad } = useMemo(() => {
@@ -84,6 +100,20 @@ export default function CalendarWithEntries() {
     const itemSize = (screenW - pad * 2 - gap * (visible - 1)) / visible;
     return { itemSize, gap, pad };
   }, []);
+
+  useEffect(() => {
+    navigation.setOptions({
+       headerLeft: () => (
+        <Pressable
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => router.back()}
+        >
+          <Feather name="chevron-left" size={24} color="black" />
+        </Pressable>
+      ),
+      headerTitle: ""
+    });
+  }, [navigation]);
 
   // 월 변경 → 월 데이터 로드
   useEffect(() => {
@@ -135,8 +165,10 @@ export default function CalendarWithEntries() {
           const disabled = state === 'disabled';
           const isSelected = ds === selectedDate;
 
-          const THUMB = 38;
-          const RADIUS = 8;
+          // 화면 폭을 7등분 → 한 칸 크기
+          const cellWidth = Dimensions.get('window').width / 7;
+          const THUMB = cellWidth; // 셀을 이미지로 꽉 채움
+          const RADIUS = 0; // 8
 
           return (
             <Pressable onPress={() => { onPress?.(date); onSelectDay(ds); }} style={styles.cell}>
@@ -154,15 +186,15 @@ export default function CalendarWithEntries() {
             </Pressable>
           );
         }}
-        theme={{
-          textMonthFontSize: 20,
-          textDayHeaderFontSize: 12,
-          todayTextColor: '#3b82f6',
-        }}
+        // theme={{
+        //   textMonthFontSize: 20,
+        //   textDayHeaderFontSize: 12,
+        //   todayTextColor: '#3b82f6',
+        // }}
       />
 
       {/* 하단 헤더: 날짜 + 상세보기 버튼 */}
-      {selectedDate && (
+      {hasPhotosForSelectedDate && (
         <View style={[styles.bar, { paddingHorizontal: pad }]}>
           <Text style={styles.dateTitle}>{selectedDateLabel}</Text>
           {selectedMemoryId && (
@@ -172,6 +204,7 @@ export default function CalendarWithEntries() {
           )}
         </View>
       )}
+
 
       {/* 가로 스크롤: 3.5장 보이기 */}
       {selectedDate && (
@@ -212,12 +245,12 @@ const styles = StyleSheet.create({
   },
   dayDisabled: { color: '#c9c9c9' },
   selectedRing: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: '#3b82f6',
+    // position: 'absolute',
+    // width: 44,
+    // height: 44,
+    // borderRadius: 22,
+    // borderWidth: 2,
+    // borderColor: '#3b82f6',
   },
   bar: {
     marginTop: 8,
@@ -226,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dateTitle: { fontSize: 22, fontWeight: '700' },
+  dateTitle: { fontSize: 20, fontWeight: '700' },
   link: { fontSize: 14, color: '#3b82f6', fontWeight: '600' },
   shadow: { shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
 });

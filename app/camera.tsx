@@ -1,7 +1,6 @@
 import { useAuthStore } from "@/utils/authStore";
 import { getLocalDateString } from "@/utils/date";
 import { supabase } from "@/utils/supabase";
-import { Ionicons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -221,6 +220,7 @@ export default function App() {
         ...(notification_id && { notification_id }),
         entry_index: entryIndex,
         image_url: imageUrl,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
       const { data, error: entryErr } = await supabase
@@ -468,7 +468,7 @@ export default function App() {
                   style={{ flexDirection: "row", alignItems: "center" }}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={24} color="black" />
+                  <Feather name="chevron-left" size={24} color="black" />
                 </Pressable>
               ),
               }
