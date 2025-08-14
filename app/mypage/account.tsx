@@ -48,10 +48,43 @@ export default function AccountScreen() {
   };
 
   const handleAccountDelete = () => {
-    Alert.alert("회원 탈퇴", "정말로 탈퇴하시겠습니까? 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.", [
-      { text: "취소", style: "cancel" },
-      { text: "탈퇴하기", style: "destructive", onPress: () => console.log("TODO: 회원 탈퇴 로직 실행") },
-    ]);
+    Alert.alert(
+      "회원 탈퇴",
+      "정말로 탈퇴하시겠습니까? 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.",
+      [
+        { text: "취소", style: "cancel" },
+        { 
+          text: "탈퇴하기", 
+          style: "destructive", 
+          onPress: async () => {
+            if (!profileId) return;
+
+            // 1) profiles 테이블에서 is_deleted 설정
+            const { error: profErr } = await supabase
+              .from("profiles")
+              .update({ is_deleted: true })
+              .eq("profile_id", profileId);
+
+            if (profErr) {
+              Alert.alert("오류", "프로필 삭제 중 문제가 발생했습니다.");
+              return;
+            }
+
+            // 2) auth.users에서 계정 제거
+            const { error: userErr } = await supabase.auth.admin.deleteUser(profileId);
+            if (userErr) {
+              Alert.alert("오류", "계정 삭제 중 문제가 발생했습니다.");
+              return;
+            }
+
+            // 3) 로컬 로그아웃 처리
+            await supabase.auth.signOut();
+            logOut();
+            router.replace("/sign-in");
+          } 
+        }
+      ]
+    );
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator /></View>;

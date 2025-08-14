@@ -67,10 +67,6 @@ export default function EditTimeScreen() {
           <Pressable onPress={() => setShowPicker("sleep")} style={styles.input}><Text style={styles.timeText}>{formatTime(sleepTime)}</Text></Pressable>
           <Text style={styles.desc}>이 시간에 맞춰 하루를 기록할 수 있도록 알림을 보내드려요.</Text>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>그 외 시간 (기능 준비중)</Text>
-          <Pressable onPress={() => setShowPicker("other")} style={styles.input}><Text style={styles.timeText}>{formatTime(otherTime)}</Text></Pressable>
-        </View>
       </ScrollView>
       <View style={styles.footer}>
         <TouchableOpacity style={[styles.saveButton, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving}>

@@ -172,6 +172,7 @@
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -207,21 +208,6 @@ export default function MypageScreen() {
     });
   }, [navigation, router]);
 
-  // 프로필 정보 로드
-  // useEffect(() => {
-  //   if (!profileId) return;
-  //   const fetchProfile = async () => {
-  //     setLoading(true);
-  //     const { data, error } = await supabase.from("profiles").select("*, sleep_time").eq("profile_id", profileId).single();
-  //     if (error) {
-  //       console.error("❌ 프로필 조회 실패:", error.message);
-  //     } else {
-  //       setProfile(data);
-  //     }
-  //     setLoading(false);
-  //   };
-  //   fetchProfile();
-  // }, [profileId]);
     useFocusEffect(
       useCallback(() => {
         if (!profileId) return;
@@ -249,6 +235,8 @@ export default function MypageScreen() {
         text: "확인",
         onPress: async () => {
           await supabase.auth.signOut();
+          await GoogleSignin.signOut(); // 구글 로그인 세션 종료
+          Alert.alert("로그아웃", "성공적으로 로그아웃되었습니다.");
           logOut();
           router.replace("/sign-in");
         },
@@ -287,12 +275,6 @@ export default function MypageScreen() {
             <View style={styles.dot} />
             <Text style={styles.fixedLabel}>수면 시간</Text>
             <Text style={styles.value}>{sleepTime}</Text>
-          </View>
-          {/* '그 외 시간' 항목 복원 */}
-          <View style={styles.timeRow}>
-            <View style={styles.dot} />
-            <Text style={styles.fixedLabel}>그 외 시간</Text>
-            <Text style={styles.value}>{"설정 안함"}</Text>
           </View>
         </View>
 
