@@ -7,6 +7,7 @@ import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
+import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -36,6 +37,15 @@ type MemoryThumbRow = {
     location: string | null;
   } | null;
 };
+
+type Dashboard = {
+  nickname: string;
+  avatarUrl: string | null;
+  joinedAt: string | null;  // YYYY
+  days: number;
+  photos: number;
+};
+
 
 /* =========================
  * Helpers
@@ -74,6 +84,15 @@ export default function IndexScreen() {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [rows, setRows] = useState<MemoryThumbRow[]>([]);
 
+  // DASHBOARD
+  const [Dashboard, setDashboard] = useState<Dashboard>({
+    nickname: "",
+    avatarUrl: null,
+    joinedAt: null,
+    days: 0,
+    photos: 0,
+  });
+
   // TODAY
   const [todayImages, setTodayImages] = useState<string[]>([]);
 
@@ -104,6 +123,81 @@ export default function IndexScreen() {
   /* -------------------------
    * Loaders 
    * ------------------------- */
+  const fetchDashboard = useCallback(async () => {
+    if (!profileId) return;
+
+    try {
+      const [{ data: prof, error: profError }, memIdsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("nickname, avatar_url, created_at, timezone")
+          .eq("profile_id", Number(profileId))
+          .single(),
+
+        supabase
+          .from("memories")
+          .select("memory_id")
+          .eq("profile_id", Number(profileId)),
+      ]);
+
+      // 사진 개수 카운트
+      let photos = 0;
+      if (!memIdsRes.error && memIdsRes.data.length) {
+        const memIds = memIdsRes.data.map((m) => m.memory_id);
+        const { count, error: countError } = await supabase
+          .from("memory_entries")
+          .select("memory_entry_id", { count: "exact", head: true })
+          .in("memory_id", memIds)
+          .not("image_url", "is", null);
+
+        if (!countError) {
+          photos = count ?? 0;
+        }
+      }
+
+      const tz =
+        (prof?.timezone as string | null) ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone ||
+        "UTC";
+
+      let days = 0;
+      let joinedAtYear: string | null = null;
+
+      if (!profError && prof?.created_at) {
+        // created_at(UTC) → 유저 타임존
+        const createdLocal = DateTime.fromISO(prof.created_at, { zone: "utc" }).setZone(tz);
+        const todayLocal = DateTime.now().setZone(tz);
+
+        // 자정 기준 일수(+1: 첫날 포함)
+        const diffDays = todayLocal.startOf("day").diff(createdLocal.startOf("day"), "days").days;
+        days = Math.max(1, Math.floor(diffDays) + 1);
+
+        // yyyy만
+        joinedAtYear = createdLocal.toFormat("yyyy");
+      }
+
+      setDashboard({
+        nickname: prof?.nickname ?? "-",
+        avatarUrl: prof?.avatar_url ?? null, // UI에서 없을 때 placeholder 처리
+        joinedAt: joinedAtYear ?? "-",
+        days,
+        photos,
+      });
+    } catch (e) {
+      console.error("fetchDashboard error:", e);
+      // 전부 안전 기본값
+      setDashboard({
+        nickname: "-",
+        avatarUrl: null,
+        joinedAt: "-",
+        days: 0,
+        photos: 0,
+      });
+    }
+  }, [profileId]);
+
+
+
   const fetchTodayImages = useCallback(async () => {
     if (!profileId) return;
 
@@ -199,8 +293,8 @@ export default function IndexScreen() {
     (async () => {
       const alreadyRequested = await checkPermissions();
       if (mounted && !alreadyRequested) setVisible(true);
-
-      await fetchTodayImages(false); // TODAY 목록 로딩
+      await fetchDashboard();
+      await fetchTodayImages(); // TODAY 목록 로딩
       await fetchThumbnails(true); // 메인 목록 로딩
     })();
 
@@ -210,7 +304,8 @@ export default function IndexScreen() {
   // 재진입
   useFocusEffect(
     useCallback(() => {
-      fetchTodayImages(false);
+      fetchDashboard();
+      fetchTodayImages();
       fetchThumbnails(false);
     }, [fetchTodayImages, fetchThumbnails])
   );
@@ -254,25 +349,45 @@ export default function IndexScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
         {/* 대시보드 */}
         <View style={styles.dashboardContainer}>
-          <Image source={{ uri: "https://picsum.photos/seed/1/200" }} style={styles.avatar} />
+          {/* 왼쪽 영역 */}
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            {Dashboard.avatarUrl ? (
+              <Image source={{ uri: Dashboard.avatarUrl }} style={styles.avatar} />
+            ) : (
+              // TODO: 디자인 받아서 그리기
+              <View style={styles.avatarPlaceholder}>
+                <Feather name="user" size={24} color="#999" />
+              </View>
+            )}
 
-          <View style={styles.statsContainer}>
+            <View style={{ marginLeft: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: "600" }}>{Dashboard.nickname}</Text>
+              {Dashboard.joinedAt && (
+                <Text style={{ fontSize: 15, color: "#929292" }}>since {Dashboard.joinedAt}</Text>
+              )}
+            </View>
+          </View>
+
+          {/* 오른쪽 영역 */}
+          <View style={[styles.statsContainer, { justifyContent: "flex-end" }]}>
             <View style={styles.statBox}>
+              <Text style={styles.statValue}>{Dashboard.days}</Text>
               <Text style={styles.statLabel}>DAYS</Text>
-              <Text style={styles.statValue}>234</Text>
             </View>
             <View style={styles.statBox}>
+              <Text style={styles.statValue}>{Dashboard.photos}</Text>
               <Text style={styles.statLabel}>PHOTOS</Text>
-              <Text style={styles.statValue}>92</Text>
             </View>
           </View>
         </View>
 
+        <View style={{ height: 1, backgroundColor: "#F2F2F2", marginBottom: 16 }} />
+
         {/* 오늘 찍은 사진 */}
         <View style={styles.todayContainer}>
           <View style={styles.left}>
-            <Text style={styles.todayText}>TODAY</Text>
             <Text style={styles.count}>{todayImages.length}</Text>
+            <Text style={styles.todayText}>TODAY</Text>
           </View>
 
           <View style={styles.center}>
@@ -282,11 +397,12 @@ export default function IndexScreen() {
           </View>
 
           <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
-            <Feather name="arrow-right" size={20} color="#E75234" />
+            <Feather name="arrow-right" size={24} color="#E75234" />
           </TouchableOpacity>
         </View>
 
         {/* memory 목록 렌더링 */}
+        {/* TODO: 데이터 없을때 뷰 */}
         <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
           {memoriesLoading ? (
             <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
@@ -294,7 +410,7 @@ export default function IndexScreen() {
             <MasonryGrid
               items={feedItems}
               gap={6}
-              padding={0}
+              padding={16}
               options={{
                 seed: 20250810,
                 initialOrder: ["L1", "L2", "L3"],
@@ -390,22 +506,45 @@ const styles = StyleSheet.create({
   dashboardContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginVertical: 16,
+    padding: 16,
+    // marginVertical: 16,
   },
-  avatar: { width: 60, height: 60, borderRadius: 12, marginRight: 12 },
-  statsContainer: { flexDirection: "row", flex: 1 },
+
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+
+  avatarPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#E0E0E0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  statsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
   statBox: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: "#F2F2F2",
+    alignItems: "center",
+    marginLeft: 12,
   },
-  statLabel: { fontSize: 15, color: "#929292" },
-  statValue: { fontSize: 20, fontWeight: "bold", color: "#5B8DEF" },
+
+  statLabel: {
+    fontSize: 15,
+    color: "#C3C3C3",
+  },
+
+  statValue: {
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#5B8DEF",
+  },
 
   // TODAY (데모)
   todayContainer: {
@@ -414,20 +553,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingHorizontal: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderRadius: 12,
-    borderColor: "#F5978A",
+    // borderWidth: 1,
+    // borderRadius: 12,
+    // borderColor: "#F5978A",
     marginHorizontal: 16,
   },
   left: { marginRight: 8 },
-  todayText: { fontSize: 15, fontWeight: "600", color: "#929292" },
-  count: { fontSize: 20, fontWeight: "bold", color: "#F5978A" },
-  center: { flexDirection: "row", flex: 1, gap: 2, overflow: "hidden" },
+  todayText: { fontSize: 15, color: "#C3C3C3" },
+  count: { fontSize: 30 , fontWeight: "bold", color: "#F5978A", textAlign: "center" },
+  center: { flexDirection: "row", flex: 1, gap: 2, overflow: "hidden", marginLeft: 8 },
   thumb: { width: 60, height: 60 },
   arrowBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 40,
     backgroundColor: "#F3D7D3",
     alignItems: "center",
     justifyContent: "center",

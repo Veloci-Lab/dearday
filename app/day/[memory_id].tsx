@@ -194,7 +194,7 @@ export default function DayByMemory() {
         <MasonryGrid
           items={feedItems}
           gap={6}
-          padding={0}
+          padding={16}
           options={{
             seed: 20250810,
             initialOrder: ["L1", "L2", "L3"],
@@ -214,23 +214,24 @@ export default function DayByMemory() {
 // Sub Views
 // ================================
 function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
-  const PADDING = 0; // 14
-  const GAP = 0; // 16
+  const PADDING = 16; // 14
+  const GAP = 6; // 16
   return (
-    <ScrollView contentContainerStyle={{ padding: PADDING, gap: GAP }}> 
+    <ScrollView contentContainerStyle={{ padding: PADDING, gap: GAP, backgroundColor: "#fff" }}> 
       {items.map((it) => (
         <View key={it.id} style={{ backgroundColor: "#fff" }}>
           {it.imageUrl ? (
             <View>
               <Image
                 source={{ uri: it.imageUrl }}
-                style={{ width: "100%", height: width * 0.75, backgroundColor: "#ddd" }}
+                style={{ width: "100%", height: width * 0.75, borderRadius: 16 }}
                 contentFit="cover"
               />
               <TopLeftBadge time={it.dateISO} place={it.place} />
             </View>
           ) : null}
-          <View style={[{ marginBottom: 6 }, it.content && { padding: 12, marginBottom: 0 }]}>
+          <View style={it.content && { padding: 16 }}>
+             {/*  */}
             {it.content ? (
               <Text style={{ fontSize: 14, lineHeight: 20, color: "#0D0D0D" }}>
                 {it.content}

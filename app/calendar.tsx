@@ -153,8 +153,17 @@ export default function CalendarWithEntries() {
   const selectedMemoryId = selectedDate ? monthMap[selectedDate]?.memory_id : undefined;
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <Calendar
+        style={{paddingVertical: 16}}
+        renderHeader={(date) => {
+          const label = date.toString('MMMM, yyyy'); // 예: "August 2025"
+          return (
+            <Text style={{ fontSize: 24, fontWeight: '600' }}>
+              {label}
+            </Text>
+          );
+        }}
         current={currentMonth}
         enableSwipeMonths
         onMonthChange={(m) => setCurrentMonth(m.dateString)}
@@ -166,9 +175,14 @@ export default function CalendarWithEntries() {
           const isSelected = ds === selectedDate;
 
           // 화면 폭을 7등분 → 한 칸 크기
-          const cellWidth = Dimensions.get('window').width / 7;
-          const THUMB = cellWidth; // 셀을 이미지로 꽉 채움
-          const RADIUS = 0; // 8
+          // const cellWidth = Dimensions.get('window').width / 7;
+          // const THUMB = cellWidth; // 셀을 이미지로 꽉 채움
+
+          const gap = 4; // 칸 사이 간격
+          const totalGap = gap * 6; // 7칸이면 사이가 6개
+          const cellWidth = (Dimensions.get('window').width - totalGap) / 7;
+          const THUMB = cellWidth;
+          const RADIUS = 8;
 
           return (
             <Pressable onPress={() => { onPress?.(date); onSelectDay(ds); }} style={styles.cell}>
@@ -192,38 +206,39 @@ export default function CalendarWithEntries() {
         //   todayTextColor: '#3b82f6',
         // }}
       />
+      <View style={{ height: 1, backgroundColor: "#F2F2F2" }} />
 
-      {/* 하단 헤더: 날짜 + 상세보기 버튼 */}
-      {hasPhotosForSelectedDate && (
-        <View style={[styles.bar, { paddingHorizontal: pad }]}>
-          <Text style={styles.dateTitle}>{selectedDateLabel}</Text>
-          {selectedMemoryId && (
-            <Pressable onPress={() => router.push(`/day/${selectedMemoryId}`)} hitSlop={8}>
-              <Text style={styles.link}>전체 보기</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
-
-
-      {/* 가로 스크롤: 3.5장 보이기 */}
-      {selectedDate && (
-        <FlatList
-          data={entries.filter((e) => !!e.image_url)}
-          keyExtractor={(it) => it.memory_entry_id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={{ width: gap }} />}
-          contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 24 }}
-          renderItem={({ item }) => (
-            <View style={{ width: itemSize }}>
-              <View style={{ width: '100%', aspectRatio: 1, borderRadius: 10, overflow: 'hidden' }}>
-                <Image source={{ uri: item.image_url as string }} style={{ width: '100%', height: '100%' }} />
+      <View>
+        {/* 하단 헤더: 날짜 + 상세보기 버튼 */}
+        {hasPhotosForSelectedDate && (
+          <View style={[styles.bar, { paddingHorizontal: pad }]}>
+            <Text style={styles.dateTitle}>{selectedDateLabel}</Text>
+            {selectedMemoryId && (
+              <Pressable onPress={() => router.push(`/day/${selectedMemoryId}`)} hitSlop={8}>
+                <Feather name="chevron-right" size={20} color="black" />
+              </Pressable>
+            )}
+          </View>
+        )}
+        {/* 가로 스크롤: 3.5장 보이기 */}
+        {selectedDate && (
+          <FlatList
+            data={entries.filter((e) => !!e.image_url)}
+            keyExtractor={(it) => it.memory_entry_id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={{ width: gap }} />}
+            contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 24 }}
+            renderItem={({ item }) => (
+              <View style={{ width: itemSize }}>
+                <View style={{ width: '100%', aspectRatio: 1, borderRadius: 10, overflow: 'hidden' }}>
+                  <Image source={{ uri: item.image_url as string }} style={{ width: '100%', height: '100%' }} />
+                </View>
               </View>
-            </View>
-          )}
-        />
-      )}
+            )}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -256,8 +271,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
     flexDirection: 'row',
+    gap: 8,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
   },
   dateTitle: { fontSize: 20, fontWeight: '700' },
   link: { fontSize: 14, color: '#3b82f6', fontWeight: '600' },
