@@ -39,7 +39,7 @@ export default function MasonryGrid({
     if (item.type === "L1") {
       const W = m.TOTAL_W;
       const H = m.H2x2 * 2 + m.GAP;
-      return <Tile it={item.items[0]} width={W} height={H} radius={0} onPressItem={onPressItem} />;
+      return <Tile it={item.items[0]} width={W} height={H} radius={16} onPressItem={onPressItem} />;
     }
 
     if (item.type === "L2") {
@@ -53,7 +53,7 @@ export default function MasonryGrid({
                 it={it}
                 width={size}
                 height={size}
-                radius={0}
+                radius={16}
                 onPressItem={onPressItem}
               />
             ))}
@@ -69,14 +69,14 @@ export default function MasonryGrid({
         <View style={{ flexDirection: "row" }}>
           <View style={{ width: m.H2x2, height: m.H2x2 }}>
             <View style={{ flexDirection: "row", gap: m.GAP, marginBottom: m.GAP }}>
-              <Tile it={a} width={m.CELL} height={m.CELL} radius={0} onPressItem={onPressItem} />
-              <Tile it={b} width={m.CELL} height={m.CELL} radius={0} onPressItem={onPressItem} />
+              <Tile it={a} width={m.CELL} height={m.CELL} radius={16} onPressItem={onPressItem} />
+              <Tile it={b} width={m.CELL} height={m.CELL} radius={16} onPressItem={onPressItem} />
             </View>
-            <Tile it={c} width={m.H2x2} height={m.CELL} radius={0} onPressItem={onPressItem} />
+            <Tile it={c} width={m.H2x2} height={m.CELL} radius={16} onPressItem={onPressItem} />
           </View>
 
           <View style={{ width: m.GAP }} />
-          <Tile it={d} width={m.H2x2} height={m.H2x2} radius={0} onPressItem={onPressItem} />
+          <Tile it={d} width={m.H2x2} height={m.H2x2} radius={16} onPressItem={onPressItem} />
         </View>
       </View>
     );

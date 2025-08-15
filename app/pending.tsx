@@ -27,7 +27,6 @@ type Card = {
 
 export default function IncompleteMemoriesScreen() {
   const navigation = useNavigation();
-
   const { profileId } = useAuthStore();
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,16 +34,16 @@ export default function IncompleteMemoriesScreen() {
   // 썸네일 너비 계산: 3.5장 보이기
   const { itemSize, gap, pad } = useMemo(() => {
     const screenW = Dimensions.get('window').width;
-    const pad = 16;
+    const pad = 0;
     const gap = 8;
-    const visible = 3.5;
+    const visible = 4;
     const itemSize = (screenW - pad * 2 - gap * (visible - 1)) / visible;
     return { itemSize, gap, pad };
   }, []);
 
   useEffect(() => {
     navigation.setOptions({
-       headerLeft: () => (
+      headerLeft: () => (
         <Pressable
           style={{ flexDirection: "row", alignItems: "center" }}
           onPress={() => router.back()}
@@ -131,11 +130,11 @@ export default function IncompleteMemoriesScreen() {
         <FlatList
           data={cards}
           keyExtractor={(c) => c.memory_id}
-          contentContainerStyle={{ padding: 12 }}
+          contentContainerStyle={{ padding: 0 }}
           renderItem={({ item }) => (
             <MemoryCard item={item} itemSize={itemSize} gap={gap} pad={pad} />
           )}
-          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
         />
       )}
     </>
@@ -144,36 +143,40 @@ export default function IncompleteMemoriesScreen() {
 
 /* ---------- 카드 컴포넌트 ---------- */
 function MemoryCard({ item, itemSize, gap, pad }: { item: Card; itemSize: number; gap: number; pad: number }) {
-  const dateLabel = `${item.date.replaceAll('-', '.')} ${item.weekday}`;
+  const dateLabel = item.date.replaceAll('-', '.');
+  const weekday = item.weekday.toUpperCase().slice(0, 3); // FRI, MON 같은 형식
 
-  const onCompose = () => {
+  const onEdit = () => {
     router.push(`/today/${item.memory_id}`);
   };
 
   const images = item.images;
-  const display = images.length > 0 ? images : new Array(4).fill(null);
+  const display = images.length > 0 ? images : new Array(5).fill(null);
 
   return (
     <View style={styles.card}>
       {/* 헤더 */}
       <View style={styles.cardHeader}>
-        <Text style={styles.cardDate}>{dateLabel}</Text>
-        <Pressable onPress={onCompose} style={styles.cta}>
-          <Text style={styles.ctaText}>지금 작성하기</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+          <Text style={styles.cardDate}>{dateLabel}</Text>
+          <Text style={styles.cardWeekday}> {weekday}</Text>
+        </View>
+
+        <Pressable onPress={onEdit} style={styles.editBtn}>
+          <Feather name="edit-2" size={16} color="#fff" />
         </Pressable>
       </View>
 
-      {/* 썸네일 */}
+      {/* 이미지 가로 슬라이더 */}
       <FlatList
         data={display}
         keyExtractor={(_, idx) => String(idx)}
         horizontal
         showsHorizontalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ width: gap }} />}
-        contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 12 }}
-        renderItem={({ item: uri }) => (
-          <View style={{ width: itemSize }}>
-            <View style={styles.thumbBox}>
+        renderItem={({ item: uri, index }) => (
+          <View style={{ width: itemSize, marginLeft: index === 0 ? 0 : pad }}>
+            <View style={styles.thumbBoxSmall}>
               {uri ? (
                 <Image source={{ uri }} style={styles.thumbImg} />
               ) : (
@@ -200,42 +203,35 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: '#fff',
-    borderRadius: 14,
-    overflow: 'hidden',
-    paddingTop: 10,
-    paddingBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    padding: 16,
   },
 
   cardHeader: {
-    paddingHorizontal: 14,
-    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
 
   cardDate: { fontSize: 16, fontWeight: '700' },
+  cardWeekday: { fontSize: 14, color: '#999', fontWeight: '500' },
 
-  cta: {
-    backgroundColor: '#F2F4F7',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+  editBtn: {
+    backgroundColor: '#E75234',
+    padding: 8,
+    borderRadius: 8,
   },
-  ctaText: { fontSize: 12, color: '#333', fontWeight: '600' },
 
-  thumbBox: {
-    width: '100%',
+  thumbBoxSmall: {
+    flex: 1,
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#eee',
   },
+
   thumbImg: { width: '100%', height: '100%' },
   placeholder: { flex: 1, backgroundColor: '#E7E9ED' },
 });

@@ -11,7 +11,7 @@ export default function OnboardingV1Layout() {
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <Stack
         screenOptions={{
-          headerTitle: () => null,
+          headerTitle: "",
           headerShadowVisible: false, // 그림자 제거 (iOS)
         }}
       />

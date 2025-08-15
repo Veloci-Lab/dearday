@@ -54,8 +54,9 @@ export default function OnboardingSecondScreen() {
     <View style={s.container}>
       {/* 헤더 텍스트 */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={s.h1}>잠에 드는 시간을 입력해주세요</Text>
-        <Text style={s.sub}>이 시간에 맞춰 하루를 기록할 수 있도록 알람을 보내드릴게요.</Text>
+        <Text style={s.h1}>오늘 하루를 기록할 시간을 알려주세요</Text>
+        <Text style={s.sub}>이 시간에 맞추어 하루를 기록할 수 있도록 알람을 보내드릴게요.</Text>
+        <Text style={s.sub}>이 시간이 아니어도 아무때나 기록할 수 있어요.</Text>
       </View>
 
       {/* 라벨 */}

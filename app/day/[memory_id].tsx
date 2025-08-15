@@ -50,15 +50,6 @@ function formatYmdDots(ymd: string) {
   return `${y}.${String(m).padStart(2, "0")}.${String(d).padStart(2, "0")}.`;
 }
 
-function weekdayKoFromYmd(ymd: string) {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const dow = ["일요일","월요일","화요일","수요일","목요일","금요일","토요일"][
-    new Date(Date.UTC(y, m - 1, d)).getUTCDay()
-  ];
-  return dow;
-}
-
-
 // ================================
 // Component
 // ================================
@@ -79,11 +70,6 @@ export default function DayByMemory() {
   );
 
   useEffect(() => {
-    const title =
-      memoryDate
-        ? `${formatYmdDots(memoryDate)} ${weekdayKoFromYmd(memoryDate)}`
-        : "";
-    
     navigation.setOptions({
        headerLeft: () => (
         <Pressable
@@ -93,11 +79,31 @@ export default function DayByMemory() {
           <Feather name="chevron-left" size={24} color="black" />
         </Pressable>
       ),
-      headerTitle: title,
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>
+            Dearday
+          </Text>
+          <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>
+            {memoryDate ? formatYmdDots(memoryDate) : ""}
+          </Text>
+        </View>
+      ),
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity onPress={onFlip}>
-            <Feather name="repeat" size={20} color="#000" style={{ marginHorizontal: 8 }} />
+            <Feather name="repeat" size={20} color="#5B8DEF" style={{ marginHorizontal: 8 }} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push(`/today/${memory_id}`)}
+            disabled={!memory_id}
+          >
+            <Feather
+              name="edit"
+              size={20}
+              color={memory_id ? "#000" : "#bbb"}
+              style={{ marginHorizontal: 8 }}
+            />
           </TouchableOpacity>
         </View>
       )
@@ -194,7 +200,7 @@ export default function DayByMemory() {
         <MasonryGrid
           items={feedItems}
           gap={6}
-          padding={0}
+          padding={16}
           options={{
             seed: 20250810,
             initialOrder: ["L1", "L2", "L3"],
@@ -214,23 +220,24 @@ export default function DayByMemory() {
 // Sub Views
 // ================================
 function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
-  const PADDING = 0; // 14
-  const GAP = 0; // 16
+  const PADDING = 16; // 14
+  const GAP = 6; // 16
   return (
-    <ScrollView contentContainerStyle={{ padding: PADDING, gap: GAP }}> 
+    <ScrollView contentContainerStyle={{ padding: PADDING, gap: GAP, backgroundColor: "#fff" }}> 
       {items.map((it) => (
         <View key={it.id} style={{ backgroundColor: "#fff" }}>
           {it.imageUrl ? (
             <View>
               <Image
                 source={{ uri: it.imageUrl }}
-                style={{ width: "100%", height: width * 0.75, backgroundColor: "#ddd" }}
+                style={{ width: "100%", height: width * 0.75, borderRadius: 16 }}
                 contentFit="cover"
               />
               <TopLeftBadge time={it.dateISO} place={it.place} />
             </View>
           ) : null}
-          <View style={[{ marginBottom: 6 }, it.content && { padding: 12, marginBottom: 0 }]}>
+          <View style={it.content && { padding: 16 }}>
+             {/*  */}
             {it.content ? (
               <Text style={{ fontSize: 14, lineHeight: 20, color: "#0D0D0D" }}>
                 {it.content}

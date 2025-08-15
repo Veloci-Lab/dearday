@@ -157,7 +157,7 @@ export default function TodayScreen() {
                 <TouchableOpacity
                   key={id}
                   onPress={() => toggleSelect(id)}
-                  style={[styles.imageWrapper, isSelected && { opacity: 0.8 }]}
+                  style={[styles.imageWrapper, isSelected && { opacity: 0.8, borderWidth: 2, borderColor: "#5B8DEF" }]}
                 >
                   <Image source={{ uri: entry.image_url }} style={styles.image} />
                   {isSelected && (
@@ -216,11 +216,13 @@ const styles = StyleSheet.create({
   imageWrapper: {
     width: "30%",
     aspectRatio: 1,
-    borderRadius: 8,
+    borderRadius: 7,
     marginBottom: 12,
     overflow: "hidden",
     backgroundColor: "#eee",
     position: "relative",
+    borderWidth: 2,
+    borderColor: "#fff"
   },
   image: {
     width: "100%",
