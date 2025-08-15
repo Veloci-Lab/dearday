@@ -50,15 +50,6 @@ function formatYmdDots(ymd: string) {
   return `${y}.${String(m).padStart(2, "0")}.${String(d).padStart(2, "0")}.`;
 }
 
-function weekdayKoFromYmd(ymd: string) {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const dow = ["일요일","월요일","화요일","수요일","목요일","금요일","토요일"][
-    new Date(Date.UTC(y, m - 1, d)).getUTCDay()
-  ];
-  return dow;
-}
-
-
 // ================================
 // Component
 // ================================
@@ -79,11 +70,6 @@ export default function DayByMemory() {
   );
 
   useEffect(() => {
-    const title =
-      memoryDate
-        ? `${formatYmdDots(memoryDate)} ${weekdayKoFromYmd(memoryDate)}`
-        : "";
-    
     navigation.setOptions({
        headerLeft: () => (
         <Pressable
@@ -93,11 +79,31 @@ export default function DayByMemory() {
           <Feather name="chevron-left" size={24} color="black" />
         </Pressable>
       ),
-      headerTitle: title,
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>
+            Dearday
+          </Text>
+          <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>
+            {memoryDate ? formatYmdDots(memoryDate) : ""}
+          </Text>
+        </View>
+      ),
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity onPress={onFlip}>
-            <Feather name="repeat" size={20} color="#000" style={{ marginHorizontal: 8 }} />
+            <Feather name="repeat" size={20} color="#5B8DEF" style={{ marginHorizontal: 8 }} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push(`/today/${memory_id}`)}
+            disabled={!memory_id}
+          >
+            <Feather
+              name="edit"
+              size={20}
+              color={memory_id ? "#000" : "#bbb"}
+              style={{ marginHorizontal: 8 }}
+            />
           </TouchableOpacity>
         </View>
       )

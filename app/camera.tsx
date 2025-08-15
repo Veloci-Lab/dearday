@@ -1,7 +1,6 @@
 import { useAuthStore } from "@/utils/authStore";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import {
   CameraMode,
   CameraType,
@@ -343,9 +342,13 @@ export default function App() {
           <Pressable
             onPress={toggleFacing}
             hitSlop={10}
-            style={({ pressed }) => pressed && { transform: [{ scale: 0.96 }] }}
+            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
+            style={({ pressed }) => [
+              styles.iconBtnWrap,
+              pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
+            ]}
           >
-            <FontAwesome6 name="rotate-left" size={32} color="white" />
+            <Feather name="repeat" size={32} color="white" />
           </Pressable>
         </View>
       </View>
@@ -473,19 +476,44 @@ const styles = StyleSheet.create({
   },
   shutterBtn: {
     backgroundColor: "transparent",
-    borderWidth: 5,
-    borderColor: "white",
-    width: 85,
-    height: 85,
-    borderRadius: 45,
+    borderWidth: 10,
+    borderColor: "#5B8DEF",
+    width: 75,
+    height: 75,
+    borderRadius: 75,
     alignItems: "center",
     justifyContent: "center",
+    
   },
   shutterBtnInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 50,
+    width: 65,
+    height: 65,
+    borderRadius: 65,
   },
+  iconBtnWrap: {
+  borderRadius: 22,
+  overflow: "hidden", // 안드로이드 ripple이 원 밖으로 안 나가게
+},
+
+iconBtn: {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "rgba(142,142,147,0.95)", // 시스템 그레이 톤(원하는 회색으로 변경 가능)
+  borderWidth: StyleSheet.hairlineWidth,
+  borderColor: "rgba(255,255,255,0.35)",
+
+  // iOS 그림자
+  shadowColor: "#000",
+  shadowOpacity: 0.18,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 3 },
+  // Android 그림자
+  elevation: 5,
+},
+
 
   /* 미리보기 하단 버튼 컨테이너 (카메라뷰와 같은 레이어 위) */
   previewBtnWrap: {

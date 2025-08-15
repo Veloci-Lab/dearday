@@ -2,7 +2,7 @@
 import { useAuthStore } from '@/utils/authStore';
 import { supabase } from '@/utils/supabase';
 import { Feather } from "@expo/vector-icons";
-import { router, useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Calendar, DateObject } from 'react-native-calendars';
@@ -66,9 +66,7 @@ async function fetchEntries(memoryId: string): Promise<EntryRow[]> {
   return (data ?? []) as EntryRow[];
 }
 
-export default function CalendarWithEntries() {
-  const navigation = useNavigation();
-
+export default function CalendarScreen() {
   const profileId = useAuthStore((s) => s.profileId);
   const today = new Date();
   const initialMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
@@ -100,20 +98,6 @@ export default function CalendarWithEntries() {
     const itemSize = (screenW - pad * 2 - gap * (visible - 1)) / visible;
     return { itemSize, gap, pad };
   }, []);
-
-  useEffect(() => {
-    navigation.setOptions({
-       headerLeft: () => (
-        <Pressable
-          style={{ flexDirection: "row", alignItems: "center" }}
-          onPress={() => router.back()}
-        >
-          <Feather name="chevron-left" size={24} color="black" />
-        </Pressable>
-      ),
-      headerTitle: ""
-    });
-  }, [navigation]);
 
   // 월 변경 → 월 데이터 로드
   useEffect(() => {

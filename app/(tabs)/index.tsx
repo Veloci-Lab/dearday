@@ -7,6 +7,7 @@ import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Camera } from "expo-camera";
+import { Image as ExpoImage } from "expo-image";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import { router, useFocusEffect } from "expo-router";
@@ -98,6 +99,7 @@ export default function IndexScreen() {
 
   // TODAY
   const [todayImages, setTodayImages] = useState<string[]>([]);
+  const [showToday, setShowToday] = useState(false); // ← 오늘 영역 노출 여부
 
   // 화면 가로 폭/표시 썸네일 수 계산
   const screenWidth = Dimensions.get("window").width;
@@ -210,13 +212,15 @@ export default function IndexScreen() {
       // 1) 오늘자 memory_id 조회
       const { data: mem, error: memErr } = await supabase
         .from("memories")
-        .select("memory_id")
+        .select("memory_id, is_completed")
         .eq("profile_id", profileId)
         .eq("date", today)
         .single();
 
-      if (memErr || !mem) {
-        setTodayImages(prev => (prev.length ? [] : prev)); // 변경 시에만 업데이트
+      // 없거나 이미 완료면 숨김
+      if (memErr || !mem || mem.is_completed === true) {
+        setTodayImages(prev => (prev.length ? [] : prev));
+        setShowToday(false);
         return;
       }
 
@@ -233,12 +237,13 @@ export default function IndexScreen() {
       const urls = (entries ?? [])
         .map((e: any) => e.image_url as string)
         .filter(Boolean);
-
+      
       // 동일 데이터면 스킵 → 깜빡임 최소화
       setTodayImages(prev => {
         if (JSON.stringify(prev) !== JSON.stringify(urls)) return urls;
         return prev;
       });
+      setShowToday(urls.length > 0); // 사진이 1장 이상일 때만 표시
     } catch (e) {
       console.error("❌ today images fetch error:", (e as Error).message);
     }
@@ -399,7 +404,7 @@ export default function IndexScreen() {
             <View style={{ marginLeft: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: "600" }}>{Dashboard.nickname}</Text>
               {Dashboard.joinedAt && (
-                <Text style={{ fontSize: 15, color: "#929292" }}>since {Dashboard.joinedAt}</Text>
+                <Text style={{ fontSize: 15, color: "#929292" }}>Since {Dashboard.joinedAt}</Text>
               )}
             </View>
           </View>
@@ -407,12 +412,12 @@ export default function IndexScreen() {
           {/* 오른쪽 영역 */}
           <View style={[styles.statsContainer, { justifyContent: "flex-end" }]}>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{Dashboard.days}</Text>
-              <Text style={styles.statLabel}>DAYS</Text>
-            </View>
-            <View style={styles.statBox}>
               <Text style={styles.statValue}>{Dashboard.photos}</Text>
               <Text style={styles.statLabel}>PHOTOS</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{Dashboard.days}</Text>
+              <Text style={styles.statLabel}>DAYS</Text>
             </View>
           </View>
         </View>
@@ -420,28 +425,50 @@ export default function IndexScreen() {
         <View style={{ height: 1, backgroundColor: "#F2F2F2", marginBottom: 16 }} />
 
         {/* 오늘 찍은 사진 */}
-        <View style={styles.todayContainer}>
-          <View style={styles.left}>
-            <Text style={styles.count}>{todayImages.length}</Text>
-            <Text style={styles.todayText}>TODAY</Text>
-          </View>
+        {showToday && (
+          <View style={styles.todayContainer}>
+            <View style={styles.left}>
+              <Text style={styles.count}>{todayImages.length}</Text>
+              <Text style={styles.todayText}>TODAY</Text>
+            </View>
 
-          <View style={styles.center}>
-            {todayImages.slice(0, maxThumbs).map((uri, idx) => (
-              <Image key={idx} source={{ uri }} style={styles.thumb} />
-            ))}
-          </View>
+            <View style={styles.center}>
+              {todayImages.slice(0, maxThumbs).map((uri, idx) => (
+                <ExpoImage
+                  source={{ uri }}
+                  style={styles.thumb}
+                  contentFit="cover"
+                  transition={150}
+                  onError={(e: any) => {
+                    // expo-image: e.error
+                    // RN Image:   e.nativeEvent.error
+                    const msg = e?.error ?? e?.nativeEvent?.error ?? e;
+                    console.warn("today thumb error:", msg);
+                  }}
+                />
+              ))}
+            </View>
 
-          <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
-            <Feather name="arrow-right" size={24} color="#E75234" />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
+              <Feather name="arrow-right" size={24} color="#5B8DEF" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* memory 목록 렌더링 */}
-        {/* TODO: 데이터 없을때 뷰 */}
         <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
           {memoriesLoading ? (
             <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
+          ) : feedItems.length === 0 && todayImages.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <View style={styles.emptyIconCircle}>
+                <Image
+                  source={require("@/assets/images/logo_blue.png")} // 앱 로고 png
+                  style={{ width: 28, height: 28, resizeMode: "contain" }}
+                />
+              </View>
+              <Text style={styles.emptyText}>아무것도 없어요!</Text>
+            </View>
           ) : (
             <MasonryGrid
               items={feedItems}
@@ -459,14 +486,6 @@ export default function IndexScreen() {
           )}
         </View>
       </ScrollView>
-
-      {/* 플로팅 버튼 */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 24 }]}
-        onPress={() => router.push("/camera")}
-      >
-        <Feather name="camera" size={26} color="#fff" />
-      </TouchableOpacity>
 
       {/* 권한 모달 */}
       <Modal visible={visible} transparent animationType="slide">
@@ -489,26 +508,6 @@ export default function IndexScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-
-  // FAB 버튼
-  fab: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    backgroundColor: "#5B8DEF",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 100, // iOS
-    elevation: 5, // Android
-  },
-  fabText: { fontSize: 28, color: "#fff", fontWeight: "bold" },
 
   // 권한 요청 모달 
   modalBackdrop: {
@@ -587,8 +586,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    // paddingHorizontal: 16,
+    // marginBottom: 16,
     // borderWidth: 1,
     // borderRadius: 12,
     // borderColor: "#F5978A",
@@ -596,16 +595,38 @@ const styles = StyleSheet.create({
   },
   left: { marginRight: 8 },
   todayText: { fontSize: 15, color: "#C3C3C3" },
-  count: { fontSize: 30 , fontWeight: "bold", color: "#F5978A", textAlign: "center" },
+  count: { fontSize: 30 , fontWeight: "bold", color: "#5B8DEF", textAlign: "center" },
   center: { flexDirection: "row", flex: 1, gap: 2, overflow: "hidden", marginLeft: 8 },
-  thumb: { width: 60, height: 60 },
+  thumb: { width: 72, height: 72, borderRadius: 7 },
   arrowBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 40,
-    backgroundColor: "#F3D7D3",
+    width: 72,
+    height: 72,
+    borderRadius: 7,
+    backgroundColor: "rgba(228, 238, 255, 1)",
+    // Color: "#5B8DEF",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 8,
   },
+
+  // 피드영역
+  emptyWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 64,     // 위아래 여백
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#0D0D0D",
+    fontWeight: "600",
+  },
+
 });
