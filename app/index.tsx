@@ -6,6 +6,9 @@ import { registerForPushNotificationsAsync } from "@/utils/registerForPushNotifi
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Camera } from "expo-camera";
+import * as Location from "expo-location";
+import * as MediaLibrary from "expo-media-library";
 import { router, useFocusEffect } from "expo-router";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -317,6 +320,7 @@ export default function IndexScreen() {
   const handleRequestPermissions = useCallback(async () => {
     if (!profileId) return;
 
+    // 1. 푸시 알림 권한 + 토큰 저장 (에러 나도 계속 진행)
     try {
       const token = await registerForPushNotificationsAsync();
       if (token) await updateExpoPushToken(profileId, token);
@@ -324,6 +328,37 @@ export default function IndexScreen() {
       console.error("푸시 알림 권한/토큰 처리 실패:", err);
     }
 
+    // 2. 카메라 권한
+    try {
+      const { status: camStatus } = await Camera.requestCameraPermissionsAsync();
+      // if (camStatus !== "granted") {
+      //   console.warn("카메라 권한 거부됨");
+      // }
+    } catch (err) {
+      console.error("카메라 권한 요청 실패:", err);
+    }
+
+    // 3. 갤러리 권한
+    try {
+      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+      // if (mediaStatus !== "granted") {
+      //   console.warn("미디어 라이브러리 권한 거부됨");
+      // }
+    } catch (err) {
+      console.error("미디어 라이브러리 권한 요청 실패:", err);
+    }
+
+    // 4. 위치 권한
+    try {
+      const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+      // if (locStatus !== "granted") {
+      //   console.warn("위치 권한 거부됨");
+      // }
+    } catch (err) {
+      console.error("위치 권한 요청 실패:", err);
+    }
+
+    // 플래그 저장
     try {
       await AsyncStorage.setItem("hasRequestedPermissions", "true");
     } catch (err) {
@@ -332,6 +367,7 @@ export default function IndexScreen() {
 
     setVisible(false);
   }, [profileId]);
+
 
   /* -------------------------
    * Render
@@ -438,7 +474,7 @@ export default function IndexScreen() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>필요한 권한 요청이 있어요.</Text>
             <Text style={styles.modalDesc}>
-              Dearday를 원활히 사용하기 위해서,{"\n"}알림 권한을 요청드릴 예정이에요.
+              Dearday를 원활히 사용하기 위해서,{"\n"}알림과 사진 권한을 요청드릴 예정이에요.
             </Text>
 
             <Pressable style={styles.confirmButton} onPress={handleRequestPermissions}>

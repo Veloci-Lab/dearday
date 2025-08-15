@@ -1,6 +1,4 @@
 import { useAuthStore } from "@/utils/authStore";
-import { getLocalDateString } from "@/utils/date";
-import { supabase } from "@/utils/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -10,10 +8,9 @@ import {
   CameraView,
   useCameraPermissions,
 } from "expo-camera";
-import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
-import * as Location from "expo-location"; // ← 위치
+// import * as Location from "expo-location"; // ← 제거
 import * as MediaLibrary from "expo-media-library";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -22,12 +19,12 @@ import {
   Alert,
   AppState,
   Button,
-  Modal,
+  // Modal,           // ← 제거
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
+  // TextInput,       // ← 제거
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,38 +40,14 @@ export default function App() {
   const [recording, setRecording] = useState(false);
   const insets = useSafeAreaInsets();
   const [isUploading, setIsUploading] = useState(false);
-  const [showQuickMemo, setShowQuickMemo] = useState(false);
-  // 업로드 후 퀵메모에 필요
-  const [memoryEntryId, setMemoryEntryId] = useState<number | null>(null);
-  const [placeName, setPlaceName] = useState("");
-  const [text, setText] = useState("");
-  const [locating, setLocating] = useState(false);
+  // const [showQuickMemo, setShowQuickMemo] = useState(false);                 // ← 제거
+  // const [memoryEntryId, setMemoryEntryId] = useState<number | null>(null);   // ← 제거
+  // const [placeName, setPlaceName] = useState("");                            // ← 제거
+  // const [text, setText] = useState("");                                      // ← 제거
+  // const [locating, setLocating] = useState(false);                           // ← 제거
 
-  function pickNicePlace(geo?: Location.LocationGeocodedAddress | null) {
-    if (!geo) return "";
-    const parts = [geo.city ?? geo.subregion, geo.district, geo.name ?? geo.street].filter(Boolean);
-    return parts.join(" ");
-  }
-
-  async function fillCurrentLocation() {
-    try {
-      setLocating(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocating(false);
-        Alert.alert("권한 필요", "설정에서 위치 접근을 허용해주세요.");
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const geos = await Location.reverseGeocodeAsync(pos.coords);
-      const pretty = pickNicePlace(geos[0]);
-      if (pretty) setPlaceName(pretty);
-    } catch (e) {
-      console.warn("현재 위치 채우기 실패:", e);
-    } finally {
-      setLocating(false);
-    }
-  }
+  // function pickNicePlace(geo?: Location.LocationGeocodedAddress | null) { ... }  // ← 제거
+  // async function fillCurrentLocation() { ... }                                   // ← 제거
 
   useEffect(() => {
     if (permission?.status === "undetermined") {
@@ -147,114 +120,114 @@ export default function App() {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   };
 
+  // const handleConfirmPhoto = async () => {
+  //   if (isUploading) return; // 중복 클릭 방지
+  //   setIsUploading(true);
+
+  //   try {
+  //     if (!profileId || !uri) throw new Error("필수 정보 누락 (profileId 또는 uri)");
+
+  //     const today = getLocalDateString();
+
+  //     const base64 = await FileSystem.readAsStringAsync(uri, {
+  //       encoding: FileSystem.EncodingType.Base64,
+  //     });
+
+  //     const binary = atob(base64);
+  //     const bytes = new Uint8Array(binary.length);
+  //     for (let i = 0; i < binary.length; i++) {
+  //       bytes[i] = binary.charCodeAt(i);
+  //     }
+
+  //     const fileName = `photo_${Date.now()}.jpg`;
+
+  //     const { error } = await supabase.storage
+  //       .from("photos")
+  //       .upload(fileName, bytes, {
+  //         contentType: "image/jpeg",
+  //         upsert: false,
+  //       });
+
+  //     if (error) throw error;
+
+  //     const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
+  //     const imageUrl = urlData?.publicUrl;
+  //     if (!imageUrl) throw new Error("Public URL 생성 실패");
+
+  //     let memory_id: string;
+  //     const { data: existingMemory, error: memoryQueryErr } = await supabase
+  //       .from("memories")
+  //       .select("memory_id")
+  //       .eq("profile_id", profileId)
+  //       .eq("date", today)
+  //       .single();
+
+  //     if (memoryQueryErr && memoryQueryErr.code !== "PGRST116") {
+  //       throw memoryQueryErr;
+  //     }
+
+  //     if (existingMemory) {
+  //       memory_id = existingMemory.memory_id;
+  //     } else {
+  //       const { data: newMemory, error: insertErr } = await supabase
+  //         .from("memories")
+  //         .insert({ profile_id: profileId, date: today })
+  //         .select("memory_id")
+  //         .single();
+  //       if (insertErr) throw insertErr;
+  //       memory_id = newMemory.memory_id;
+  //     }
+
+  //     const { data: existingEntries } = await supabase
+  //       .from("memory_entries")
+  //       .select("entry_index")
+  //       .eq("memory_id", memory_id);
+
+  //     const entryIndex =
+  //       existingEntries && existingEntries.length > 0
+  //         ? Math.max(...existingEntries.map((e) => e.entry_index)) + 1
+  //         : 0;
+
+  //     const insertData = {
+  //       memory_id,
+  //       ...(notification_id && { notification_id }),
+  //       entry_index: entryIndex,
+  //       image_url: imageUrl,
+  //       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  //     };
+
+  //     const { data, error: entryErr } = await supabase
+  //       .from("memory_entries")
+  //       .insert(insertData)
+  //       .select("memory_entry_id")
+  //       .single();
+
+  //     if (entryErr) throw entryErr;
+
+  //     console.log("사진 업로드 및 DB 저장 완료");
+
+  //     // 모달 없이 바로 quick-memo로 이동
+  //     router.replace({
+  //       pathname: "/quick-memo",
+  //       params: { memory_entry_id: String(data.memory_entry_id) },
+  //     });
+
+  //   } catch (err) {
+  //     console.error("❌ handleConfirmPhoto 오류:", err);
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
+  
+  // 메모에서 업로드하는 로직으로 변경
+  // 변경된 handleConfirmPhoto
   const handleConfirmPhoto = async () => {
-    if (isUploading) return; // 중복 클릭 방지
-    setIsUploading(true);
-
-    try {
-      if (!profileId || !uri) throw new Error("필수 정보 누락 (profileId 또는 uri)");
-
-      const today = getLocalDateString();
-
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      const fileName = `photo_${Date.now()}.jpg`;
-
-      const { error } = await supabase.storage
-        .from("photos")
-        .upload(fileName, bytes, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
-      const imageUrl = urlData?.publicUrl;
-      if (!imageUrl) throw new Error("Public URL 생성 실패");
-
-      let memory_id: string;
-      const { data: existingMemory, error: memoryQueryErr } = await supabase
-        .from("memories")
-        .select("memory_id")
-        .eq("profile_id", profileId)
-        .eq("date", today)
-        .single();
-
-      if (memoryQueryErr && memoryQueryErr.code !== "PGRST116") {
-        throw memoryQueryErr;
-      }
-
-      if (existingMemory) {
-        memory_id = existingMemory.memory_id;
-      } else {
-        const { data: newMemory, error: insertErr } = await supabase
-          .from("memories")
-          .insert({ profile_id: profileId, date: today })
-          .select("memory_id")
-          .single();
-        if (insertErr) throw insertErr;
-        memory_id = newMemory.memory_id;
-      }
-
-      const { data: existingEntries } = await supabase
-        .from("memory_entries")
-        .select("entry_index")
-        .eq("memory_id", memory_id);
-
-      const entryIndex =
-        existingEntries && existingEntries.length > 0
-          ? Math.max(...existingEntries.map((e) => e.entry_index)) + 1
-          : 0;
-
-      const insertData = {
-        memory_id,
-        ...(notification_id && { notification_id }),
-        entry_index: entryIndex,
-        image_url: imageUrl,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
-
-      const { data, error: entryErr } = await supabase
-        .from("memory_entries")
-        .insert(insertData)
-        .select("memory_entry_id")
-        .single();
-
-      if (entryErr) throw entryErr;
-
-      console.log("사진 업로드 및 DB 저장 완료");
-
-      // ⬇️ 추가
-      setMemoryEntryId(data.memory_entry_id);
-      setShowQuickMemo(true);
-
-      // 모달 열릴 때 위치 자동 채우기(한 번)
-      setPlaceName(""); // 초기화(원하면 유지)
-      setText("");
-      fillCurrentLocation();
-
-      setShowQuickMemo(true);
-
-      // router.replace({
-      //   pathname: "/quick-memo",
-      //   params: {
-      //     memory_entry_id: data.memory_entry_id,
-      //   },
-      // });
-    } catch (err) {
-      console.error("❌ handleConfirmPhoto 오류:", err);
-    } finally {
-      setIsUploading(false);
-    }
+    if (!uri) return;
+    // 업로드/DB 처리 ❌  로컬 uri만 전달 ⭕
+    router.replace({
+      pathname: "/quick-memo",
+      params: { local_uri: encodeURIComponent(uri), ...(notification_id && { notification_id: String(notification_id) }) },
+    });
   };
 
   const renderPicture = () => {
@@ -263,21 +236,19 @@ export default function App() {
         {/* 촬영된 이미지: 뒤에 꽉 채우기 (contain) */}
         <Image source={{ uri }} contentFit="contain" style={StyleSheet.absoluteFill} />
 
-        {/* 상단 X (카메라뷰와 동일) */}
-        {!showQuickMemo && ( // ← 모달이 보일 때는 안 보이게
-          <View style={[styles.topBar, { paddingTop: insets.top }]}>
-            <Pressable
-              onPress={() => {
-                router.back();
-              }}
-              hitSlop={12}
-              android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
-              style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
-            >
-              <Feather name="x" size={22} color="#fff" />
-            </Pressable>
-          </View>
-        )}
+        {/* 상단 X (항상 표시) */}
+        {/* <View style={[styles.topBar, { paddingTop: insets.top }]}>
+          <Pressable
+            onPress={() => {
+              router.back();
+            }}
+            hitSlop={12}
+            android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
+            style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+          >
+            <Feather name="x" size={22} color="#fff" />
+          </Pressable>
+        </View> */}
 
         {/* 상/하 마스크 (카메라뷰와 동일) */}
         <View style={styles.topMask} />
@@ -296,7 +267,7 @@ export default function App() {
             {isUploading ? (
               <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
             ) : (
-              <Text style={styles.primaryBtnText}>오! 이거 좋은데?</Text>
+              <Text style={styles.primaryBtnText}>이 사진으로 기록하기</Text>
             )}
           </Pressable>
 
@@ -305,86 +276,12 @@ export default function App() {
               setUri(null);
             }}
             hitSlop={10}
-            android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+            android_ripple={{ color: "rgba(255,255,255,0.15)" }}
             style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressedSecondary]}
           >
-            <Text style={styles.secondaryBtnText}>다시 찍을래요 ㅠㅠ</Text>
+            <Text style={styles.secondaryBtnText}>다시 찍을래요</Text>
           </Pressable>
         </View>
-
-        {/* Modal을 최상단에서 렌더 */}
-        <Modal
-          visible={showQuickMemo}
-          animationType="slide"
-          transparent
-          onRequestClose={() => setShowQuickMemo(false)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>잊기 전에 정보를 넣어주세요</Text>
-              <Text style={styles.modalDesc}>빈칸으로 둬도 좋아요. 언제든지 수정할 수 있어요</Text>
-
-              {/* 수동 재시도(선택) */}
-              {/* <Pressable onPress={fillCurrentLocation} style={{ marginTop: 8 }}>
-                <Text style={{ color: "#3478F6" }}>현재 위치로 채우기</Text>
-              </Pressable> */}
-
-              <Text style={styles.label}>LOCATION</Text>
-              
-              <TextInput style={styles.input} placeholder="위치 입력" value={placeName} onChangeText={setPlaceName} />
-              <View style={{ height: 18, justifyContent: "center" }}>
-                {locating ? (
-                  <Text style={{ fontSize: 12, color: "#999" }}>
-                    현재 위치를 불러오는 중…
-                  </Text>
-                ) : (
-                  <Text style={{ fontSize: 12, color: "transparent" }}>placeholder</Text>
-                )}
-              </View>
-
-              <Text style={styles.label}>TEXT</Text>
-              <TextInput
-                style={[styles.textarea, { height: 60 }]} // 60px 정도면 3줄 기본
-                multiline
-                numberOfLines={3}
-                value={text}
-                onChangeText={setText}
-                placeholder="내용을 입력하세요"
-              />
-
-              <Pressable
-                android_ripple={{ color: "rgba(255,255,255,0.2)" }} // 안드로이드 물결 효과
-                style={({ pressed }) => [ 
-                  styles.submitBtn,
-                  pressed && { opacity: 0.85 }, // iOS/Android 공통 살짝 어두워짐
-                ]}
-                onPress={async () => {
-                  if (!memoryEntryId) return;
-
-                  const { error } = await supabase
-                    .from("memory_entries")
-                    .update({
-                      location: placeName.trim() || null,
-                      content: text.trim() || null,
-                    })
-                    .eq("memory_entry_id", memoryEntryId);
-
-                  if (error) {
-                    console.error("퀵메모 업데이트 실패:", error.message);
-                    Alert.alert("오류", "저장에 실패했어요. 다시 시도해주세요.");
-                    return;
-                  }
-
-                  setShowQuickMemo(false); // 모달 닫기
-                  
-                  router.replace("/");
-                }}
-              >
-                <Text style={styles.submitBtnText}>완료</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
       </View>
     );
   };
@@ -534,10 +431,10 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
-    backgroundColor: "rgba(0,0,0,0.35)",
+    // borderRadius: 18,
+    // borderWidth: 1,
+    // borderColor: "rgba(255,255,255,0.7)",
+    // backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -616,10 +513,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F2F2F2",
+    // backgroundColor: "#F2F2F2",
   },
   secondaryBtnText: {
-    color: "#111",
+    color: "#FEFEFE",
     fontWeight: "700",
     fontSize: 16,
   },
@@ -641,7 +538,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
 
-  // 하단 팝업
+  // (styles.* 모달 관련은 삭제 안 했음 — 원하면 나중에 정리 가능)
   modalBackdrop: {
     flex: 1,
     justifyContent: "flex-end",
