@@ -77,7 +77,7 @@ export default function TabsLayout() {
             headerTitleAlign: "left",
             headerLeft: () => (
             <Image
-                source={require("@/assets/images/textmark_blue.png")}
+                source={require("@/assets/images/logo_blue.png")}
                 style={{ width: 28, height: 28, resizeMode: "contain" }}
             />
             ),

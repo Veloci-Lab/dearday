@@ -435,6 +435,7 @@ export default function IndexScreen() {
             <View style={styles.center}>
               {todayImages.slice(0, maxThumbs).map((uri, idx) => (
                 <ExpoImage
+                  key={idx}
                   source={{ uri }}
                   style={styles.thumb}
                   contentFit="cover"
