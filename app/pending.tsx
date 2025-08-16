@@ -4,7 +4,8 @@ import { supabase } from '@/utils/supabase';
 import { Feather } from "@expo/vector-icons";
 import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View, Alert } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 
 type MemoryRow = {
   memory_id: string;
@@ -44,14 +45,17 @@ export default function IncompleteMemoriesScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <Pressable
-          style={{ flexDirection: "row", alignItems: "center" }}
-          onPress={() => router.back()}
-        >
-          <Feather name="chevron-left" size={24} color="black" />
+        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Feather name="chevron-left" size={24} color="#000" />
         </Pressable>
       ),
-      headerTitle: ""
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>Moments</Text>
+          <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>기록을 기다리는 사진들</Text>
+        </View>
+      ),
+      headerTitleAlign: "center",
     });
   }, [navigation]);
 
@@ -116,6 +120,26 @@ export default function IncompleteMemoriesScreen() {
     })();
   }, [profileId]);
 
+  const monthOf = (d: string) => Number(d.slice(5, 7));
+
+  function confirmDelete(memory_id: string) {
+    Alert.alert("삭제할까요?", "이 날짜의 미완성 기록을 삭제합니다.", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          const { error } = await supabase.from("memories").delete().eq("memory_id", memory_id);
+          if (!error) {
+            setCards(prev => prev.filter(c => c.memory_id !== memory_id));
+          } else {
+            Alert.alert("삭제 실패", "잠시 후 다시 시도해 주세요.");
+          }
+        },
+      },
+    ]);
+  }
+
   return (
     <>
       {loading ? (
@@ -123,18 +147,69 @@ export default function IncompleteMemoriesScreen() {
           <Text>불러오는 중…</Text>
         </View>
       ) : cards.length === 0 ? (
-        <View style={styles.center}>
-          <Text>기록 안 된 항목이 없어요.</Text>
+        <View style={styles.emptyWrap}>
+          <View style={styles.emptyCircle}>
+            <Image
+              source={require('@/assets/images/logo_blue.png')}
+              style={{ width: 28, height: 28, resizeMode: 'contain' }}
+            />
+          </View>
+          <Text style={styles.emptyText}>기록 안 된 항목이 없어요.</Text>
         </View>
       ) : (
+        // <FlatList
+        //   data={cards}
+        //   keyExtractor={(c) => c.memory_id}
+        //   contentContainerStyle={{ padding: 0 }}
+        //   renderItem={({ item }) => (
+        //     <MemoryCard item={item} itemSize={itemSize} gap={gap} pad={pad} />
+        //   )}
+        //   ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
+        // />
         <FlatList
           data={cards}
           keyExtractor={(c) => c.memory_id}
-          contentContainerStyle={{ padding: 0 }}
-          renderItem={({ item }) => (
-            <MemoryCard item={item} itemSize={itemSize} gap={gap} pad={pad} />
-          )}
-          ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          // ✅ 월 헤더/구분선만 추가된 부분
+          renderItem={({ item, index }) => {
+            const curM  = monthOf(item.date);
+            const prevM = index > 0 ? monthOf(cards[index - 1].date) : -1;
+            const nextM = index < cards.length - 1 ? monthOf(cards[index + 1].date) : -1;
+
+            const showMonthHeader = index === 0 || curM !== prevM;
+            const isLastInMonth   = index === cards.length - 1 || curM !== nextM;
+
+            return (
+              <View>
+                {showMonthHeader && (
+                  <View style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fff' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#1C1C1E' }}>{`${curM}월`}</Text>
+                  </View>
+                )}
+
+                <Swipeable
+                  overshootRight={false}
+                  renderRightActions={() => (
+                    <Pressable
+                      onPress={() => confirmDelete(item.memory_id)}
+                      style={styles.swipeDelete}
+                    >
+                      <Feather name="trash-2" size={20} color="#fff" />
+                    </Pressable>
+                  )}
+                >
+                  <MemoryCard item={item} itemSize={itemSize} gap={gap} pad={pad} />
+                </Swipeable>
+
+                {/* 같은 달: 얇은 1px / 다음 달로 넘어갈 때: 8px 높이 섹션 간격 */}
+                {isLastInMonth ? (
+                  <View style={{ height: 8, backgroundColor: '#F7F7F8' }} />
+                ) : (
+                  <View style={{ height: 1, backgroundColor: '#EFEFF0' }} />
+                )}
+              </View>
+            );
+          }}
         />
       )}
     </>
@@ -150,8 +225,10 @@ function MemoryCard({ item, itemSize, gap, pad }: { item: Card; itemSize: number
     router.push(`/today/${item.memory_id}`);
   };
 
+  const MAX = 4;
   const images = item.images;
-  const display = images.length > 0 ? images : new Array(5).fill(null);
+  const remain = Math.max(0, images.length - MAX);
+  const display = images.length > 0 ? images.slice(0, MAX) : new Array(MAX).fill(null);
 
   return (
     <View style={styles.card}>
@@ -163,7 +240,7 @@ function MemoryCard({ item, itemSize, gap, pad }: { item: Card; itemSize: number
         </View>
 
         <Pressable onPress={onEdit} style={styles.editBtn}>
-          <Feather name="edit-2" size={16} color="#fff" />
+          <Feather name="arrow-right" size={20} color="#5B8DEF" />
         </Pressable>
       </View>
 
@@ -181,6 +258,12 @@ function MemoryCard({ item, itemSize, gap, pad }: { item: Card; itemSize: number
                 <Image source={{ uri }} style={styles.thumbImg} />
               ) : (
                 <View style={styles.placeholder} />
+              )}
+
+              {index === MAX - 1 && remain > 0 && (
+                <View style={styles.moreOverlay}>
+                  <Text style={styles.moreText}>{`+${remain}`}</Text>
+                </View>
               )}
             </View>
           </View>
@@ -203,8 +286,8 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E0E0E0',
     padding: 16,
   },
 
@@ -219,9 +302,14 @@ const styles = StyleSheet.create({
   cardWeekday: { fontSize: 14, color: '#999', fontWeight: '500' },
 
   editBtn: {
-    backgroundColor: '#E75234',
-    padding: 8,
-    borderRadius: 8,
+    // backgroundColor: '#E75234',
+    // padding: 8,
+    // borderRadius: 8,
+    width: 44, height: 44,
+    borderRadius: 10,
+    backgroundColor: "#EFF3FF",
+    alignItems: "center", justifyContent: "center",
+    marginLeft: 12,
   },
 
   thumbBoxSmall: {
@@ -234,4 +322,29 @@ const styles = StyleSheet.create({
 
   thumbImg: { width: '100%', height: '100%' },
   placeholder: { flex: 1, backgroundColor: '#E7E9ED' },
+
+  moreOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center", justifyContent: "center",
+  },
+  moreText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+
+  emptyWrap: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12
+  },
+
+  emptyCircle: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#EFF3FF',
+  },
+
+  emptyText: { color: '#8E8E93', fontSize: 14, fontWeight: '600' },
+
+  swipeDelete: {
+    width: 72, height: '100%',
+    backgroundColor: '#D45A3E',
+    alignItems: 'center', justifyContent: 'center',
+  },
 });

@@ -5,6 +5,12 @@ import React from "react";
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const InboxButton = ({ color = "#000" }: { color?: string }) => (
+  <Pressable onPress={() => router.push("/pending")} style={{ padding: 6, marginRight: 0 }}>
+    <Feather name="inbox" size={20} color={color} />
+  </Pressable>
+);
+
 /* ------ 커스텀 탭바 그대로 ------- */
 function CustomTabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
@@ -41,7 +47,17 @@ function CustomTabBar({ state, navigation }) {
           const color = focused ? "#5B8DEF" : "#C2C2C2";
           return (
             <Pressable key={t.name} onPress={() => go(t.name)} style={styles.tab}>
+              {t.name === "index" ? (
+                <Image
+                  source={require("@/assets/images/logo_blue.png")}
+                  style={{ width: 25, 
+                           height: 25, 
+                           resizeMode: "contain",
+                           tintColor: focused ? undefined : "#BDBDBD", }}
+                />
+              ) : (
               <Feather name={t.icon} size={20} color={color} />
+              )}
               <Text style={[styles.tabLabel, { color }]}>{t.label}</Text>
             </Pressable>
           );
@@ -83,11 +99,7 @@ export default function TabsLayout() {
             ),
             headerLeftContainerStyle: { paddingLeft: 16 },   // 왼쪽 여백
 
-            headerRight: () => (
-            <Pressable onPress={() => router.push("/pending")} style={{ padding: 6 }}>
-                <Feather name="inbox" size={20} color="#000" />
-            </Pressable>
-            ),
+            headerRight: () => <InboxButton />,
             headerRightContainerStyle: { paddingRight: 16 }, // 오른쪽 여백
         }}
       />
@@ -106,6 +118,8 @@ export default function TabsLayout() {
                 </Text>
             </View>
           ),
+          headerRight: () => <InboxButton />,
+            headerRightContainerStyle: { paddingRight: 16 },
         }}
       />
       <Tabs.Screen

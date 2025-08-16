@@ -92,6 +92,9 @@ export default function MypageScreen() {
               <Text style={styles.subText}>{joinDate} 가입</Text>
             </View>
           </View>
+          <Pressable onPress={() => router.push("/mypage/profile-edit")} style={styles.editIcon}>
+            <Text style={{ fontSize: 18 }}>✏️</Text>
+          </Pressable>
         </View>
 
         {/* 내가 설정한 시간 카드 */}
@@ -177,4 +180,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoutText: { fontSize: 16, color: "#FF5A5A" },
+  profileEditBtn: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    width: 28, height: 28,
+    alignItems: "center", justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: "#EFF3FF",
+},
 });
