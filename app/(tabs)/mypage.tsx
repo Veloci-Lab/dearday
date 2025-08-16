@@ -95,37 +95,7 @@ export default function MypageScreen() {
     </Pressable>
   );
 
-  // 헤더 설정
-  useEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <Pressable style={{ flexDirection: "row", alignItems: "center" }} onPress={() => router.back()}>
-          <Feather name="chevron-left" size={24} color="black" />
-        </Pressable>
-      ),
-      headerTitle: "마이페이지",
-    });
-  }, [navigation, router]);
-
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     if (!profileId) return;
-
-  //     const fetchProfile = async () => {
-  //       setLoading(true);
-  //       const { data, error } = await supabase.from("profiles").select("*, sleep_time").eq("profile_id", profileId).single();
-  //       if (error) console.error("❌ 프로필 조회 실패:", error.message);
-  //       else setProfile(data);
-  //       setLoading(false);
-  //     };
-
-  //     fetchProfile();
-
-  //     // 화면을 벗어날 때 정리할 작업이 있다면 여기에 return 함수를 추가
-  //     return () => {};
-  //   }, [profileId])
-  // );
-    // 프로필 불러오기
+  // 프로필 불러오기
   useFocusEffect(
     useCallback(() => {
       if (!profileId) return;

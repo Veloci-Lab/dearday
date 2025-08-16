@@ -337,6 +337,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="mypage"
         options={{
+          headerTitleAlign: "center",
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
               <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>My Dearday</Text>
