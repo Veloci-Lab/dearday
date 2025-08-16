@@ -6,24 +6,94 @@ import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
+  ImageSourcePropType,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+
+/** 우상단 편집 버튼과 겹치지 않도록 카드 오른쪽 여백 계산 */
+const EDIT_SIZE = 28;
+const EDIT_RIGHT = 16;
+const EDIT_SAFE = 8;
+const CARD_RIGHT_PADDING = EDIT_SIZE + EDIT_RIGHT + EDIT_SAFE; // 52
 
 export default function MypageScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { profileId, logOut } = useAuthStore();
+  const { profileId } = useAuthStore();
 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <Text style={styles.sectionTitle}>{children}</Text>
+  );
+
+  const RowIcon = ({
+    name,
+    source,
+  }: {
+    name?: React.ComponentProps<typeof Feather>["name"];
+    source?: ImageSourcePropType;
+  }) => {
+    // PNG 아이콘: 배경 없이 평평하게
+    if (source) {
+      return <Image source={source} style={styles.rowIconImg} />;
+    }
+    // Feather 아이콘: 기존처럼 동그란 배지 배경
+    return (
+      <View style={styles.rowIconBadge}>
+        <Feather name={name!} size={16} color="#5B8DEF" />
+      </View>
+    );
+  };
+
+  // ↓ SettingRow도 PNG를 받도록 iconImg 옵션 추가
+  const SettingRow = ({
+    icon,
+    iconImg,
+    label,
+    onPress,
+    trailing,
+    isLast = false,
+    showChevron = true,
+  }: {
+    icon?: React.ComponentProps<typeof Feather>["name"];
+    iconImg?: ImageSourcePropType;
+    label: string;
+    onPress?: () => void;
+    trailing?: React.ReactNode;
+    isLast?: boolean;
+    showChevron?: boolean;
+  }) => (
+    <Pressable onPress={onPress} style={[styles.settingRow, isLast && { borderBottomWidth: 0 }]}>
+      <View style={styles.rowLeft}>
+        <RowIcon name={icon} source={iconImg} />
+        <Text style={styles.rowTitle}>{label}</Text>
+      </View>
+      {trailing ? trailing : showChevron && <Feather name="chevron-right" size={18} color="#929292" />}
+    </Pressable>
+  );
+
+  const ICONS = {
+    user: require("@/assets/images/icons/user.png"),
+    bell: require("@/assets/images/icons/bell.png"),
+    lock: require("@/assets/images/icons/lock.png"),
+    mail: require("@/assets/images/icons/mail.png"),
+    info: require("@/assets/images/icons/info.png"),
+    moon: require("@/assets/images/icons/moon.png"),
+  };
+
+  const EditCornerButton = ({ onPress }: { onPress: () => void }) => (
+    <Pressable onPress={onPress} style={[styles.editAtCorner, styles.editBadge]} hitSlop={8}>
+      <Feather name="edit-2" size={16} color="#5B8DEF" />
+    </Pressable>
+  );
 
   // 헤더 설정
   useEffect(() => {
@@ -37,44 +107,48 @@ export default function MypageScreen() {
     });
   }, [navigation, router]);
 
-    useFocusEffect(
-      useCallback(() => {
-        if (!profileId) return;
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     if (!profileId) return;
 
-        const fetchProfile = async () => {
-          setLoading(true);
-          const { data, error } = await supabase.from("profiles").select("*, sleep_time").eq("profile_id", profileId).single();
-          if (error) console.error("❌ 프로필 조회 실패:", error.message);
-          else setProfile(data);
-          setLoading(false);
-        };
+  //     const fetchProfile = async () => {
+  //       setLoading(true);
+  //       const { data, error } = await supabase.from("profiles").select("*, sleep_time").eq("profile_id", profileId).single();
+  //       if (error) console.error("❌ 프로필 조회 실패:", error.message);
+  //       else setProfile(data);
+  //       setLoading(false);
+  //     };
 
-        fetchProfile();
+  //     fetchProfile();
 
-        // 화면을 벗어날 때 정리할 작업이 있다면 여기에 return 함수를 추가
-        return () => {};
-      }, [profileId])
-    );
-
-  // 로그아웃 핸들러
-  const handleLogout = async () => {
-    Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "확인",
-        onPress: async () => {
-          await supabase.auth.signOut();
-          await GoogleSignin.signOut(); // 구글 로그인 세션 종료
-          Alert.alert("로그아웃", "성공적으로 로그아웃되었습니다.");
-          logOut();
-          router.replace("/sign-in");
-        },
-      },
-    ]);
-  };
+  //     // 화면을 벗어날 때 정리할 작업이 있다면 여기에 return 함수를 추가
+  //     return () => {};
+  //   }, [profileId])
+  // );
+    // 프로필 불러오기
+  useFocusEffect(
+    useCallback(() => {
+      if (!profileId) return;
+      (async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*, sleep_time")
+          .eq("profile_id", profileId)
+          .single();
+        if (!error) setProfile(data);
+        setLoading(false);
+      })();
+      return () => {};
+    }, [profileId])
+  );
 
   if (loading || !profile) {
-    return <SafeAreaView style={styles.center}><ActivityIndicator size="large" /></SafeAreaView>;
+    return (
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
   }
 
   const joinDate = new Date(profile.created_at).toLocaleDateString("ko-KR");
@@ -84,6 +158,7 @@ export default function MypageScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         {/* 프로필 카드 */}
+        <SectionTitle>프로필</SectionTitle>
         <View style={styles.card}>
           <View style={styles.profileRow}>
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
@@ -92,44 +167,52 @@ export default function MypageScreen() {
               <Text style={styles.subText}>{joinDate} 가입</Text>
             </View>
           </View>
-          <Pressable onPress={() => router.push("/mypage/profile-edit")} style={styles.editIcon}>
-            <Text style={{ fontSize: 18 }}>✏️</Text>
-          </Pressable>
+          <EditCornerButton onPress={() => router.push("/mypage/profile-edit")} />
         </View>
 
         {/* 내가 설정한 시간 카드 */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>내가 설정한 시간</Text>
-          <Pressable onPress={() => router.push("/mypage/edit-time")} style={styles.editIcon}>
-            <Text style={{ fontSize: 18 }}>✏️</Text>
-          </Pressable>
+        <SectionTitle>내가 설정한 시간</SectionTitle>
+        <View style={[styles.card, styles.cardHasEdit]}>
+          <EditCornerButton onPress={() => router.push("/mypage/edit-time")} />
           <View style={styles.timeRow}>
-            <View style={styles.dot} />
-            <Text style={styles.fixedLabel}>수면 시간</Text>
-            <Text style={styles.value}>{sleepTime}</Text>
+            <View style={styles.rowLeft}>
+              <RowIcon source={ICONS.moon} />
+              <Text style={styles.rowTitle}>하루 기록 시간</Text>
+            </View>
+            <Text style={styles.timeValue}>{sleepTime}</Text>
           </View>
         </View>
 
         {/* 메뉴 리스트 */}
+        <SectionTitle>디어데이 설정</SectionTitle>
         <View style={styles.card}>
-          {[
-            { label: "계정 관리", path: "/mypage/account" },
-            { label: "알림 설정", path: "/mypage/notifications" },
-            { label: "개인정보 처리 방침", path: "/mypage/privacy-policy" },
-            { label: "의견 보내기", path: "/mypage/feedback" },
-            { label: "버전 정보", path: "/mypage/version" }, // '버전 정보' 항목 복원
-          ].map((item) => (
-            <Pressable key={item.label} onPress={() => router.push(item.path)} style={styles.listItem}>
-              <Text style={styles.listLabel}>{item.label}</Text>
-              <Feather name="chevron-right" size={18} color="#929292" />
-            </Pressable>
-          ))}
+          <SettingRow
+            iconImg={ICONS.user}
+            label="내 계정 관리"
+            onPress={() => router.push("/mypage/account")}
+          />
+          <SettingRow
+            iconImg={ICONS.bell}
+            label="알림 설정"
+            onPress={() => router.push("/mypage/notifications")}
+          />
+          <SettingRow
+            iconImg={ICONS.lock}
+            label="개인정보 처리 방침"
+            onPress={() => router.push("/mypage/privacy-policy")}
+          />
+          <SettingRow
+            iconImg={ICONS.mail}
+            label="의견 보내기"
+            onPress={() => router.push("/mypage/feedback")}
+          />
+          <SettingRow 
+            iconImg={ICONS.info}
+            label="버전 정보" 
+            onPress={() => router.push("/mypage/version")} 
+            isLast 
+          />
         </View>
-        
-        {/* 로그아웃 버튼 */}
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>로그아웃</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -139,6 +222,7 @@ export default function MypageScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F3F5F7" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  /* 카드 공통 */
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -151,42 +235,69 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 1,
   },
+
+  /* 프로필 카드 */
   profileRow: { flexDirection: "row", alignItems: "center" },
   avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#ccc" },
   nickname: { fontSize: 18, fontWeight: "bold", color: "#0F172A" },
   subText: { fontSize: 13, color: "#666", marginTop: 4 },
-  cardTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 16 },
   editIcon: { position: "absolute", right: 16, top: 16 },
-  timeRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#DDD", marginRight: 8 },
-  fixedLabel: { width: 70, color: "#666", fontSize: 15 },
-  value: { fontSize: 15, fontWeight: "600", color: "#000" },
-  listItem: {
+
+  /* 행(아이콘 + 라벨) 공통 */
+  settingRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
     paddingVertical: 14,
-    borderBottomColor: "#F2F2F2",
     borderBottomWidth: 1,
-    "&:last-child": {
-        borderBottomWidth: 0,
-    }
+    borderBottomColor: "#F2F2F2",
   },
-  listLabel: { fontSize: 16, color: "#333" },
-  logoutButton: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-  },
-  logoutText: { fontSize: 16, color: "#FF5A5A" },
-  profileEditBtn: {
-    position: "absolute",
-    right: 12,
-    top: 12,
-    width: 28, height: 28,
-    alignItems: "center", justifyContent: "center",
-    borderRadius: 14,
+  rowLeft: { flexDirection: "row", alignItems: "center" },
+
+  rowIconBadge: {
+    width: 28, height: 28, borderRadius: 14,
     backgroundColor: "#EFF3FF",
-},
+    alignItems: "center", justifyContent: "center",
+    marginRight: 10,
+  },
+
+  rowIconImg: {
+    width: 22, height: 22,
+    resizeMode: "contain",
+    marginRight: 10,
+  },
+
+  rowTitle: {
+    fontSize: 15, color: "#111", fontWeight: "700",
+    marginLeft: 2, flexShrink: 1,
+  },
+
+  /* '내가 설정한 시간' 행 */
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  timeValue: { fontSize: 16, color: "#111", fontWeight: "700" },
+
+  /* 섹션 부제 */
+  sectionTitle: {
+    fontSize: 12, color: "#000",
+    fontWeight: "700",
+    marginTop: 12, marginBottom: 8, marginLeft: 10,
+  },
+
+  cardHasEdit: {
+    paddingRight: 56, // 아이콘(28) + 여백(16~20) 만큼 공간 비워두기
+  },
+
+  editAtCorner: { position: "absolute", right: 16, top: 16 },
+
+  // 아이콘 배지 스타일
+  editBadge: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: "#EFF3FF",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "#E6ECFF",
+  },
 });

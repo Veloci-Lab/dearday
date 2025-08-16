@@ -63,7 +63,7 @@ export default function EditTimeScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.label}>수면 시간</Text>
+          <Text style={styles.label}>하루 기록 시간</Text>
           <Pressable onPress={() => setShowPicker("sleep")} style={styles.input}><Text style={styles.timeText}>{formatTime(sleepTime)}</Text></Pressable>
           <Text style={styles.desc}>이 시간에 맞춰 하루를 기록할 수 있도록 알림을 보내드려요.</Text>
         </View>
@@ -73,7 +73,15 @@ export default function EditTimeScreen() {
           <Text style={styles.saveButtonText}>저장하기</Text>
         </TouchableOpacity>
       </View>
-      {showPicker && <DateTimePicker value={(showPicker === "sleep" ? sleepTime : otherTime) ?? new Date()} mode="time" is24Hour display={Platform.OS === "ios" ? "spinner" : "default"} onChange={onTimeChange} />}
+      {showPicker && (
+        <DateTimePicker
+          value={(showPicker === "sleep" ? sleepTime : otherTime) ?? new Date()}
+          mode="time"
+          is24Hour={false}      // ← 12시간제(AM/PM) 휠
+          display="spinner"     // ← 플랫폼 상관없이 스피너 강제
+          onChange={onTimeChange}
+        />
+      )}
     </SafeAreaView>
   );
 }

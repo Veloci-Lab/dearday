@@ -9,8 +9,10 @@ import { Alert, Platform, Pressable, SafeAreaView, StyleSheet, Switch, Text, Vie
 export default function NotificationSettingsScreen() {
   const navigation = useNavigation();
   const { profileId } = useAuthStore();
+
   const [isEnabled, setIsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [reissuing, setReissuing] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -25,54 +27,55 @@ export default function NotificationSettingsScreen() {
 
   useEffect(() => {
     if (!profileId) return;
-    const fetchSettings = async () => {
+    (async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
         .select("is_notif_enabled")
         .eq("profile_id", profileId)
         .single();
-
       if (error) {
         console.error("알림 설정 불러오기 실패:", error.message);
         Alert.alert("오류", "알림 설정을 불러오지 못했습니다.");
       }
       setIsEnabled(data?.is_notif_enabled ?? true);
       setLoading(false);
-    };
-    fetchSettings();
+    })();
   }, [profileId]);
 
+   // ✅ 토글은 is_notif_enabled 만 저장 (토큰 발급/삭제 X)
   const toggleSwitch = async (value: boolean) => {
     if (!profileId || loading) return;
     setIsEnabled(value);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_notif_enabled: value })
+      .eq("profile_id", profileId);
+    if (error) {
+      setIsEnabled(!value); // 롤백
+      Alert.alert("오류", "설정 저장에 실패했습니다.");
+    }
+  };
 
-    // 토큰 컬럼명 결정
-    const tokenColumn =
-      Platform.OS === "android"
-        ? "expo_push_token_android"
-        : Platform.OS === "ios"
-        ? "expo_push_token_ios"
-        : null;
-
+  // ✅ 토큰 재발급: 사용자가 눌렀을 때만 발급/저장
+  const handleReissueToken = async () => {
+    if (!profileId) return;
     try {
-      const updates: Record<string, any> = { is_notif_enabled: value };
-
-      if (value) {
-        // ✅ 토큰 발급 실패해도 설정 저장은 진행
-        let token: string | null = null;
-        try {
-          token = await registerForPushNotificationsAsync();
-        } catch (e) {
-          console.warn("푸시 토큰 발급 실패(시뮬레이터/권한 등):", e);
-        }
-        if (token && tokenColumn) {
-          updates[tokenColumn] = token;
-        }
-      } else {
-        // OFF면 토큰 제거
-        if (tokenColumn) updates[tokenColumn] = null;
+      setReissuing(true);
+      const token = await registerForPushNotificationsAsync();
+      if (!token) {
+        Alert.alert("안내", "토큰을 발급하지 못했습니다. 권한을 확인해주세요.");
+        return;
       }
+      const tokenColumn =
+        Platform.OS === "android"
+          ? "expo_push_token_android"
+          : Platform.OS === "ios"
+          ? "expo_push_token_ios"
+          : null;
+
+      const updates: Record<string, any> = {};
+      if (tokenColumn) updates[tokenColumn] = token;
 
       const { error } = await supabase
         .from("profiles")
@@ -80,30 +83,82 @@ export default function NotificationSettingsScreen() {
         .eq("profile_id", profileId);
 
       if (error) throw error;
-    } catch (err) {
-      console.error("알림 설정 저장 실패:", err);
-      Alert.alert("오류", "설정 저장에 실패했습니다.");
-      setIsEnabled(!value); // 롤백
+      Alert.alert("완료", "푸시 토큰이 다시 등록되었습니다.");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("오류", "토큰 재발급에 실패했습니다.");
+    } finally {
+      setReissuing(false);
     }
   };
+
+  // 공통 스위치 UI
+  const SwitchRow = ({
+    title,
+    subtitle,
+    value,
+    onValueChange,
+    disabled,
+  }: {
+    title: string;
+    subtitle?: string;
+    value: boolean;
+    onValueChange: (v: boolean) => void;
+    disabled?: boolean;
+  }) => (
+    <View style={styles.item}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{ false: "#E2E8F0", true: "#5B8DEF" }}
+        thumbColor={"#fff"}
+        ios_backgroundColor="#E2E8F0"
+      />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.item}>
-          <Text style={styles.label}>푸시 알림 받기</Text>
-          <Switch
-            trackColor={{ false: "#E2E8F0", true: "#5B8DEF" }}
-            thumbColor={"#fff"}
-            ios_backgroundColor="#E2E8F0"
-            onValueChange={toggleSwitch}
-            value={isEnabled}
-            disabled={loading}
-          />
+        {/* ⬇︎ 목업 1: 디어데이 알람 */}
+        <SwitchRow
+          title="디어데이 알람"
+          subtitle="사진 찍을 시간이예요!"
+          value={isEnabled}
+          onValueChange={toggleSwitch}
+          disabled={loading}
+        />
+
+        {/* ⬇︎ 목업 2: 기록 알람 (현재는 같은 값 사용) */}
+        <SwitchRow
+          title="기록 알람"
+          subtitle="Dearday 시간이예요, 찍었던 사진들을 오늘 하루가 가기 전에 정리해보세요!"
+          value={isEnabled}
+          onValueChange={toggleSwitch}
+          disabled={loading}
+        />
+
+        {/* ⬇︎ 토큰 재발급 섹션 */}
+        <View style={styles.reissueBox}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.reissueTitle}>푸시 토큰 다시 등록</Text>
+            <Text style={styles.reissueDesc}>
+              권한 변경이나 앱 재설치 후 알림이 오지 않을 때 다시 등록해 주세요.
+            </Text>
+          </View>
+          <Pressable
+            onPress={handleReissueToken}
+            style={[styles.reissueBtn, reissuing && { opacity: 0.7 }]}
+            disabled={reissuing}
+          >
+            <Text style={styles.reissueBtnText}>{reissuing ? "진행중…" : "재발급"}</Text>
+          </Pressable>
         </View>
-        <Text style={styles.desc}>
-          알림을 끄면 수면 시간에 맞춘 기록 알림 등 모든 푸시 알림을 받을 수 없어요.
-        </Text>
       </View>
     </SafeAreaView>
   );
@@ -114,15 +169,28 @@ const styles = StyleSheet.create({
   content: { padding: 20 },
   item: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-  label: { fontSize: 16 },
-  desc: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#929292",
-    paddingHorizontal: 4,
+  title: { fontSize: 15, fontWeight: "700", color: "#111" },
+  subtitle: { marginTop: 4, fontSize: 12, color: "#8E8E93", lineHeight: 16 },
+
+  // 토큰 재발급 박스
+  reissueBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
   },
+  reissueTitle: { fontSize: 14, fontWeight: "700", color: "#111" },
+  reissueDesc: { marginTop: 4, fontSize: 12, color: "#8E8E93", lineHeight: 16 },
+  reissueBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#EFF3FF",
+    borderRadius: 10,
+    marginLeft: 12,
+  },
+  reissueBtnText: { color: "#5B8DEF", fontWeight: "700" },
 });
