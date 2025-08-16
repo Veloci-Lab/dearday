@@ -27,14 +27,20 @@ export default function ProfileEditScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [dupState, setDupState] = useState<"idle" | "checking" | "ok" | "taken">("idle");
   const [initialNickname, setInitialNickname] = useState("");
+  const [nickFocused, setNickFocused] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: "프로필 편집",
       headerTitleAlign: "center",
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={ styles.Title }>My Dearday</Text>
+          <Text style={ styles.SubTitle }>프로필 편집</Text>
+        </View>
+      ),
       headerLeft: () => (
         <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
-          <Feather name="chevron-left" size={24} color="black" />
+          <Feather name="chevron-left" size={24} color="#000" />
         </Pressable>
       ),
     });
@@ -95,7 +101,8 @@ export default function ProfileEditScreen() {
         .from("profiles")
         .select("profile_id", { count: "exact", head: true })
         .ilike("nickname", name)          // 대소문자 무시
-        .neq("profile_id", profileId);    // 내 계정 제외
+        .neq("profile_id", profileId)    // 내 계정 제외
+        .neq("is_deleted", true); // 삭제된 계정 제외
 
     if (error) {
         setDupState("idle");
@@ -127,33 +134,45 @@ export default function ProfileEditScreen() {
 
         {/* 닉네임 입력 */}
         <Text style={styles.label}>닉네임</Text>
-            <View style={styles.nameRow}>
-                <TextInput
-                    style={[styles.input, styles.inputFlex]}
-                    value={nickname}
-                    onChangeText={(t) => {
-                        setNickname(t);
-                        setDupState("idle");
-                    }}
-                    placeholder="닉네임을 입력해주세요"
-                    returnKeyType="done"
-                />
+        <View style={styles.nameRow}>
+          {/* <- 래퍼(view)로 감싸서 absolute placeholder를 올림 */}
+          <View style={[styles.inputWrap, styles.inputFlex]}>
+            <TextInput
+              style={styles.input}
+              value={nickname}
+              onChangeText={(t) => {
+                setNickname(t);
+                setDupState("idle");
+              }}
+              onFocus={() => setNickFocused(true)}
+              onBlur={() => setNickFocused(false)}
+              returnKeyType="done"
+              // ❌ placeholder="닉네임을 입력해주세요"  (네이티브 placeholder 사용 안 함)
+            />
 
-                <TouchableOpacity
-                    style={[
-                    styles.dupBtn,
-                    (nickname.trim().length === 0 || dupState === "checking") && { opacity: 0.5 },
-                    ]}
-                    onPress={checkNickname}
-                    disabled={nickname.trim().length === 0 || dupState === "checking"}
-                >
-                    {dupState === "checking" ? (
-                    <ActivityIndicator size="small" color="#5B8DEF" />
-                    ) : (
-                    <Text style={styles.dupBtnText}>중복확인</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
+            {/* ✅ 커스텀 placeholder: 값이 없고 포커스 아닐 때만 노출 */}
+            {(nickname.trim().length === 0) && (
+              <View pointerEvents="none" style={styles.placeholderWrap}>
+                <Text style={styles.placeholderText}>닉네임을 입력해주세요</Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.dupBtn,
+              (nickname.trim().length === 0 || dupState === "checking") && { opacity: 0.5 },
+            ]}
+            onPress={checkNickname}
+            disabled={nickname.trim().length === 0 || dupState === "checking"}
+          >
+            {dupState === "checking" ? (
+              <ActivityIndicator size="small" color="#5B8DEF" />
+            ) : (
+              <Text style={styles.dupBtnText}>중복확인</Text>
+            )}
+          </TouchableOpacity>
+        </View>
             {dupState === "ok" && (
                 <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>사용 가능한 닉네임입니다.</Text>
                 )}
@@ -177,36 +196,88 @@ export default function ProfileEditScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    content: { padding: 24 },
-    avatarBox: { alignItems: "center", marginBottom: 24 },
-    avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#eee" },
-    avatarWrap: { width: 96, height: 96, position: "relative" },
-    avatarEdit: {
-        position: "absolute",
-        right: -8,
-        bottom: -4,
-        width: 30, height: 30, borderRadius: 15,
-        backgroundColor: "#5B8DEF",
-        alignItems: "center", justifyContent: "center",
-        borderWidth: 2, borderColor: "#fff",
-    },
-    label: { fontSize: 14, fontWeight: "600", color: "#333", marginBottom: 8 },
-    input: {
-        height: 50, borderRadius: 10,
-        borderWidth: 1, borderColor: "#E2E8F0",
-        paddingHorizontal: 12, fontSize: 16,
-    },
-    footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#F2F2F2" },
-    saveButton: { backgroundColor: "#5B8DEF", padding: 16, borderRadius: 12, alignItems: "center" },
-    saveButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-    nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    inputFlex: { flex: 1 },  // 입력칸이 남은 너비 채우게
-    dupBtn: {
-        height: 50, paddingHorizontal: 12,
-        borderRadius: 10, backgroundColor: "#EFF3FF",
-        alignItems: "center", justifyContent: "center",
-    },
-    dupBtnText: { color: "#5B8DEF", fontWeight: "700" },
+  container: { flex: 1, backgroundColor: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  content: { padding: 24 },
+  avatarBox: { alignItems: "center", marginBottom: 24 },
+  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#eee" },
+  avatarWrap: { width: 96, height: 96, position: "relative" },
+  avatarEdit: {
+      position: "absolute",
+      right: -8,
+      bottom: -4,
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: "#5B8DEF",
+      alignItems: "center", justifyContent: "center",
+      borderWidth: 2, borderColor: "#fff",
+  },
+  label: { 
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 14, 
+    //fontWeight: "600", 
+    color: "#333", 
+    marginBottom: 8 
+  },
+  input: {
+      height: 50, borderRadius: 10,
+      borderWidth: 1, borderColor: "#E2E8F0",
+      paddingHorizontal: 12, fontSize: 16, fontFamily: "Pretendard-Regular",
+  },
+  footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#F2F2F2" },
+  saveButton: { backgroundColor: "#5B8DEF", padding: 16, borderRadius: 12, alignItems: "center" },
+  saveButtonText: { 
+    fontFamily: "Pretendard-Bold",
+    color: "#fff", 
+    //fontWeight: "bold", 
+    fontSize: 16 
+  },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  inputFlex: { flex: 1 },  // 입력칸이 남은 너비 채우게
+  dupBtn: {
+      height: 50, paddingHorizontal: 12,
+      borderRadius: 10, backgroundColor: "#EFF3FF",
+      alignItems: "center", justifyContent: "center",
+  },
+  dupBtnText: { 
+    fontFamily: "Pretendard-SemiBold",
+    color: "#5B8DEF", 
+    //fontWeight: "700" 
+  },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18, 
+    //fontWeight: "700", 
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 },
+  placeholder: { 
+    fontFamily: "Pretendard-Regular",
+    color: "#A0AEC0", 
+    fontSize: 16 
+  },
+  inputWrap: {
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    position: "relative",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  placeholderWrap: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
+  placeholderText: {
+    fontSize: 16,
+    fontFamily: "Pretendard-Regular",   // ← placeholder만 Pretendard
+    color: "#A3AAB8",
+  },
 });

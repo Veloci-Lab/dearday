@@ -7,8 +7,18 @@ export default function FeedbackScreen() {
   const navigation = useNavigation();
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: "의견 보내기",
-      headerLeft: () => <Pressable style={{ paddingRight: 12 }} onPress={() => router.back()}><Feather name="chevron-left" size={24} color="black" /></Pressable>,
+      headerTitleAlign: "center",
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={ styles.Title }>My Dearday</Text>
+          <Text style={ styles.SubTitle }>의견 보내기</Text>
+        </View>
+      ),
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Feather name="chevron-left" size={24} color="#000" />
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
@@ -30,5 +40,38 @@ export default function FeedbackScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center'}, content: { padding: 30, alignItems: 'center' }, title: { fontSize: 22, fontWeight: 'bold', marginTop: 20, marginBottom: 12 }, desc: { fontSize: 15, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 32 }, button: { backgroundColor: '#5B8DEF', paddingVertical: 16, paddingHorizontal: 32, borderRadius: 12, alignItems: 'center', width: '100%' }, buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center'}, 
+  content: { padding: 30, alignItems: 'center' }, 
+  title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 22, 
+    //fontWeight: 'bold', 
+    marginTop: 20, 
+    marginBottom: 12 
+  }, 
+  desc: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 15, 
+    color: '#666', 
+    textAlign: 'center', 
+    lineHeight: 22, 
+    marginBottom: 32 
+  }, 
+  button: { backgroundColor: '#5B8DEF', paddingVertical: 16, paddingHorizontal: 32, borderRadius: 12, alignItems: 'center', width: '100%' }, 
+  buttonText: { 
+    fontFamily: "Pretendard-Bold",
+    color: '#fff', 
+    //fontWeight: 'bold', 
+    fontSize: 16 
+  },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18, 
+    //fontWeight: "700", 
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 }
 });

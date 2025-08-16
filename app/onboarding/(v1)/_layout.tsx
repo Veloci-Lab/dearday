@@ -68,7 +68,11 @@ export default function OnboardingV1Layout() {
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#FEFEFE", fontWeight: "700", fontSize: 16 }}>{label}</Text>
+          <Text style={{ 
+            fontFamily: "Pretendard-Bold",
+            color: "#FEFEFE", 
+            //fontWeight: "700", 
+            fontSize: 16 }}>{label}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -495,24 +495,24 @@ const styles = StyleSheet.create({
   overflow: "hidden", // 안드로이드 ripple이 원 밖으로 안 나가게
 },
 
-iconBtn: {
-  width: 44,
-  height: 44,
-  borderRadius: 22,
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "rgba(142,142,147,0.95)", // 시스템 그레이 톤(원하는 회색으로 변경 가능)
-  borderWidth: StyleSheet.hairlineWidth,
-  borderColor: "rgba(255,255,255,0.35)",
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(142,142,147,0.95)", // 시스템 그레이 톤(원하는 회색으로 변경 가능)
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.35)",
 
-  // iOS 그림자
-  shadowColor: "#000",
-  shadowOpacity: 0.18,
-  shadowRadius: 6,
-  shadowOffset: { width: 0, height: 3 },
-  // Android 그림자
-  elevation: 5,
-},
+    // iOS 그림자
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    // Android 그림자
+    elevation: 5,
+  },
 
 
   /* 미리보기 하단 버튼 컨테이너 (카메라뷰와 같은 레이어 위) */
@@ -532,8 +532,9 @@ iconBtn: {
     backgroundColor: "#5B8DEF",
   },
   primaryBtnText: {
+    fontFamily: "Pretendard-Bold",
     color: "#fff",
-    fontWeight: "700",
+    //fontWeight: "700",
     fontSize: 16,
   },
   secondaryBtn: {
@@ -544,8 +545,9 @@ iconBtn: {
     // backgroundColor: "#F2F2F2",
   },
   secondaryBtnText: {
+    fontFamily: "Pretendard-Regular",
     color: "#FEFEFE",
-    fontWeight: "700",
+    //fontWeight: "700",
     fontSize: 16,
   },
 

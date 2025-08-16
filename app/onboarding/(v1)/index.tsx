@@ -155,17 +155,20 @@ const s = StyleSheet.create({
     backgroundColor: "#fff",
   },
   h1: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 20,
     lineHeight: 28,
-    fontWeight: "700",
+    //fontWeight: "700",
     color: "#0F172A",
   },
   sub: {
+    fontFamily: "Pretendard-Regular",
     marginTop: 6,
     fontSize: 13,
     color: "#929292",
   },
   label: {
+    fontFamily: "Pretendard-Regular",
     fontSize: 13,
     color: "#0D0D0D",
     marginBottom: 8,
@@ -176,6 +179,8 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   input: {
+    fontFamily: "Pretendard-Regular",
+    fontWeight: 'normal',
     flex: 1,
     height: 44,
     borderRadius: 10,
@@ -202,8 +207,9 @@ const s = StyleSheet.create({
     borderColor: "#F2F2F2",
   },
   checkBtnText: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 14,
-    fontWeight: "700",
+    //fontWeight: "700",
   },
   helperNeutral: {
     marginTop: 8,
@@ -211,15 +217,17 @@ const s = StyleSheet.create({
     color: "#94A3B8",
   },
   helperSuccess: {
+    fontFamily: "Pretendard-Regular",
     marginTop: 8,
     fontSize: 12,
     color: "#5B8DEF",
-    fontWeight: "600",
+    //fontWeight: "600",
   },
   helperError: {
+    fontFamily: "Pretendard-Regular",
     marginTop: 8,
     fontSize: 12,
     color: "#FF5A5A",
-    fontWeight: "600",
+    //fontWeight: "600",
   },
 });

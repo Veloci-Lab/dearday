@@ -177,8 +177,8 @@ export default function IndexScreen() {
         const diffDays = todayLocal.startOf("day").diff(createdLocal.startOf("day"), "days").days;
         days = Math.max(1, Math.floor(diffDays) + 1);
 
-        // yyyy만
-        joinedAtYear = createdLocal.toFormat("yyyy");
+        // yyyy.LL
+        joinedAtYear = createdLocal.toFormat("yyyy.LL");
       }
 
       setDashboard({
@@ -200,8 +200,6 @@ export default function IndexScreen() {
       });
     }
   }, [profileId]);
-
-
 
   const fetchTodayImages = useCallback(async () => {
     if (!profileId) return;
@@ -402,9 +400,9 @@ export default function IndexScreen() {
             )}
 
             <View style={{ marginLeft: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: "600" }}>{Dashboard.nickname}</Text>
+              <Text style={ styles.nickname }>{Dashboard.nickname}</Text>
               {Dashboard.joinedAt && (
-                <Text style={{ fontSize: 15, color: "#929292" }}>Since {Dashboard.joinedAt}</Text>
+                <Text style={ styles.sinceText }>Since {Dashboard.joinedAt}</Text>
               )}
             </View>
           </View>
@@ -572,13 +570,15 @@ const styles = StyleSheet.create({
   },
 
   statLabel: {
+    fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#C3C3C3",
   },
 
   statValue: {
+    fontFamily: "Pretendard-Medium",
     fontSize: 30,
-    fontWeight: "bold",
+    //fontWeight: "bold",
     color: "#5B8DEF",
   },
 
@@ -595,8 +595,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   left: { marginRight: 8 },
-  todayText: { fontSize: 15, color: "#C3C3C3" },
-  count: { fontSize: 30 , fontWeight: "bold", color: "#5B8DEF", textAlign: "center" },
+  todayText: { 
+    fontFamily: "Pretendard-Regular", 
+    fontSize: 15, 
+    color: "#C3C3C3" 
+  },
+  count: { 
+    fontFamily: "Pretendard-Medium", 
+    fontSize: 30 , 
+    //fontWeight: "bold", 
+    color: "#5B8DEF", 
+    textAlign: "center" 
+  },
   center: { flexDirection: "row", flex: 1, gap: 2, overflow: "hidden", marginLeft: 8 },
   thumb: { width: 72, height: 72, borderRadius: 7 },
   arrowBtn: {
@@ -625,9 +635,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emptyText: {
+    fontFamily: "Pretendard-Regular",
     fontSize: 14,
     color: "#0D0D0D",
     fontWeight: "600",
+  },
+  nickname: { // 새로 추가
+    fontFamily: "Pretendard-Bold",
+    fontSize: 20,
+    color: '#0F172A', // 색상 추가
+  },
+  sinceText: { // 새로 추가
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12,
+    color: "#929292",
   },
 
 });

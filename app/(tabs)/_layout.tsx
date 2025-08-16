@@ -240,7 +240,7 @@ function CustomTabBar({ state, navigation }) {
       <View
         style={[
           styles.pill,
-          { bottom: safeBottom + 8, left: H_MARGIN, width: pillWidth, height: PILL_HEIGHT, borderRadius: PILL_RADIUS },
+          { bottom: safeBottom + 10, left: H_MARGIN, width: pillWidth, height: PILL_HEIGHT, borderRadius: PILL_RADIUS },
         ]}
       >
         {TABS.map((t) => {
@@ -325,8 +325,8 @@ export default function TabsLayout() {
           headerTitleAlign: "center",
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>Dear Month</Text>
-              <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>월간 디어데이</Text>
+              <Text style={ styles.Title }>Dear Month</Text>
+              <Text style={ styles.SubTitle }>월간 디어데이</Text>
             </View>
           ),
           headerRight: () => <InboxButton />,
@@ -340,8 +340,8 @@ export default function TabsLayout() {
           headerTitleAlign: "center",
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>My Dearday</Text>
-              <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>환경설정</Text>
+              <Text style={ styles.Title }>My Dearday</Text>
+              <Text style={ styles.SubTitle }>환경설정</Text>
             </View>
           ),
         }}
@@ -365,7 +365,12 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center" },
-  tabLabel: { fontSize: 12, marginTop: 4, fontWeight: "600" },
+  tabLabel: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 12, 
+    marginTop: 4, 
+    //fontWeight: "600" 
+  },
   fab: {
     position: "absolute",
     backgroundColor: "#5B8DEF",
@@ -377,4 +382,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18, 
+    //fontWeight: "700", 
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 }
 });

@@ -269,8 +269,19 @@ const styles = StyleSheet.create({
   // ⬇ 기존 스타일 그대로 유지
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: { padding: 16, backgroundColor: "#fff" },
-  title: { fontSize: 20, lineHeight: 28, fontWeight: "700", color: "#0F172A" },
-  subtitle: { marginTop: 6, fontSize: 13, color: "#929292" },
+  title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 20, 
+    lineHeight: 28, 
+    //fontWeight: "700", 
+    color: "#0F172A" 
+  },
+  subtitle: { 
+    fontFamily: "Pretendard-Regular",
+    marginTop: 6, 
+    fontSize: 13, 
+    color: "#929292" 
+  },
   flatListContent: { paddingHorizontal: ITEM_MARGIN, paddingTop: 16 },
   image: { width: ITEM_WIDTH, height: ITEM_WIDTH, borderRadius: 12, backgroundColor: "#eee", marginRight: ITEM_MARGIN },
   itemContainer: {
@@ -294,12 +305,30 @@ const styles = StyleSheet.create({
   },
   pinButtonSelected: { backgroundColor: "#5B8DEF" },
   inputSection: { paddingHorizontal: 20, paddingBottom: 0 }, // ScrollView가 하단 패딩을 대신 가짐
-  label: { fontWeight: "bold", marginTop: 16, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12, fontSize: 14, backgroundColor: "#fff" },
+  label: { 
+    fontFamily: "Pretendard-SemiBold",
+    //fontWeight: "bold", 
+    marginTop: 16, 
+    marginBottom: 6 
+  },
+  input: { 
+    fontFamily: "Pretendard-Regular",
+    borderWidth: 1, 
+    borderColor: "#ccc", 
+    borderRadius: 8, 
+    padding: 12, 
+    fontSize: 14, 
+    backgroundColor: "#fff" 
+  },
   multiline: { height: 100, textAlignVertical: "top", marginBottom: 20 },
   footerWrapper: { padding: 16, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#ddd" },
   footerButton: { backgroundColor: "#5B8DEF", borderRadius: 8, paddingVertical: 14, alignItems: "center" },
-  footerText: { color: "#fff", fontWeight: "bold" },
+  footerText: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 16,
+    color: "#fff", 
+    //fontWeight: "bold" 
+  },
   viewerBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.9)", justifyContent: "center", alignItems: "center" },
   viewerPanel: { width: Math.min(width * 0.9, 420), height: Math.min(height * 0.85, 720), padding: 16, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.6)" },
   viewerImageWrap: { flex: 1, justifyContent: "center", alignItems: "center" },

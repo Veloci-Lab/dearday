@@ -15,9 +15,10 @@ export default function OnboardingSecondScreen() {
   const [showPicker, setShowPicker] = useState(false);
 
   const formatTime = (date: Date | null) =>
-    date?.toLocaleTimeString("ko-KR", {
+    date?.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true,
     }) ?? "시간을 선택해주세요";
 
   useFocusEffect(
@@ -60,7 +61,7 @@ export default function OnboardingSecondScreen() {
       </View>
 
       {/* 라벨 */}
-      <Text style={s.label}>수면시간</Text>
+      <Text style={s.label}>하루 기록 시간</Text>
 
       {/* 시간 선택 버튼 */}
       <Pressable
@@ -71,7 +72,7 @@ export default function OnboardingSecondScreen() {
           sleepTime && { borderColor: "#5B8DEF" }
         ]}
       >
-        <Text style={{ color: sleepTime ? "#0F172A" : "#B4BCC6" }}>
+        <Text style={{ fontFamily: 'Pretendard-Regular', color: sleepTime ? "#0F172A" : "#B4BCC6" }}>
           {formatTime(sleepTime)}
         </Text>
       </Pressable>
@@ -80,8 +81,8 @@ export default function OnboardingSecondScreen() {
         <DateTimePicker
           value={sleepTime ?? new Date()}
           mode="time"
-          is24Hour
-          display={Platform.OS === "ios" ? "spinner" : "default"}
+          is24Hour={false}
+          display="spinner"
           onChange={(event, selectedDate) => {
             setShowPicker(false);
             if (selectedDate) setSleepTime(selectedDate);
@@ -100,17 +101,20 @@ const s = StyleSheet.create({
     backgroundColor: "#fff",
   },
   h1: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 20,
     lineHeight: 28,
-    fontWeight: "700",
+    //fontWeight: "700",
     color: "#0F172A",
   },
   sub: {
+    fontFamily: "Pretendard-Regular",
     marginTop: 6,
     fontSize: 13,
     color: "#929292",
   },
   label: {
+    fontFamily: "Pretendard-Regular",
     fontSize: 13,
     color: "#0D0D0D",
     marginBottom: 8,

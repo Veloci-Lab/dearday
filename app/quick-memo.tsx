@@ -333,12 +333,61 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.35)", // ⬅️ 버튼 뒤 원형 배경
   },
-  h1: { fontSize: 20, lineHeight: 28, fontWeight: "700", color: "#0F172A" },
-  sub: { marginTop: 6, fontSize: 13, color: "#929292" },
-  label: { fontSize: 14, marginBottom: 8, color: "#0D0D0D" },
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, marginBottom: 16 },
-  textarea: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, height: 100, textAlignVertical: "top" },
-  footerWrapper: { padding: 16, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#ddd" },
-  footerButton: { backgroundColor: "#5B8DEF", borderRadius: 8, paddingVertical: 14, alignItems: "center" },
-  footerText: { color: "#fff", fontWeight: "bold" },
+  h1: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 20, 
+    lineHeight: 28, 
+    //fontWeight: "700", 
+    color: "#0F172A" 
+  },
+  sub: { 
+    fontFamily: "Pretendard-Regular",
+    marginTop: 6, 
+    fontSize: 13, 
+    color: "#929292" 
+  },
+  label: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 14, 
+    marginBottom: 8, 
+    color: "#0D0D0D" 
+  },
+  input: { 
+    fontFamily: "Pretendard-Regular",
+    borderWidth: 1, 
+    borderColor: "#ddd", 
+    borderRadius: 8, 
+    paddingHorizontal: 12, 
+    paddingVertical: 10, 
+    fontSize: 14, 
+    marginBottom: 16 
+  },
+  textarea: { 
+    fontFamily: "Pretendard-Regular",
+    borderWidth: 1, 
+    borderColor: "#ddd", 
+    borderRadius: 8, 
+    paddingHorizontal: 12, 
+    paddingVertical: 10, 
+    fontSize: 14, 
+    height: 100, 
+    textAlignVertical: "top" 
+  },
+  footerWrapper: { 
+    padding: 16, 
+    backgroundColor: "#fff", 
+    borderTopWidth: 1, 
+    borderTopColor: "#ddd" 
+  },
+  footerButton: { 
+    backgroundColor: "#5B8DEF", 
+    borderRadius: 8, 
+    paddingVertical: 14, 
+    alignItems: "center" 
+  },
+  footerText: { 
+    fontFamily: "Pretendard-Bold",
+    color: "#fff", 
+    //fontWeight: "bold" 
+  },
 });

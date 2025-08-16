@@ -1,11 +1,14 @@
 import { useAuthStore } from "@/utils/authStore";
 import * as Notifications from 'expo-notifications';
-import { Stack, router } from "expo-router";
+import { Stack, router, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useFonts } from "expo-font";
+
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const {
@@ -16,6 +19,13 @@ export default function RootLayout() {
     setPendingRedirectUrl,
     clearPendingRedirectUrl,
   } = useAuthStore();
+
+  const [fontsLoaded] = useFonts({
+    'Pretendard-Bold': require('@/assets/fonts/Pretendard-Bold.otf'),
+    'Pretendard-Medium': require('@/assets/fonts/Pretendard-Medium.otf'),
+    'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
+    'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
+  });
 
   useEffect(() => {
     (async () => {
@@ -48,6 +58,17 @@ export default function RootLayout() {
       router.replace(tmp);
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  // 글꼴이 아직 로드되지 않았다면 아무것도 렌더링하지 않습니다.
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

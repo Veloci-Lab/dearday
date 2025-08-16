@@ -16,10 +16,16 @@ export default function NotificationSettingsScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: "알림 설정",
+      headerTitleAlign: "center",
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={ styles.Title }>My Dearday</Text>
+          <Text style={ styles.SubTitle }>알림 설정</Text>
+        </View>
+      ),
       headerLeft: () => (
-        <Pressable style={{ paddingRight: 12 }} onPress={() => router.back()}>
-          <Feather name="chevron-left" size={24} color="black" />
+        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Feather name="chevron-left" size={24} color="#000" />
         </Pressable>
       ),
     });
@@ -174,8 +180,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
   },
-  title: { fontSize: 15, fontWeight: "700", color: "#111" },
-  subtitle: { marginTop: 4, fontSize: 12, color: "#8E8E93", lineHeight: 16 },
+  title: { 
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15, 
+    //fontWeight: "700", 
+    color: "#111" 
+  },
+  subtitle: { 
+    fontFamily: "Pretendard-Regular",
+    marginTop: 4, 
+    fontSize: 12, 
+    color: "#8E8E93", 
+    lineHeight: 16 
+  },
 
   // 토큰 재발급 박스
   reissueBox: {
@@ -183,8 +200,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
   },
-  reissueTitle: { fontSize: 14, fontWeight: "700", color: "#111" },
-  reissueDesc: { marginTop: 4, fontSize: 12, color: "#8E8E93", lineHeight: 16 },
+  reissueTitle: { 
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 14, 
+    //fontWeight: "700", 
+    color: "#111" 
+  },
+  reissueDesc: { 
+    fontFamily: "Pretendard-Regular",
+    marginTop: 4, 
+    fontSize: 12, 
+    color: "#8E8E93", 
+    lineHeight: 16 
+  },
   reissueBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -192,5 +220,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginLeft: 12,
   },
-  reissueBtnText: { color: "#5B8DEF", fontWeight: "700" },
+  reissueBtnText: { 
+    fontFamily: "Pretendard-SemiBold",
+    color: "#5B8DEF", 
+    //fontWeight: "700" 
+  },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18, 
+    //fontWeight: "700", 
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 }
 });

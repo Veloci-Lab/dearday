@@ -209,8 +209,18 @@ const styles = StyleSheet.create({
   /* 프로필 카드 */
   profileRow: { flexDirection: "row", alignItems: "center" },
   avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#ccc" },
-  nickname: { fontSize: 18, fontWeight: "bold", color: "#0F172A" },
-  subText: { fontSize: 13, color: "#666", marginTop: 4 },
+  nickname: { 
+    fontFamily: "Pretendard-Medium",
+    fontSize: 18, 
+    //fontWeight: "bold", 
+    color: "#0F172A" 
+  },
+  subText: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 13, 
+    color: "#666", 
+    marginTop: 4 
+  },
   editIcon: { position: "absolute", right: 16, top: 16 },
 
   /* 행(아이콘 + 라벨) 공통 */
@@ -238,8 +248,12 @@ const styles = StyleSheet.create({
   },
 
   rowTitle: {
-    fontSize: 15, color: "#111", fontWeight: "700",
-    marginLeft: 2, flexShrink: 1,
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15, 
+    color: "#111", 
+    //fontWeight: "700",
+    marginLeft: 2, 
+    flexShrink: 1,
   },
 
   /* '내가 설정한 시간' 행 */
@@ -248,12 +262,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  timeValue: { fontSize: 16, color: "#111", fontWeight: "700" },
+  timeValue: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 16, 
+    color: "#111", 
+    //fontWeight: "700" 
+  },
 
   /* 섹션 부제 */
   sectionTitle: {
-    fontSize: 12, color: "#000",
-    fontWeight: "700",
+    fontFamily: "Pretendard-Bold",
+    fontSize: 14, color: "#000",
+    //fontWeight: "700",
     marginTop: 12, marginBottom: 8, marginLeft: 10,
   },
 

@@ -81,10 +81,10 @@ export default function DayByMemory() {
       ),
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>
+          <Text style={ styles.headerTitle }>
             Dearday
           </Text>
-          <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>
+          <Text style={ styles.headerSubtitle }>
             {memoryDate ? formatYmdDots(memoryDate) : ""}
           </Text>
         </View>
@@ -239,7 +239,7 @@ function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
           <View style={it.content && { padding: 16 }}>
              {/*  */}
             {it.content ? (
-              <Text style={{ fontSize: 14, lineHeight: 20, color: "#0D0D0D" }}>
+              <Text style={ styles.bodyText }>
                 {it.content}
               </Text>
             ) : null}
@@ -258,12 +258,25 @@ function TopLeftBadge({ time, place }: { time?: string; place?: string }) {
   return (
     <View style={{ position: "absolute", left: 10, top: 10 }}>
       {!!time && (
-        <Text style={{ color: "white", fontWeight: "600", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 4 }}>
+        <Text style={{ 
+            fontFamily: "Pretendard-Bold",
+            color: "white", 
+            //fontWeight: "600", 
+            textShadowColor: "rgba(0,0,0,0.6)", 
+            textShadowRadius: 4 
+          }}>
           {time}
         </Text>
       )}
       {!!place && (
-        <Text style={{ color: "white", opacity: 0.85, textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 4, fontSize: 12 }}>
+        <Text style={{ 
+            fontFamily: "Pretendard-SemiBold",
+            color: "white", 
+            opacity: 0.85, 
+            textShadowColor: "rgba(0,0,0,0.6)", 
+            textShadowRadius: 4, 
+            fontSize: 12 
+          }}>
           {place}
         </Text>
       )}
@@ -271,19 +284,27 @@ function TopLeftBadge({ time, place }: { time?: string; place?: string }) {
   );
 }
 
-
 // ================================
 // Styles
 // ================================
 const styles = {
-  center: { flex: 1, justifyContent: "center", alignItems: "center" } as const,
+  center: { 
+    fontFamily: "Pretendard-Regular",
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  } as const,
   header: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     flexDirection: "row",
     alignItems: "center",
   } as const,
-  title: { fontSize: 20, fontWeight: "700" } as const,
+  title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 20, 
+    //fontWeight: "700" 
+  } as const,
   flipBtn: {
     width: 36,
     height: 36,
@@ -297,4 +318,21 @@ const styles = {
     shadowRadius: 4,
     elevation: 2,
   } as const,
+  headerTitle: { 
+    fontFamily: "Pretendard-Bold", 
+    fontSize: 20, 
+    color: "#5B8DEF" 
+  },
+  headerSubtitle: { 
+    fontFamily: "Pretendard-Regular", 
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 
+  },
+  bodyText: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 14, 
+    lineHeight: 20, 
+    color: "#0D0D0D" 
+  }
 };

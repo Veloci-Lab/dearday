@@ -19,8 +19,18 @@ export default function EditTimeScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: "시간 설정",
-      headerLeft: () => <Pressable style={{ paddingRight: 12 }} onPress={() => router.back()}><Feather name="chevron-left" size={24} color="black" /></Pressable>,
+      headerTitleAlign: "center",
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={ styles.Title }>My Dearday</Text>
+          <Text style={ styles.SubTitle }>시간 설정</Text>
+        </View>
+      ),
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Feather name="chevron-left" size={24} color="#000" />
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
@@ -87,5 +97,43 @@ export default function EditTimeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" }, content: { padding: 20, flexGrow: 1 }, section: { marginBottom: 24 }, label: { fontSize: 16, fontWeight: "600", marginBottom: 8 }, input: { height: 50, borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, justifyContent: "center" }, timeText: { fontSize: 16, color: "#0F172A" }, desc: { marginTop: 8, fontSize: 13, color: "#929292" }, footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#eee" }, saveButton: { backgroundColor: "#5B8DEF", padding: 16, borderRadius: 12, alignItems: "center" }, saveButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  container: { flex: 1, backgroundColor: "#fff" }, 
+  content: { padding: 20, flexGrow: 1 }, 
+  section: { marginBottom: 24 }, 
+  label: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 16, 
+    //fontWeight: "600", 
+    marginBottom: 8 
+  }, 
+  input: { height: 50, borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, justifyContent: "center" }, 
+  timeText: { 
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 16, 
+    color: "#0F172A" 
+  }, 
+  desc: { 
+    fontFamily: "Pretendard-Regular",
+    marginTop: 8, 
+    fontSize: 13, 
+    color: "#929292" 
+  }, 
+  footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#eee" }, 
+  saveButton: { backgroundColor: "#5B8DEF", padding: 16, borderRadius: 12, alignItems: "center" }, 
+  saveButtonText: { 
+    fontFamily: "Pretendard-Bold",
+    color: "#fff", 
+    //fontWeight: "bold", 
+    fontSize: 16 
+  },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18, 
+    //fontWeight: "700", 
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 }
 });

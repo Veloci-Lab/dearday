@@ -150,8 +150,8 @@ export default function AccountScreen() {
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#5B8DEF" }}>My Dearday</Text>
-          <Text style={{ fontSize: 12, color: "#929292", marginTop: 2 }}>내 계정 관리</Text>
+          <Text style={ styles.Title }>My Dearday</Text>
+          <Text style={ styles.SubTitle }>내 계정 관리</Text>
         </View>
       ),
       headerLeft: () => (
@@ -192,40 +192,57 @@ export default function AccountScreen() {
       "정말로 탈퇴하시겠습니까? 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
-        { 
-          text: "탈퇴하기", 
-          style: "destructive", 
+        {
+          text: "탈퇴하기",
+          style: "destructive",
           onPress: async () => {
-            if (!profileId) return;
+            try {
+              // 1) 현재 로그인 사용자 uid
+              console.log("[delete] profileId from store =", profileId);
+              const { data: me, error: meErr } = await supabase.auth.getUser();
+              if (meErr || !me?.user) {
+                Alert.alert("오류", "사용자 정보를 불러오지 못했습니다.");
+                return;
+              }
+              const uid = me.user.id;
+              console.log("[delete] auth uid =", uid);
 
-            // 1) profiles 테이블에서 is_deleted 설정
-            const { error: profErr } = await supabase
-              .from("profiles")
-              .update({ is_deleted: true })
-              .eq("profile_id", profileId);
+              // 2) profiles 소프트 삭제 (profileId가 있으면 우선 사용)
+              const target = profileId ?? uid;
+              const { error: updateErr } = await supabase
+                .from("profiles")
+                .update({ is_deleted: true, nickname: null }) // is_deleted 플래그와 nickname 초기화
+                .eq("profile_id", target); // 스키마에 맞춰 필요 시 컬럼명 변경
+                
+              if (updateErr) {
+                console.error("[delete] profiles.update error:", updateErr);
+                Alert.alert("오류", "프로필 삭제 중 문제가 발생했습니다.\n" + updateErr.message);
+                return;
+              }
 
-            if (profErr) {
-              Alert.alert("오류", "프로필 삭제 중 문제가 발생했습니다.");
-              return;
+              // 3) Edge Function 호출 → 실제 Auth 계정 삭제
+              const { error: fnErr } = await supabase.functions.invoke("delete-user", {
+                method: "POST",
+              });
+              if (fnErr) {
+                Alert.alert("오류", "계정 삭제 중 문제가 발생했습니다.");
+                return;
+              }
+
+              // 4) 로그아웃 및 이동
+              await supabase.auth.signOut();
+              logOut();
+              router.replace("/sign-in");
+            } catch (e: any) {
+              console.error(e);
+              Alert.alert("오류", "예상치 못한 오류가 발생했습니다.");
             }
-
-            // 2) auth.users에서 계정 제거
-            const { error: userErr } = await supabase.auth.admin.deleteUser(profileId);
-            if (userErr) {
-              Alert.alert("오류", "계정 삭제 중 문제가 발생했습니다.");
-              return;
-            }
-
-            // 3) 로컬 로그아웃 처리
-            await supabase.auth.signOut();
-            logOut();
-            router.replace("/sign-in");
-          } 
-        }
+          },
+        },
       ]
     );
   };
-
+  
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -273,6 +290,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#EFEFF0",
   },
-  rowTitle: { fontSize: 15, color: "#111", fontWeight: "600" },
-  rowValue: { fontSize: 14, color: "#8E8E93" },
+  rowTitle: { 
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15, 
+    color: "#111", 
+    //fontWeight: "600" 
+  },
+  rowValue: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 14, 
+    color: "#8E8E93" 
+  },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18, 
+    //fontWeight: "700", 
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: 2 }
 });
