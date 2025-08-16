@@ -646,9 +646,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF3FF' 
   },
   emptyText: { 
+    fontFamily: "Pretendard-Regular",
     color: '#8E8E93', 
     fontSize: 14, 
-    fontWeight: '600' 
+    //fontWeight: '600' 
   },
   swipeDelete: { 
     width: 72, 
