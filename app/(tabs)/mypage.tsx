@@ -1,9 +1,8 @@
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -131,8 +130,9 @@ export default function MypageScreen() {
         <SectionTitle>프로필</SectionTitle>
         <View style={styles.card}>
           <View style={styles.profileRow}>
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-            <View style={{ marginLeft: 12 }}>
+            {/* <Image source={{ uri: profile.avatar_url }} style={styles.avatar} /> */}
+            <View>
+              {/* style={{ marginLeft: 12 }} */}
               <Text style={styles.nickname}>{profile.nickname}</Text>
               <Text style={styles.subText}>{joinDate} 가입</Text>
             </View>

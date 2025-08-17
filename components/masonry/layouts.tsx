@@ -55,30 +55,30 @@ export function Tile({
     />
   );
 
-  // ✅ 왼쪽 상단 오버레이
+  // 왼쪽 하단 오버레이
   const Overlay = (
     <View
       style={{
         position: "absolute",
         left: 6,
-        top: 6,
+        bottom: 6,
         // backgroundColor: "rgba(0,0,0,0.45)",
         // borderRadius: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 3,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
         maxWidth: width - 12,
       }}
       pointerEvents="none"
     >
       {!!it.dateISO && (
-        <Text style={{ color: "#fff", fontSize: 16 }}>
+        <Text style={{ color: "#FEFEFE", fontSize: 20 }}>
           {it.dateISO}
         </Text>
       )}
       {!!it.place && (
         <Text
           numberOfLines={1}
-          style={{ color: "#fff", fontSize: 12 }}
+          style={{ color: "#F2F2F2", fontSize: 15 }}
         >
           {it.place}
         </Text>

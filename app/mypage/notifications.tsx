@@ -4,13 +4,24 @@ import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Platform, Pressable, SafeAreaView, StyleSheet, Switch, Text, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 
 export default function NotificationSettingsScreen() {
   const navigation = useNavigation();
   const { profileId } = useAuthStore();
 
-  const [isEnabled, setIsEnabled] = useState(true);
+  // ✅ 두 개 알람 상태 분리
+  const [shootEnabled, setShootEnabled] = useState(true); // 디어데이 알람
+  const [bedtimeEnabled, setBedtimeEnabled] = useState(true); // 기록 알람
   const [loading, setLoading] = useState(true);
   const [reissuing, setReissuing] = useState(false);
 
@@ -19,51 +30,65 @@ export default function NotificationSettingsScreen() {
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
-          <Text style={ styles.Title }>My Dearday</Text>
-          <Text style={ styles.SubTitle }>알림 설정</Text>
+          <Text style={styles.Title}>My Dearday</Text>
+          <Text style={styles.SubTitle}>알림 설정</Text>
         </View>
       ),
       headerLeft: () => (
-        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+        >
           <Feather name="chevron-left" size={24} color="#000" />
         </Pressable>
       ),
     });
   }, [navigation]);
 
+  // ✅ 초기 로딩: 두 컬럼 불러오기
   useEffect(() => {
     if (!profileId) return;
     (async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_notif_enabled")
+        .select("is_shoot_notif_enabled, is_bedtime_notif_enabled")
         .eq("profile_id", profileId)
         .single();
       if (error) {
         console.error("알림 설정 불러오기 실패:", error.message);
         Alert.alert("오류", "알림 설정을 불러오지 못했습니다.");
       }
-      setIsEnabled(data?.is_notif_enabled ?? true);
+      setShootEnabled(data?.is_shoot_notif_enabled ?? true);
+      setBedtimeEnabled(data?.is_bedtime_notif_enabled ?? true);
       setLoading(false);
     })();
   }, [profileId]);
 
-   // ✅ 토글은 is_notif_enabled 만 저장 (토큰 발급/삭제 X)
-  const toggleSwitch = async (value: boolean) => {
+  // ✅ 토글 핸들러: 특정 컬럼만 업데이트
+  const toggleSwitch = async (
+    key: "is_shoot_notif_enabled" | "is_bedtime_notif_enabled",
+    value: boolean
+  ) => {
     if (!profileId || loading) return;
-    setIsEnabled(value);
+
+    if (key === "is_shoot_notif_enabled") setShootEnabled(value);
+    else setBedtimeEnabled(value);
+
     const { error } = await supabase
       .from("profiles")
-      .update({ is_notif_enabled: value })
+      .update({ [key]: value })
       .eq("profile_id", profileId);
+
     if (error) {
-      setIsEnabled(!value); // 롤백
+      // 롤백
+      if (key === "is_shoot_notif_enabled") setShootEnabled(!value);
+      else setBedtimeEnabled(!value);
       Alert.alert("오류", "설정 저장에 실패했습니다.");
     }
   };
 
-  // ✅ 토큰 재발급: 사용자가 눌렀을 때만 발급/저장
+  // ✅ 토큰 재발급: 그대로 유지
   const handleReissueToken = async () => {
     if (!profileId) return;
     try {
@@ -131,25 +156,25 @@ export default function NotificationSettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* ⬇︎ 목업 1: 디어데이 알람 */}
+        {/* ⬇︎ 디어데이 알람 */}
         <SwitchRow
           title="디어데이 알람"
-          subtitle="사진 찍을 시간이예요!"
-          value={isEnabled}
-          onValueChange={toggleSwitch}
+          subtitle="사진 찍을 시간을 알려드려요."
+          value={shootEnabled}
+          onValueChange={(v) => toggleSwitch("is_shoot_notif_enabled", v)}
           disabled={loading}
         />
 
-        {/* ⬇︎ 목업 2: 기록 알람 (현재는 같은 값 사용) */}
+        {/* ⬇︎ 기록 알람 */}
         <SwitchRow
           title="기록 알람"
-          subtitle="Dearday 시간이예요, 찍었던 사진들을 오늘 하루가 가기 전에 정리해보세요!"
-          value={isEnabled}
-          onValueChange={toggleSwitch}
+          subtitle="찍었던 사진들을 오늘 하루가 가기 전에 정리해보세요!"
+          value={bedtimeEnabled}
+          onValueChange={(v) => toggleSwitch("is_bedtime_notif_enabled", v)}
           disabled={loading}
         />
 
-        {/* ⬇︎ 토큰 재발급 섹션 */}
+        {/* ⬇︎ 토큰 재발급 */}
         <View style={styles.reissueBox}>
           <View style={{ flex: 1 }}>
             <Text style={styles.reissueTitle}>푸시 토큰 다시 등록</Text>
@@ -162,7 +187,9 @@ export default function NotificationSettingsScreen() {
             style={[styles.reissueBtn, reissuing && { opacity: 0.7 }]}
             disabled={reissuing}
           >
-            <Text style={styles.reissueBtnText}>{reissuing ? "진행중…" : "재발급"}</Text>
+            <Text style={styles.reissueBtnText}>
+              {reissuing ? "진행중…" : "재발급"}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -180,38 +207,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
   },
-  title: { 
+  title: {
     fontFamily: "Pretendard-SemiBold",
-    fontSize: 15, 
-    //fontWeight: "700", 
-    color: "#111" 
+    fontSize: 15,
+    color: "#111",
   },
-  subtitle: { 
+  subtitle: {
     fontFamily: "Pretendard-Regular",
-    marginTop: 4, 
-    fontSize: 12, 
-    color: "#8E8E93", 
-    lineHeight: 16 
+    marginTop: 4,
+    fontSize: 12,
+    color: "#8E8E93",
+    lineHeight: 16,
   },
 
-  // 토큰 재발급 박스
   reissueBox: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
   },
-  reissueTitle: { 
+  reissueTitle: {
     fontFamily: "Pretendard-SemiBold",
-    fontSize: 14, 
-    //fontWeight: "700", 
-    color: "#111" 
+    fontSize: 14,
+    color: "#111",
   },
-  reissueDesc: { 
+  reissueDesc: {
     fontFamily: "Pretendard-Regular",
-    marginTop: 4, 
-    fontSize: 12, 
-    color: "#8E8E93", 
-    lineHeight: 16 
+    marginTop: 4,
+    fontSize: 12,
+    color: "#8E8E93",
+    lineHeight: 16,
   },
   reissueBtn: {
     paddingHorizontal: 12,
@@ -220,19 +244,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginLeft: 12,
   },
-  reissueBtnText: { 
+  reissueBtnText: {
     fontFamily: "Pretendard-SemiBold",
-    color: "#5B8DEF", 
-    //fontWeight: "700" 
+    color: "#5B8DEF",
   },
-  Title: { 
+  Title: {
     fontFamily: "Pretendard-Bold",
-    fontSize: 18, 
-    //fontWeight: "700", 
-    color: "#5B8DEF" },
-  SubTitle: { 
+    fontSize: 18,
+    color: "#5B8DEF",
+  },
+  SubTitle: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 12, 
-    color: "#929292", 
-    marginTop: 2 }
+    fontSize: 12,
+    color: "#929292",
+    marginTop: 2,
+  },
 });

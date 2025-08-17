@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     .from("profiles")
     .select("profile_id, timezone, expo_push_token_ios, expo_push_token_android")
     .eq("is_deleted", false)
-    .eq("is_notif_enabled", true)
+    .eq("is_shoot_notif_enabled", true)
     .or("expo_push_token_ios.not.is.null,expo_push_token_android.not.is.null");
 
   if (usersErr) {

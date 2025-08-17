@@ -35,7 +35,7 @@ Deno.serve(async (req: Request) => {
     .from("profiles")
     .select("profile_id, next_bedtime_notif_at, timezone, expo_push_token_ios, expo_push_token_android")
     .eq("is_deleted", false)
-    .eq("is_notif_enabled", true)
+    .eq("is_bedtime_notif_enabled", true)
     .not("sleep_time", "is", null)
     .or("expo_push_token_ios.not.is.null,expo_push_token_android.not.is.null")
     .lte("next_bedtime_notif_at", nowISO);

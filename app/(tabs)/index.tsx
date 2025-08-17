@@ -390,14 +390,14 @@ export default function IndexScreen() {
         <View style={styles.dashboardContainer}>
           {/* 왼쪽 영역 */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            {Dashboard.avatarUrl ? (
+            {/* {Dashboard.avatarUrl ? (
               <Image source={{ uri: Dashboard.avatarUrl }} style={styles.avatar} />
             ) : (
               // TODO: 디자인 받아서 그리기
               <View style={styles.avatarPlaceholder}>
                 <Feather name="user" size={24} color="#999" />
               </View>
-            )}
+            )} */}
 
             <View style={{ marginLeft: 16 }}>
               <Text style={ styles.nickname }>{Dashboard.nickname}</Text>
