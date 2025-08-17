@@ -7,13 +7,18 @@
     "icon": "./assets/images/icon.png",
     "scheme": "dearday",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.koreauniv.dearday",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "카메라로 사진/영상을 촬영합니다.",
+        "NSPhotoLibraryUsageDescription": "사진 보관함에서 불러오고 저장합니다.",
+        "NSPhotoLibraryAddUsageDescription": "촬영한 미디어를 보관함에 저장합니다.",
+        "NSMicrophoneUsageDescription": "영상 촬영 시 소리 녹음을 위해 필요합니다.",
+        "NSLocationWhenInUseUsageDescription": "기록에 현재 위치를 추가합니다."
+    }
     },
     "android": {
       "adaptiveIcon": {
