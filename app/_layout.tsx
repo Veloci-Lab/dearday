@@ -1,12 +1,12 @@
 import { useAuthStore } from "@/utils/authStore";
+import { useFonts } from "expo-font";
 import * as Notifications from 'expo-notifications';
-import { Stack, router, SplashScreen } from "expo-router";
+import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useFonts } from "expo-font";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -65,7 +65,6 @@ export default function RootLayout() {
     }
   }, [fontsLoaded]);
 
-  // 글꼴이 아직 로드되지 않았다면 아무것도 렌더링하지 않습니다.
   if (!fontsLoaded) {
     return null;
   }

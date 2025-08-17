@@ -11,6 +11,7 @@
     "ios": {
       "requireFullScreen": true,
       "bundleIdentifier": "com.koreauniv.dearday",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "카메라로 사진/영상을 촬영합니다.",
