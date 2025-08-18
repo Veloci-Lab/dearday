@@ -4,6 +4,7 @@ import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import {
     ActivityIndicator,
     Alert,
@@ -28,6 +29,7 @@ export default function ProfileEditScreen() {
   const [dupState, setDupState] = useState<"idle" | "checking" | "ok" | "taken">("idle");
   const [initialNickname, setInitialNickname] = useState("");
   const [nickFocused, setNickFocused] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false); // ← 추가
 
   useEffect(() => {
     navigation.setOptions({
@@ -110,26 +112,105 @@ export default function ProfileEditScreen() {
         return;
     }
     setDupState((count ?? 0) > 0 ? "taken" : "ok");
-    };
+  };
 
-    const changed = nickname.trim() !== (initialNickname ?? "");
-    const canSave =
-        !isSaving && nickname.trim().length > 0 && (!changed || dupState === "ok");
+  const changed = nickname.trim() !== (initialNickname ?? "");
+  const canSave =
+      !isSaving && nickname.trim().length > 0 && (!changed || dupState === "ok");
+
+  // ========= 갤러리 권한 & 이미지 선택/업로드 =========
+  const requestMediaPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("권한 필요", "프로필 사진을 변경하려면 사진 앱 접근 권한이 필요합니다.");
+      return false;
+    }
+    return true;
+  };
+
+  const handlePickAvatar = async () => {
+    try {
+      const ok = await requestMediaPermission();
+      if (!ok) return;
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      setUploadingAvatar(true);
+
+      // React Native 환경: uri → Blob 변환
+      const resp = await fetch(asset.uri);
+      const blob = await resp.blob();
+
+      const ext = (asset.fileName?.split(".").pop() || "jpg").toLowerCase();
+      const path = `avatars/${profileId}/${Date.now()}.${ext}`;
+
+      // Supabase Storage 업로드 (버킷명: avatars)
+      const { error: upErr } = await supabase
+        .storage
+        .from("avatars")
+        .upload(path, blob, {
+          contentType: asset.mimeType || `image/${ext}`,
+          upsert: true,
+        });
+      if (upErr) throw upErr;
+
+      // Public URL 생성 (버킷 public 가정)
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = pub.publicUrl;
+
+      // DB 업데이트
+      const { error: updErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl, avatar_path: path })
+        .eq("profile_id", profileId);
+      if (updErr) throw updErr;
+
+      // 로컬 상태 반영
+      setProfile((prev: any) => ({ ...prev, avatar_url: avatarUrl, avatar_path: path }));
+      Alert.alert("완료", "프로필 사진이 업데이트되었습니다.");
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert("업데이트 실패", e?.message ?? "업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+  // ===================================================
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* 아바타 */}
         <View style={styles.avatarBox}>
-            <View style={styles.avatarWrap}>
-                <Image source={{ uri: profile?.avatar_url }} style={styles.avatar} />
-                <TouchableOpacity
-                    style={styles.avatarEdit}
-                    onPress={() => Alert.alert("알림", "프로필 사진 변경 기능은 준비 중입니다.")}
-                >
-                    <Feather name="camera" size={16} color="#fff" />
-                </TouchableOpacity>
-            </View>
+          <View style={styles.avatarWrap}>
+            <Image
+              source={{
+                uri:
+                  profile?.avatar_url && typeof profile.avatar_url === "string" && profile.avatar_url.length > 0
+                    ? profile.avatar_url
+                    : "https://dummyimage.com/200x200/eeeeee/aaaaaa&text=+",
+              }}
+              style={styles.avatar}
+            />
+            <TouchableOpacity
+              style={styles.avatarEdit}
+              onPress={handlePickAvatar}
+              disabled={uploadingAvatar}
+            >
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Feather name="camera" size={16} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 닉네임 입력 */}
@@ -173,12 +254,12 @@ export default function ProfileEditScreen() {
             )}
           </TouchableOpacity>
         </View>
-            {dupState === "ok" && (
-                <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>사용 가능한 닉네임입니다.</Text>
-                )}
-            {dupState === "taken" && (
-                <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>이미 사용 중인 닉네임입니다.</Text>
-            )}
+        {dupState === "ok" && (
+          <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>사용 가능한 닉네임입니다.</Text>
+        )}
+        {dupState === "taken" && (
+          <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>이미 사용 중인 닉네임입니다.</Text>
+        )}
       </ScrollView>
 
       {/* 하단 저장 버튼 */}
