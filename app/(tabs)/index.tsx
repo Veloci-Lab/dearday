@@ -215,8 +215,8 @@ export default function IndexScreen() {
         .eq("date", today)
         .single();
 
-      // 없거나 이미 완료면 숨김
-      if (memErr || !mem || mem.is_completed === true) {
+      // 없으면 숨김
+      if (memErr || !mem ) {
         setTodayImages(prev => (prev.length ? [] : prev));
         setShowToday(false);
         return;

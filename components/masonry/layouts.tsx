@@ -71,14 +71,26 @@ export function Tile({
       pointerEvents="none"
     >
       {!!it.dateISO && (
-        <Text style={{ color: "#FEFEFE", fontSize: 20 }}>
+        <Text style={{ 
+          fontFamily: "Pretendard-Bold",
+          color: "#FEFEFE", 
+          fontSize: 15,
+          textShadowColor: "rgba(0,0,0,0.6)",
+          textShadowRadius: 4,
+          }}>
           {it.dateISO}
         </Text>
       )}
       {!!it.place && (
         <Text
           numberOfLines={1}
-          style={{ color: "#F2F2F2", fontSize: 15 }}
+          style={{ 
+            fontFamily: "Pretendard-Medium",
+            color: "#F2F2F2", 
+            fontSize: 10,
+            textShadowColor: "rgba(0,0,0,0.6)",
+            textShadowRadius: 4,
+          }}
         >
           {it.place}
         </Text>

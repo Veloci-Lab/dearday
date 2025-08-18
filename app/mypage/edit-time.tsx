@@ -1,7 +1,8 @@
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+// import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import DatePicker from "react-native-date-picker";
 import { router, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -48,13 +49,17 @@ export default function EditTimeScreen() {
     fetchTimes();
   }, [profileId]);
 
-  const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    const pickerType = showPicker;
-    setShowPicker(null);
-    if (event.type === "set" && selectedDate) {
-      if (pickerType === "sleep") setSleepTime(selectedDate);
-      else if (pickerType === "other") setOtherTime(selectedDate);
-    }
+  // const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  //   const pickerType = showPicker;
+  //   setShowPicker(null);
+  //   if (event.type === "set" && selectedDate) {
+  //     if (pickerType === "sleep") setSleepTime(selectedDate);
+  //     else if (pickerType === "other") setOtherTime(selectedDate);
+  //   }
+  // };
+  const onWheelChange = (d: Date) => {
+    if (showPicker === "sleep") setSleepTime(d);
+    if (showPicker === "other") setOtherTime(d);
   };
 
   const handleSave = async () => {
@@ -74,7 +79,9 @@ export default function EditTimeScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
           <Text style={styles.label}>하루 기록 시간</Text>
-          <Pressable onPress={() => setShowPicker("sleep")} style={styles.input}><Text style={styles.timeText}>{formatTime(sleepTime)}</Text></Pressable>
+          <Pressable onPress={() => setShowPicker("sleep")} style={styles.input}>
+            <Text style={styles.timeText}>{formatTime(sleepTime)}</Text>
+          </Pressable>
           <Text style={styles.desc}>이 시간에 맞춰 하루를 기록할 수 있도록 알림을 보내드려요.</Text>
         </View>
       </ScrollView>
@@ -83,7 +90,7 @@ export default function EditTimeScreen() {
           <Text style={styles.saveButtonText}>저장하기</Text>
         </TouchableOpacity>
       </View>
-      {showPicker && (
+      {/* {showPicker && (
         <DateTimePicker
           value={(showPicker === "sleep" ? sleepTime : otherTime) ?? new Date()}
           mode="time"
@@ -91,6 +98,23 @@ export default function EditTimeScreen() {
           display="spinner"     // ← 플랫폼 상관없이 스피너 강제
           onChange={onTimeChange}
         />
+      )} */}
+      {showPicker && (
+        <View style={styles.pickerWrap}>
+          <DatePicker
+            date={(showPicker === "sleep" ? sleepTime : otherTime) ?? new Date()}
+            onDateChange={onWheelChange}
+            mode="time"
+            locale="ko"
+            androidVariant="iosClone"   // ✅ 안드로이드도 iOS 같은 휠 UI
+            is24hourSource="locale"     // 로케일 따라 12/24시 결정
+            minuteInterval={1}
+            textColor="#111"            // ✅ iOS에서 글자 하얗게 보이는 이슈 방지
+            fadeToColor="#fff"          // 휠 바깥쪽 페이드 배경
+            dividerColor="#E2E8F0"
+            style={styles.picker}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -126,6 +150,18 @@ const styles = StyleSheet.create({
     //fontWeight: "bold", 
     fontSize: 16 
   },
+  pickerWrap: {
+    backgroundColor: "#fff",
+    paddingTop: 4,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  // 휠이 작아 보인다는 피드백 → 살짝 확대
+  picker: {
+    height: 220,
+    transform: [{ scale: 1.05 }],
+  },
+  
   Title: { 
     fontFamily: "Pretendard-Bold",
     fontSize: 18, 

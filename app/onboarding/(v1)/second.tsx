@@ -2,14 +2,16 @@ import { useAuthStore } from "@/utils/authStore";
 import { useOnboardingFooter } from "@/utils/onboardingFooterStore";
 import { supabase } from "@/utils/supabase";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function OnboardingSecondScreen() {
-  const { profileId } = useAuthStore();
-  const setHasCompletedOnboarding = useAuthStore((s) => s.setHasCompletedOnboarding);
+  // const { profileId } = useAuthStore();
+  // const setHasCompletedOnboarding = useAuthStore((s) => s.setHasCompletedOnboarding);
   const setFooter = useOnboardingFooter((s) => s.setFooter);
+  const { profileId, setHasCompletedOnboarding } = useAuthStore();
 
   const [sleepTime, setSleepTime] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
@@ -44,8 +46,10 @@ export default function OnboardingSecondScreen() {
             console.log("업데이트 실패", error.message);
             return;
           }
-
+          // ✅ 로컬/스토어에 온보딩 완료 반영 + 메인으로 이동
+          await AsyncStorage.setItem("onboarding.completed", "1");
           setHasCompletedOnboarding(true);
+          router.replace("/(tabs)");
         },
       });
     }, [sleepTime, profileId])
@@ -78,16 +82,24 @@ export default function OnboardingSecondScreen() {
       </Pressable>
 
       {showPicker && (
-        <DateTimePicker
-          value={sleepTime ?? new Date()}
-          mode="time"
-          is24Hour={false}
-          display="spinner"
-          onChange={(event, selectedDate) => {
-            setShowPicker(false);
-            if (selectedDate) setSleepTime(selectedDate);
-          }}
-        />
+        <View
+          // iOS에서 휠 높이/배경 보장 (가독성/시트화 방지)
+          style={s.pickerWrap}
+        >
+          <DateTimePicker
+            value={sleepTime ?? new Date()}
+            mode="time"
+            is24Hour={false}
+            display="spinner" // 두 플랫폼 모두 스피너 시도
+            onChange={(event, selectedDate) => {
+              setShowPicker(false);
+              if (selectedDate) setSleepTime(selectedDate);
+            }}
+            {...(Platform.OS === "ios"
+              ? ({ themeVariant: "light", textColor: "#111" } as any)
+              : {})}
+          />
+        </View>
       )}
     </View>
   );
@@ -127,4 +139,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: "#fff",
   },
+  pickerWrap: {
+    backgroundColor: "#fff",
+    height: Platform.OS === "ios" ? 220 : undefined, // iOS에서 휠 높이 보장
+    justifyContent: "center",
+    borderRadius: 10,
+    marginTop: 8,
+  }
 });

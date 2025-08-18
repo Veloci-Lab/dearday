@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Pressable,
   SafeAreaView,
@@ -26,6 +27,11 @@ export default function TodayScreen() {
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const GAP = 12; // 이미지 간격
+  const COLS = 3; // 한 줄에 표시할 이미지 개수
+  const PADDING_H = 16; // 좌우 패딩
+  const CELL = (Dimensions.get("window").width - PADDING_H * 2 - GAP * (COLS - 1)) / COLS; // 각 이미지 셀의 너비
 
   useEffect(() => {
     navigation.setOptions({
@@ -150,14 +156,22 @@ export default function TodayScreen() {
           </View>
         ) : (
           <View style={styles.grid}>
-            {entries.map((entry) => {
+            {entries.map((entry, index) => {
               const id = String(entry.memory_entry_id);
               const isSelected = selectedIds.includes(id);
               return (
                 <TouchableOpacity
                   key={id}
                   onPress={() => toggleSelect(id)}
-                  style={[styles.imageWrapper, isSelected && { opacity: 0.8, borderWidth: 2, borderColor: "#5B8DEF" }]}
+                  style={[
+                    styles.imageWrapper, 
+                    {
+                      width: CELL,
+                      height: CELL,
+                      marginRight: index % COLS === COLS - 1 ? 0 : GAP,
+                      marginBottom: GAP,
+                    },
+                    isSelected && { opacity: 0.8, borderWidth: 2, borderColor: "#5B8DEF" }]}
                 >
                   <Image source={{ uri: entry.image_url }} style={styles.image} />
                   {isSelected && (
@@ -213,7 +227,6 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
   },
   imageWrapper: {
     width: "30%",

@@ -1,14 +1,17 @@
 import { useAuthStore } from "@/utils/authStore";
 import { useFonts } from "expo-font";
 import * as Notifications from 'expo-notifications';
-import { router, SplashScreen, Stack } from "expo-router";
+import { router, SplashScreen, Stack, Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+// import { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { BrandedSplash } from "@/components/BrandedSplash";
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const {
@@ -26,6 +29,10 @@ export default function RootLayout() {
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
   });
+
+  const [showBrandOverlay, setShowBrandOverlay] = useState(true);
+  const brandVariant: "pre" | "post" =
+    isLoggedIn && hasCompletedOnboarding ? "post" : "pre";
 
   useEffect(() => {
     (async () => {
@@ -59,11 +66,17 @@ export default function RootLayout() {
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
+  // 폰트 로딩 완료 시 네이티브 스플래시 닫기(기존) + 오버레이는 자체 페이드 후 onFinish에서 unmount
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
+
+  // 오버레이 종료 콜백 (추가)
+  const handleBrandFinish = useCallback(() => {
+    setShowBrandOverlay(false);
+  }, []);
 
   if (!fontsLoaded) {
     return null;
@@ -84,27 +97,17 @@ export default function RootLayout() {
 
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerLeft: () => (
-                  <Image
-                    source={require("@/assets/images/logo_blue.png")}
-                    style={{ width: 28, height: 28, resizeMode: "contain" }}
-                  />
-                ),
-                headerTitle: "",
-                headerRight: () => (
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacity onPress={() => router.push("/pending")}>
-                      <Feather name="inbox" size={20} color="#000" style={{ marginHorizontal: 8 }} />
-                    </TouchableOpacity>
-                  </View>
-                ),
-              }}
-            /> */}
           </Stack.Protected>
         </Stack>
+        {/* ?? 추가: 온보딩 전/후에 따라 다른 브랜딩 스플래시를 1회만 표시 후 페이드아웃 */}
+        {showBrandOverlay && (
+          <BrandedSplash 
+            variant={brandVariant} 
+            showMs={1500}
+            fadeMs={400}
+            onFinish={handleBrandFinish} 
+          />
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
