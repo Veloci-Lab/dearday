@@ -1,15 +1,14 @@
 import { useAuthStore } from "@/utils/authStore";
-import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import {
   CameraMode,
   CameraType,
   CameraView,
+  FlashMode,
   useCameraPermissions,
 } from "expo-camera";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
-// import * as Location from "expo-location"; // ← 제거
 import * as MediaLibrary from "expo-media-library";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -18,60 +17,61 @@ import {
   Alert,
   AppState,
   Button,
-  // Modal,           // ← 제거
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  // TextInput,       // ← 제거
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// ★ 핀치 제스처 & Reanimated
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS, useSharedValue } from "react-native-reanimated";
 
 export default function App() {
   const { profileId } = useAuthStore();
   const { notification_id } = useLocalSearchParams();
   const [permission, requestPermission] = useCameraPermissions();
   const ref = useRef<CameraView>(null);
+
   const [uri, setUri] = useState<string | null>(null);
   const [mode, setMode] = useState<CameraMode>("picture");
   const [facing, setFacing] = useState<CameraType>("back");
   const [recording, setRecording] = useState(false);
   const insets = useSafeAreaInsets();
   const [isUploading, setIsUploading] = useState(false);
-  // const [showQuickMemo, setShowQuickMemo] = useState(false);                 // ← 제거
-  // const [memoryEntryId, setMemoryEntryId] = useState<number | null>(null);   // ← 제거
-  // const [placeName, setPlaceName] = useState("");                            // ← 제거
-  // const [text, setText] = useState("");                                      // ← 제거
-  // const [locating, setLocating] = useState(false);                           // ← 제거
 
-  // function pickNicePlace(geo?: Location.LocationGeocodedAddress | null) { ... }  // ← 제거
-  // async function fillCurrentLocation() { ... }                                   // ← 제거
+  // 플래시/토치/미러 상태
+  const [flashMode, setFlashMode] = useState<FlashMode>("off");
+  const [torchOn, setTorchOn] = useState(false);
+  const [mirrorOn, setMirrorOn] = useState(true);
+
+  // 줌 상태 (UI 표기용) + shared values(제스처 계산용)
+  const [zoom, setZoom] = useState(0);        // 0 ~ 1, HUD/CameraView용
+  const zoomSV = useSharedValue(0);           // worklet에서 사용하는 값
+  const baseZoomSV = useSharedValue(0);       // 핀치 시작 기준
+  const MIN_ZOOM = 0;
+  const MAX_ZOOM = 1;
+  const ZOOM_SENSITIVITY = 0.8;
+
+  const [ratio, setRatio] = useState<"4:3" | "16:9" | "1:1">("4:3");
 
   useEffect(() => {
-    if (permission?.status === "undetermined") {
-      requestPermission();
-    }
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (nextAppState === "active") {
-        requestPermission();
-      }
+    if (permission?.status === "undetermined") requestPermission();
+    const subscription = AppState.addEventListener("change", (s) => {
+      if (s === "active") requestPermission();
     });
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [permission]);
 
   if (!permission) return null;
 
-  // === 케이스 분기(헤더 옵션에만 사용) ===
   const isDenied = permission.status === "denied";
-  const isRequesting = !permission.granted && !isDenied; // 권한 요청중/undetermined
+  const isRequesting = !permission.granted && !isDenied;
   const showStackHeader = isDenied || isRequesting;
 
-  // ---------------------------
-  // 갤러리 저장 헬퍼 (앨범 만들지 않음)
-  // ---------------------------
+  // 갤러리 저장
   const saveToGallery = async (localUri: string) => {
     try {
       const { status, canAskAgain } = await MediaLibrary.requestPermissionsAsync();
@@ -91,7 +91,6 @@ export default function App() {
     const photo = await ref.current?.takePictureAsync();
     if (!photo?.uri) return;
     setUri(photo.uri);
-    // 촬영 직후 갤러리에 자동 저장
     saveToGallery(photo.uri);
   };
 
@@ -105,7 +104,6 @@ export default function App() {
     const video = await ref.current?.recordAsync();
     setRecording(false);
     if (video?.uri) {
-      // 녹화 완료 후 갤러리에 자동 저장
       saveToGallery(video.uri);
       console.log({ video });
     }
@@ -119,174 +117,87 @@ export default function App() {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   };
 
-  // const handleConfirmPhoto = async () => {
-  //   if (isUploading) return; // 중복 클릭 방지
-  //   setIsUploading(true);
+  const cycleFlash = () => {
+    setFlashMode((prev) => (prev === "off" ? "on" : prev === "on" ? "auto" : "off"));
+  };
 
-  //   try {
-  //     if (!profileId || !uri) throw new Error("필수 정보 누락 (profileId 또는 uri)");
+  const toggleTorch = () => setTorchOn((t) => !t);
 
-  //     const today = getLocalDateString();
-
-  //     const base64 = await FileSystem.readAsStringAsync(uri, {
-  //       encoding: FileSystem.EncodingType.Base64,
-  //     });
-
-  //     const binary = atob(base64);
-  //     const bytes = new Uint8Array(binary.length);
-  //     for (let i = 0; i < binary.length; i++) {
-  //       bytes[i] = binary.charCodeAt(i);
-  //     }
-
-  //     const fileName = `photo_${Date.now()}.jpg`;
-
-  //     const { error } = await supabase.storage
-  //       .from("photos")
-  //       .upload(fileName, bytes, {
-  //         contentType: "image/jpeg",
-  //         upsert: false,
-  //       });
-
-  //     if (error) throw error;
-
-  //     const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
-  //     const imageUrl = urlData?.publicUrl;
-  //     if (!imageUrl) throw new Error("Public URL 생성 실패");
-
-  //     let memory_id: string;
-  //     const { data: existingMemory, error: memoryQueryErr } = await supabase
-  //       .from("memories")
-  //       .select("memory_id")
-  //       .eq("profile_id", profileId)
-  //       .eq("date", today)
-  //       .single();
-
-  //     if (memoryQueryErr && memoryQueryErr.code !== "PGRST116") {
-  //       throw memoryQueryErr;
-  //     }
-
-  //     if (existingMemory) {
-  //       memory_id = existingMemory.memory_id;
-  //     } else {
-  //       const { data: newMemory, error: insertErr } = await supabase
-  //         .from("memories")
-  //         .insert({ profile_id: profileId, date: today })
-  //         .select("memory_id")
-  //         .single();
-  //       if (insertErr) throw insertErr;
-  //       memory_id = newMemory.memory_id;
-  //     }
-
-  //     const { data: existingEntries } = await supabase
-  //       .from("memory_entries")
-  //       .select("entry_index")
-  //       .eq("memory_id", memory_id);
-
-  //     const entryIndex =
-  //       existingEntries && existingEntries.length > 0
-  //         ? Math.max(...existingEntries.map((e) => e.entry_index)) + 1
-  //         : 0;
-
-  //     const insertData = {
-  //       memory_id,
-  //       ...(notification_id && { notification_id }),
-  //       entry_index: entryIndex,
-  //       image_url: imageUrl,
-  //       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  //     };
-
-  //     const { data, error: entryErr } = await supabase
-  //       .from("memory_entries")
-  //       .insert(insertData)
-  //       .select("memory_entry_id")
-  //       .single();
-
-  //     if (entryErr) throw entryErr;
-
-  //     console.log("사진 업로드 및 DB 저장 완료");
-
-  //     // 모달 없이 바로 quick-memo로 이동
-  //     router.replace({
-  //       pathname: "/quick-memo",
-  //       params: { memory_entry_id: String(data.memory_entry_id) },
-  //     });
-
-  //   } catch (err) {
-  //     console.error("❌ handleConfirmPhoto 오류:", err);
-  //   } finally {
-  //     setIsUploading(false);
-  //   }
-  // };
-  
-  // 메모에서 업로드하는 로직으로 변경
-  // 변경된 handleConfirmPhoto
-  const handleConfirmPhoto = async () => {
-    if (!uri) return;
-    // 업로드/DB 처리 ❌  로컬 uri만 전달 ⭕
-    router.replace({
-      pathname: "/quick-memo",
-      params: { local_uri: encodeURIComponent(uri), ...(notification_id && { notification_id: String(notification_id) }) },
+  const toggleMirror = () => {
+    setMirrorOn((m) => {
+      const next = !m;
+      return next;
     });
   };
 
-  const renderPicture = () => {
-    return (
-      <View style={{ flex: 1, width: "100%", backgroundColor: "#000" }}>
-        {/* 촬영된 이미지: 뒤에 꽉 채우기 (contain) */}
-        <Image source={{ uri }} contentFit="contain" style={StyleSheet.absoluteFill} />
-
-        {/* 상단 X (항상 표시) */}
-        {/* <View style={[styles.topBar, { paddingTop: insets.top }]}>
-          <Pressable
-            onPress={() => {
-              router.back();
-            }}
-            hitSlop={12}
-            android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
-            style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
-          >
-            <Feather name="x" size={22} color="#fff" />
-          </Pressable>
-        </View> */}
-
-        {/* 상/하 마스크 (카메라뷰와 동일) */}
-        <View style={styles.topMask} />
-        <View style={styles.bottomMask} />
-
-        {/* 하단 버튼 영역만 다름 */}
-        <View style={[styles.previewBtnWrap, { paddingBottom: insets.bottom + 16 }]}>
-          <Pressable
-            onPress={handleConfirmPhoto}
-            disabled={isUploading}
-            style={[
-              styles.primaryBtn,
-              isUploading && { opacity: 0.7 } // 비활성화 시 살짝 흐리게
-            ]}
-          >
-            {isUploading ? (
-              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-            ) : (
-              <Text style={styles.primaryBtnText}>이 사진으로 기록하기</Text>
-            )}
-          </Pressable>
-
-          <Pressable
-            onPress={() => {
-              setUri(null);
-            }}
-            hitSlop={10}
-            android_ripple={{ color: "rgba(255,255,255,0.15)" }}
-            style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressedSecondary]}
-          >
-            <Text style={styles.secondaryBtnText}>다시 찍을래요</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
+  const toggleRatio = () => {
+    setRatio((prev) => (prev === "4:3" ? "16:9" : prev === "16:9" ? "1:1" : "4:3"));
   };
 
-  const renderCamera = () => {
-    return (
+
+  const handleConfirmPhoto = async () => {
+    if (!uri) return;
+    router.replace({
+      pathname: "/quick-memo",
+      params: {
+        local_uri: encodeURIComponent(uri),
+        ...(notification_id && { notification_id: String(notification_id) }),
+      },
+    });
+  };
+
+  // ★ 핀치 제스처(Worklet-safe)
+  const pinchGesture = Gesture.Pinch()
+    .onBegin(() => {
+      "worklet";
+      baseZoomSV.value = zoomSV.value;
+    })
+    .onChange((e) => {
+      "worklet";
+      // e.scale: 1(기준)에서 증가/감소
+      let next = baseZoomSV.value + (e.scale - 1) * ZOOM_SENSITIVITY;
+      if (next < MIN_ZOOM) next = MIN_ZOOM;
+      if (next > MAX_ZOOM) next = MAX_ZOOM;
+
+      // 너무 잦은 업데이트 완화
+      if (Math.abs(next - zoomSV.value) > 0.002) {
+        zoomSV.value = next;
+        runOnJS(setZoom)(next); // UI State 업데이트는 JS 스레드로
+      }
+    });
+
+  const renderPicture = () => (
+    <View style={{ flex: 1, width: "100%", backgroundColor: "#000" }}>
+      <Image source={{ uri }} contentFit="contain" style={StyleSheet.absoluteFill} />
+      <View style={styles.topMask} pointerEvents="none" />
+      <View style={styles.bottomMask} pointerEvents="none" />
+      <View style={[styles.previewBtnWrap, { paddingBottom: insets.bottom + 16 }]}>
+        <Pressable
+          onPress={handleConfirmPhoto}
+          disabled={isUploading}
+          style={[styles.primaryBtn, isUploading && { opacity: 0.7 }]}
+        >
+          {isUploading ? (
+            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+          ) : (
+            <Text style={styles.primaryBtnText}>이 사진으로 기록하기</Text>
+          )}
+        </Pressable>
+
+        <Pressable
+          onPress={() => setUri(null)}
+          hitSlop={10}
+          android_ripple={{ color: "rgba(255,255,255,0.15)" }}
+          style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressedSecondary]}
+        >
+          <Text style={styles.secondaryBtnText}>다시 찍을래요</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const renderCamera = () => (
+    <GestureDetector gesture={pinchGesture}>
       <View style={{ flex: 1, width: "100%" }}>
         <CameraView
           style={StyleSheet.absoluteFill}
@@ -295,37 +206,112 @@ export default function App() {
           facing={facing}
           mute={false}
           responsiveOrientationWhenOrientationLocked
+          enableTorch={torchOn}
+          flash={flashMode}
+          mirror={facing === "front" && mirrorOn}
+          zoom={zoom} // 0~1
+          ratio={ratio}
         />
 
-        {/* 카메라 뷰에서는 커스텀 상단 X (Stack 헤더는 숨김) */}
+        {/* 상단 바: 뒤로가기 + Flash / Mirror / Zoom% */}
         <View style={[styles.topBar, { paddingTop: insets.top }]}>
-          <Pressable
-            onPress={() => {
-              router.back();
-            }}
-            hitSlop={12}
-            android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
-            style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
-          >
-            <Feather name="x" size={22} color="#fff" />
-          </Pressable>
+          <View style={styles.topBarRow}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={12}
+              android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
+              style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+            >
+              <Feather name="x" size={22} color="#fff" />
+            </Pressable>
+
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+              {/* Ratio */}
+              <Pressable
+                onPress={toggleRatio}
+                hitSlop={10}
+                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 24 }}
+                style={({ pressed }) => [
+                  styles.iconBtnWrap,
+                  pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
+                ]}
+              >
+                <View style={styles.iconBtn}>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                    {ratio}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Flash */}
+              <Pressable
+                onPress={cycleFlash}
+                hitSlop={10}
+                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 24 }}
+                style={({ pressed }) => [
+                  styles.iconBtnWrap,
+                  pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
+                ]}
+              >
+                <View style={styles.iconBtn}>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                    Flash {flashMode.toUpperCase()}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Mirror */}
+              <Pressable
+                onPress={toggleMirror}
+                hitSlop={10}
+                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 24 }}
+                style={({ pressed }) => [
+                  styles.iconBtnWrap,
+                  pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
+                ]}
+              >
+                <View style={styles.iconBtn}>
+                  <Text style={{ color: "#fff", fontSize: 10, marginTop: 2 }}>
+                    {mirrorOn ? "MIRROR" : "NORMAL"}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Zoom % HUD */}
+              <View style={[styles.iconBtn, { paddingHorizontal: 12, minWidth: undefined }]}>
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                  {(zoom * 100).toFixed(0)}%
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* 상/하 반투명 마스크 */}
-        <View style={styles.topMask} />
-        <View style={styles.bottomMask} />
+        {/* 상/하 반투명 마스크 (제스처 통과) */}
+        <View style={styles.topMask} pointerEvents="none" />
+        <View style={styles.bottomMask} pointerEvents="none" />
 
+        {/* 하단 셔터/토치/카메라전환 */}
         <View style={styles.shutterContainer}>
-          {/* toggleMode 버튼: 보이지 않게(영역 유지, 탭 불가) */}
+          {/* 좌측: 토치 */}
           <Pressable
-            onPress={toggleMode}
-            disabled
-            pointerEvents="none"
-            style={styles.hiddenControl}
+            onPress={toggleTorch}
+            hitSlop={10}
+            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
+            style={({ pressed }) => [
+              styles.iconBtnWrap,
+              pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
+            ]}
           >
-            <AntDesign name="picture" size={32} color="white" style={{ opacity: 0 }} />
+            <View style={styles.iconBtn}>
+              <Feather name="zap" size={20} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 10, marginTop: 2 }}>
+                {torchOn ? "TORCH" : "OFF"}
+              </Text>
+            </View>
           </Pressable>
 
+          {/* 셔터 */}
           <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
             {({ pressed }) => (
               <View style={[styles.shutterBtn, { opacity: pressed ? 0.5 : 1 }]}>
@@ -339,6 +325,7 @@ export default function App() {
             )}
           </Pressable>
 
+          {/* 우측: 카메라 전환 */}
           <Pressable
             onPress={toggleFacing}
             hitSlop={10}
@@ -352,25 +339,24 @@ export default function App() {
           </Pressable>
         </View>
       </View>
-    );
-  };
+    </GestureDetector>
+  );
 
-  // === 여기서 한 번만 리턴: 상태별 화면 + 헤더 옵션 동적 적용 ===
   return (
     <>
       <Stack.Screen
         options={
           showStackHeader
             ? {
-              headerTitle: () => null,
-              headerLeft: () => (
-                <Pressable
-                  style={{ flexDirection: "row", alignItems: "center" }}
-                  onPress={() => router.back()}
-                >
-                  <Feather name="chevron-left" size={24} color="black" />
-                </Pressable>
-              ),
+                headerTitle: () => null,
+                headerLeft: () => (
+                  <Pressable
+                    style={{ flexDirection: "row", alignItems: "center" }}
+                    onPress={() => router.back()}
+                  >
+                    <Feather name="chevron-left" size={24} color="black" />
+                  </Pressable>
+                ),
               }
             : { headerShown: false }
         }
@@ -384,11 +370,8 @@ export default function App() {
           <Button
             title="설정 열기"
             onPress={() => {
-              if (Platform.OS === "ios") {
-                Linking.openURL("app-settings:");
-              } else {
-                Linking.openSettings();
-              }
+              if (Platform.OS === "ios") Linking.openURL("app-settings:");
+              else Linking.openSettings();
             }}
           />
         </View>
@@ -414,12 +397,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  camera: {
-    flex: 1,
-    width: "100%",
-  },
 
-  /* 상단바 & 뒤로가기 (카메라 뷰에서만 쓰이는 커스텀 버튼) */
+  // 상단 바
   topBar: {
     position: "absolute",
     top: 0,
@@ -431,13 +410,15 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     zIndex: 20,
   },
+  topBarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
   backBtn: {
     width: 36,
     height: 36,
-    // borderRadius: 18,
-    // borderWidth: 1,
-    // borderColor: "rgba(255,255,255,0.7)",
-    // backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -483,28 +464,28 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     alignItems: "center",
     justifyContent: "center",
-    
   },
   shutterBtnInner: {
     width: 65,
     height: 65,
     borderRadius: 65,
   },
-  iconBtnWrap: {
-  borderRadius: 22,
-  overflow: "hidden", // 안드로이드 ripple이 원 밖으로 안 나가게
-},
 
+  // 아이콘 버튼(공용)
+  iconBtnWrap: {
+    borderRadius: 22,
+    overflow: "hidden",
+  },
   iconBtn: {
-    width: 44,
+    minWidth: 44,
     height: 44,
+    paddingHorizontal: 10,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(142,142,147,0.95)", // 시스템 그레이 톤(원하는 회색으로 변경 가능)
+    backgroundColor: "rgba(142,142,147,0.95)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.35)",
-
     // iOS 그림자
     shadowColor: "#000",
     shadowOpacity: 0.18,
@@ -514,15 +495,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-
-  /* 미리보기 하단 버튼 컨테이너 (카메라뷰와 같은 레이어 위) */
+  /* 미리보기 하단 버튼 */
   previewBtnWrap: {
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 24,        // 카메라뷰의 shutterContainer( bottom:44 )와 톤만 맞추면 됨
+    bottom: 24,
     gap: 10,
-    zIndex: 30,        // 마스크 위로
+    zIndex: 30,
   },
   primaryBtn: {
     height: 48,
@@ -534,7 +514,6 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: "Pretendard-Bold",
     color: "#fff",
-    //fontWeight: "700",
     fontSize: 16,
   },
   secondaryBtn: {
@@ -542,82 +521,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    // backgroundColor: "#F2F2F2",
   },
   secondaryBtnText: {
     fontFamily: "Pretendard-Regular",
     color: "#FEFEFE",
-    //fontWeight: "700",
     fontSize: 16,
   },
 
   // 공통 눌림 효과
-  pressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
-  },
-  pressedSecondary: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.95,
-  },
-  iconPressed: {
-    transform: [{ scale: 0.94 }],
-    opacity: 0.85,
-  },
-  shutterPressed: {
-    transform: [{ scale: 0.96 }],
-  },
+  pressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
+  pressedSecondary: { transform: [{ scale: 0.98 }], opacity: 0.95 },
+  iconPressed: { transform: [{ scale: 0.94 }], opacity: 0.85 },
 
-  // (styles.* 모달 관련은 삭제 안 했음 — 원하면 나중에 정리 가능)
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContainer: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  modalDesc: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "left",
-    marginBottom: 24,
-  },
-  label: { fontSize: 12, color: "#888", marginTop: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 4,
-  },
-  textarea: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    textAlignVertical: "top",
-  },
-  submitBtn: {
-    backgroundColor: "#5B8DEF",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  submitBtnText: { color: "#fff", fontWeight: "bold" },
-
-  /* 토글모드 숨김용(영역 유지) */
+  // 숨김용
   hiddenControl: {
     width: 32,
     height: 32,
