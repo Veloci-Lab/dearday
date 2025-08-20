@@ -108,6 +108,7 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -120,7 +121,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 
 /** 로고 비율 고정 (textmark_white.png 기준) */
 const LOGO_AR = 253 / 53;
@@ -217,12 +217,35 @@ export default function SignInScreen() {
             style={s.googleIcon}
             resizeMode="contain"
           />
-          <Text style={s.googleText}>Continue with Google</Text>
+          <Text style={s.googleText}>Google로 계속하기</Text>
           <View style={s.rightArea}>
             {loading && <ActivityIndicator size="small" color="#5B8DEF" />}
           </View>
         </Pressable>
       </View>
+
+      {/* 하단 커스텀 Apple 버튼 */}
+      {/* <View style={[s.footer, { paddingBottom: insets.bottom + 24 }]}>
+        <Pressable
+          onPress={handleSignIn}
+          disabled={loading}
+          style={({ pressed }) => [
+            s.AppleBtn,
+            pressed && { opacity: 0.9 },
+            loading && { opacity: 0.7 },
+          ]}
+        >
+          <Image
+            source={require("@/assets/images/apple_logo.png")} // 컬러 G 로고 PNG
+            style={s.googleIcon}
+            resizeMode="contain"
+          />
+          <Text style={s.appleText}>Apple로 계속하기</Text>
+          <View style={s.rightArea}>
+            {loading && <ActivityIndicator size="small" color="#5B8DEF" />}
+          </View>
+        </Pressable>
+      </View> */}
     </SafeAreaView>
   );
 }
@@ -248,23 +271,54 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 26,
-    height: 52,
-    minWidth: 280,
+    borderRadius: 12,
+    height: 54,
+    minWidth: 345,
     paddingHorizontal: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 10,
-    elevation: 4,
+    // shadowColor: "#000",
+    // shadowOpacity: 0.12,
+    // shadowOffset: { width: 0, height: 6 },
+    // shadowRadius: 10,
+    // elevation: 4,
   },
-  googleIcon: { width: 18, height: 18, marginRight: 8 },
+  googleIcon: { 
+    width: 20, 
+    height: 20, 
+    marginLeft: 8,
+    //marginRight: 10 
+  },
   googleText: {
     flex: 1,
     textAlign: "center",
-    fontSize: 15,
-    fontWeight: "700",
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 17,
+    // fontWeight: "700",
     color: "#111",
   },
   rightArea: { width: 24, alignItems: "center", justifyContent: "center" },
+
+  // appleBtn: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   backgroundColor: "#fff",
+  //   borderRadius: 12,
+  //   height: 1,
+  //   minWidth: 345,
+  //   paddingHorizontal: 14,
+  // },
+
+  // appleIcon: { 
+  //   width: 20, 
+  //   height: 20, 
+  //   marginLeft: 8,
+  //   //marginRight: 10 
+  // },
+  // appleText: {
+  //   flex: 1,
+  //   textAlign: "center",
+  //   fontFamily: "Pretendard-SemiBold",
+  //   fontSize: 17,
+  //   // fontWeight: "700",
+  //   color: "#111",
+  // },
 });
