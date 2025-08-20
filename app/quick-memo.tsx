@@ -3,7 +3,7 @@ import { getLocalDateString } from "@/utils/date";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
-// import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -222,13 +222,13 @@ export default function QuickMemoScreen() {
         <View style={styles.imageWrap}>
           {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
 
-          {/* ⬇️ 상단 그라데이션 오버레이 (터치 막지 않도록 pointerEvents) */}
-          {/* <LinearGradient
+          {/*  상단 그라데이션 오버레이 (터치 막지 않도록 pointerEvents) */}
+          <LinearGradient
             pointerEvents="none"
             colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "transparent"]}
             locations={[0, 0.5, 1]}
             style={styles.imageGradient}
-          /> */}
+          /> 
 
           {/* 뒤로가기 버튼 (아이콘은 밝은색으로) */}
           <Pressable
