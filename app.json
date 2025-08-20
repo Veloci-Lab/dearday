@@ -19,7 +19,8 @@
         "NSPhotoLibraryAddUsageDescription": "촬영한 미디어를 보관함에 저장합니다.",
         "NSMicrophoneUsageDescription": "영상 촬영 시 소리 녹음을 위해 필요합니다.",
         "NSLocationWhenInUseUsageDescription": "기록에 현재 위치를 추가합니다."
-    }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -80,6 +81,13 @@
         {
           "defaultChannel": "default",
           "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      ["expo-apple-authentication"],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ]
     ],
