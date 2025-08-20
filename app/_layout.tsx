@@ -1,15 +1,14 @@
 import { useAuthStore } from "@/utils/authStore";
 import { useFonts } from "expo-font";
 import * as Notifications from 'expo-notifications';
-import { router, SplashScreen, Stack, Slot } from "expo-router";
+import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 // import { useEffect } from "react";
-import React, { useEffect, useState, useCallback } from "react";
-import 'react-native-gesture-handler';
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useState } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 import { BrandedSplash } from "@/components/BrandedSplash";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -66,14 +65,14 @@ export default function RootLayout() {
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
-  // ÆùÆ® ·Îµù ¿Ï·á ½Ã ³×ÀÌÆ¼ºê ½ºÇÃ·¡½Ã ´Ý±â(±âÁ¸) + ¿À¹ö·¹ÀÌ´Â ÀÚÃ¼ ÆäÀÌµå ÈÄ onFinish¿¡¼­ unmount
+  // í°íŠ¸ ë¡œë”© ì™„ë£Œ ì‹œ ë„¤ì´í‹°ë¸Œ ìŠ¤í”Œëž˜ì‹œ ë‹«ê¸°(ê¸°ì¡´) + ì˜¤ë²„ë ˆì´ëŠ” ìžì²´ íŽ˜ì´ë“œ í›„ onFinishì—ì„œ unmount
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
 
-  // ¿À¹ö·¹ÀÌ Á¾·á ÄÝ¹é (Ãß°¡)
+  // ì˜¤ë²„ë ˆì´ ì¢…ë£Œ ì½œë°± (ì¶”ê°€)
   const handleBrandFinish = useCallback(() => {
     setShowBrandOverlay(false);
   }, []);
@@ -99,7 +98,6 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>
-        {/* ?? Ãß°¡: ¿Âº¸µù Àü/ÈÄ¿¡ µû¶ó ´Ù¸¥ ºê·£µù ½ºÇÃ·¡½Ã¸¦ 1È¸¸¸ Ç¥½Ã ÈÄ ÆäÀÌµå¾Æ¿ô */}
         {showBrandOverlay && (
           <BrandedSplash 
             variant={brandVariant} 
