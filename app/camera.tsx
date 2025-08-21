@@ -29,6 +29,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 
+import { Dimensions } from "react-native";
+
 export default function App() {
   const { profileId } = useAuthStore();
   const { notification_id } = useLocalSearchParams();
@@ -56,6 +58,18 @@ export default function App() {
   const ZOOM_SENSITIVITY = 0.8;
 
   const [ratio, setRatio] = useState<"4:3" | "16:9" | "1:1">("4:3");
+
+  // 배율
+  const { height: SCREEN_H } = Dimensions.get("window");
+  const BOTTOM_MASK_RATIO = 0.24;   // styles.bottomMask.height와 동일
+  const ZOOM_HUD_OFFSET = 16 + 28;        // 윗변에서 '아래로' 내릴 픽셀 (28: 배율 박스 높이)
+
+  // 하단 아이콘
+  const torchIcon = require("@/assets/images/torch.png");
+  const facingIcon = require("@/assets/images/facing.png");
+
+  // topBar 패딩
+  const TOP_ICONS_OFFSET = 16; // 원하는 만큼 조절 (px)
 
   useEffect(() => {
     if (permission?.status === "undetermined") requestPermission();
@@ -214,7 +228,13 @@ export default function App() {
         />
 
         {/* 상단 바: 뒤로가기 + Flash / Mirror / Zoom% */}
-        <View style={[styles.topBar, { paddingTop: insets.top }]}>
+        <View
+          style={[
+            styles.topBar,
+            { paddingTop: insets.top + TOP_ICONS_OFFSET, height: 72 + TOP_ICONS_OFFSET }
+          ]}
+        >
+
           <View style={styles.topBarRow}>
             <Pressable
               onPress={() => router.back()}
@@ -236,14 +256,14 @@ export default function App() {
                   pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
                 ]}
               >
-                <View style={styles.iconBtn}>
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                <View style={[styles.iconBtn /* ratio는 항상 기본 스타일 */]}>
+                  <Text style={styles.iconText}>
                     {ratio}
                   </Text>
                 </View>
               </Pressable>
 
-              {/* Flash */}
+              {/* Flash (on/auto일 때만 배경 표시) */}
               <Pressable
                 onPress={cycleFlash}
                 hitSlop={10}
@@ -253,8 +273,13 @@ export default function App() {
                   pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
                 ]}
               >
-                <View style={styles.iconBtn}>
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                <View
+                  style={[
+                    styles.iconBtn,
+                    (flashMode === "on" || flashMode === "auto") && styles.iconBtnActive, // 활성화 배경
+                  ]}
+                >
+                  <Text style={styles.iconText}>
                     Flash {flashMode.toUpperCase()}
                   </Text>
                 </View>
@@ -270,19 +295,17 @@ export default function App() {
                   pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
                 ]}
               >
-                <View style={styles.iconBtn}>
-                  <Text style={{ color: "#fff", fontSize: 10, marginTop: 2 }}>
-                    {mirrorOn ? "MIRROR" : "NORMAL"}
+                <View
+                  style={[
+                    styles.iconBtn,
+                    mirrorOn && styles.iconBtnActive,
+                  ]}
+                >
+                  <Text style={styles.iconText}>
+                    MIRROR
                   </Text>
                 </View>
               </Pressable>
-
-              {/* Zoom % HUD */}
-              <View style={[styles.iconBtn, { paddingHorizontal: 12, minWidth: undefined }]}>
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                  {(zoom * 100).toFixed(0)}%
-                </Text>
-              </View>
             </View>
           </View>
         </View>
@@ -290,6 +313,17 @@ export default function App() {
         {/* 상/하 반투명 마스크 (제스처 통과) */}
         <View style={styles.topMask} pointerEvents="none" />
         <View style={styles.bottomMask} pointerEvents="none" />
+
+        {/* Zoom HUD - 하단 마스크 윗변 기준 */}
+        <View
+          pointerEvents="none"
+          style={[
+            styles.zoomHudWrap,
+            { bottom: SCREEN_H * BOTTOM_MASK_RATIO - ZOOM_HUD_OFFSET }
+          ]}
+        >
+          <Text style={styles.zoomHudText}>{(zoom * 100).toFixed(0)}%</Text>
+        </View>
 
         {/* 하단 셔터/토치/카메라전환 */}
         <View style={styles.shutterContainer}>
@@ -299,16 +333,11 @@ export default function App() {
             hitSlop={10}
             android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
             style={({ pressed }) => [
-              styles.iconBtnWrap,
+              styles.bareIconBtn,               // ← 새 스타일 (보더/배경 없음)
               pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
             ]}
           >
-            <View style={styles.iconBtn}>
-              <Feather name="zap" size={20} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 10, marginTop: 2 }}>
-                {torchOn ? "TORCH" : "OFF"}
-              </Text>
-            </View>
+            <Image source={torchIcon} style={styles.torchIcon} />
           </Pressable>
 
           {/* 셔터 */}
@@ -324,18 +353,18 @@ export default function App() {
               </View>
             )}
           </Pressable>
-
+          
           {/* 우측: 카메라 전환 */}
           <Pressable
             onPress={toggleFacing}
             hitSlop={10}
             android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
             style={({ pressed }) => [
-              styles.iconBtnWrap,
+              styles.bareIconBtn,               
               pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
             ]}
           >
-            <Feather name="repeat" size={32} color="white" />
+            <Image source={facingIcon} style={styles.torchIcon} />
           </Pressable>
         </View>
       </View>
@@ -473,26 +502,29 @@ const styles = StyleSheet.create({
 
   // 아이콘 버튼(공용)
   iconBtnWrap: {
-    borderRadius: 22,
+    borderRadius: 10,
     overflow: "hidden",
   },
+  // 기본은 배경 없음(투명) + 테두리만
   iconBtn: {
-    minWidth: 44,
-    height: 44,
-    paddingHorizontal: 10,
-    borderRadius: 22,
+    padding: 10,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(142,142,147,0.95)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.35)",
-    // iOS 그림자
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    // Android 그림자
-    elevation: 5,
+    backgroundColor: "transparent",           
+    // borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#C3C3C3",
+    borderWidth: 1,
+  },
+  // 활성화 시에만 배경 적용
+  iconBtnActive: {
+    backgroundColor: "#929292",            
+    // borderColor: "#C3C3C3",
+  },
+  iconText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   /* 미리보기 하단 버튼 */
@@ -540,4 +572,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  zoomHudWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 25,
+  },
+  zoomHudText: {
+    fontSize: 15,
+    color: "#FEFEFE",
+    backgroundColor: "rgba(217, 217, 217, 0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,          // 높이에 맞게 pill 느낌
+    overflow: "hidden",        // 둥근 모양 깨짐 방지
+  },
+
+  // 토치
+  bareIconBtn: {
+    width: 44,             // 터치 타겟 확보
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+
+  torchIcon: {
+    width: 32,
+    height: 32,
+    resizeMode: "contain",
+  },
+
 });
