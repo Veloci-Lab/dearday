@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
-  modalDesc: { fontSize: 16, color: "#666", textAlign: "left", marginBottom: 24 },
+  modalDesc: { fontSize: 16, color: "#000000ff", textAlign: "left", marginBottom: 24 },
   confirmButton: {
     backgroundColor: "#5B8DEF",
     paddingVertical: 12,
