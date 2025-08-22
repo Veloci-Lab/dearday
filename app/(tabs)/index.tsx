@@ -8,8 +8,8 @@ import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Camera } from "expo-camera";
 import { Image as ExpoImage } from "expo-image";
-import * as Location from "expo-location";
-import * as MediaLibrary from "expo-media-library";
+// import * as Location from "expo-location";
+// import * as MediaLibrary from "expo-media-library";
 import { router, useFocusEffect } from "expo-router";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -341,25 +341,25 @@ export default function IndexScreen() {
       console.error("카메라 권한 요청 실패:", err);
     }
 
-    // 3. 갤러리 권한
-    try {
-      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
-      // if (mediaStatus !== "granted") {
-      //   console.warn("미디어 라이브러리 권한 거부됨");
-      // }
-    } catch (err) {
-      console.error("미디어 라이브러리 권한 요청 실패:", err);
-    }
+    // // 3. 갤러리 권한
+    // try {
+    //   const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+    //   // if (mediaStatus !== "granted") {
+    //   //   console.warn("미디어 라이브러리 권한 거부됨");
+    //   // }
+    // } catch (err) {
+    //   console.error("미디어 라이브러리 권한 요청 실패:", err);
+    // }
 
     // 4. 위치 권한
-    try {
-      const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
-      // if (locStatus !== "granted") {
-      //   console.warn("위치 권한 거부됨");
-      // }
-    } catch (err) {
-      console.error("위치 권한 요청 실패:", err);
-    }
+    // try {
+    //   const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+    //   // if (locStatus !== "granted") {
+    //   //   console.warn("위치 권한 거부됨");
+    //   // }
+    // } catch (err) {
+    //   console.error("위치 권한 요청 실패:", err);
+    // }
 
     // 플래그 저장
     try {
@@ -390,14 +390,14 @@ export default function IndexScreen() {
         <View style={styles.dashboardContainer}>
           {/* 왼쪽 영역 */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            {/* {Dashboard.avatarUrl ? (
-              <Image source={{ uri: Dashboard.avatarUrl }} style={styles.avatar} />
-            ) : (
-              // TODO: 디자인 받아서 그리기
-              <View style={styles.avatarPlaceholder}>
-                <Feather name="user" size={24} color="#999" />
-              </View>
-            )} */}
+            <Image
+              source={
+                Dashboard.avatarUrl
+                  ? { uri: Dashboard.avatarUrl }
+                  : require("@/assets/images/avatar.png") // 기본 아바타
+              }
+              style={styles.avatar}
+            />
 
             <View style={{ marginLeft: 16 }}>
               <Text style={ styles.nickname }>{Dashboard.nickname}</Text>
@@ -492,7 +492,7 @@ export default function IndexScreen() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>필요한 권한 요청이 있어요.</Text>
             <Text style={styles.modalDesc}>
-              Dearday를 원활히 사용하기 위해서,{"\n"}알림과 사진 권한을 요청드릴 예정이에요.
+              Dearday를 원활히 사용하기 위해서,{"\n"}알림과 카메라 권한을 요청드릴 예정이에요.
             </Text>
 
             <Pressable style={styles.confirmButton} onPress={handleRequestPermissions}>

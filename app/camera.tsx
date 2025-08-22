@@ -1,7 +1,6 @@
 import { useAuthStore } from "@/utils/authStore";
 import Feather from "@expo/vector-icons/Feather";
 import {
-  CameraMode,
   CameraType,
   CameraView,
   FlashMode,
@@ -38,9 +37,7 @@ export default function App() {
   const ref = useRef<CameraView>(null);
 
   const [uri, setUri] = useState<string | null>(null);
-  const [mode, setMode] = useState<CameraMode>("picture");
   const [facing, setFacing] = useState<CameraType>("back");
-  const [recording, setRecording] = useState(false);
   const insets = useSafeAreaInsets();
   const [isUploading, setIsUploading] = useState(false);
 
@@ -62,7 +59,7 @@ export default function App() {
   // 배율
   const { height: SCREEN_H } = Dimensions.get("window");
   const BOTTOM_MASK_RATIO = 0.24;   // styles.bottomMask.height와 동일
-  const ZOOM_HUD_OFFSET = 16 + 28;        // 윗변에서 '아래로' 내릴 픽셀 (28: 배율 박스 높이)
+  const ZOOM_HUD_OFFSET = 16 + 28;  // 윗변에서 '아래로' 내릴 픽셀 (28: 배율 박스 높이)
 
   // 하단 아이콘
   const torchIcon = require("@/assets/images/torch.png");
@@ -108,25 +105,6 @@ export default function App() {
     saveToGallery(photo.uri);
   };
 
-  const recordVideo = async () => {
-    if (recording) {
-      setRecording(false);
-      ref.current?.stopRecording();
-      return;
-    }
-    setRecording(true);
-    const video = await ref.current?.recordAsync();
-    setRecording(false);
-    if (video?.uri) {
-      saveToGallery(video.uri);
-      console.log({ video });
-    }
-  };
-
-  const toggleMode = () => {
-    setMode((prev) => (prev === "picture" ? "video" : "picture"));
-  };
-
   const toggleFacing = () => {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   };
@@ -137,17 +115,11 @@ export default function App() {
 
   const toggleTorch = () => setTorchOn((t) => !t);
 
-  const toggleMirror = () => {
-    setMirrorOn((m) => {
-      const next = !m;
-      return next;
-    });
-  };
+  const toggleMirror = () => setMirrorOn((m) => !m);
 
   const toggleRatio = () => {
     setRatio((prev) => (prev === "4:3" ? "16:9" : prev === "16:9" ? "1:1" : "4:3"));
   };
-
 
   const handleConfirmPhoto = async () => {
     if (!uri) return;
@@ -168,15 +140,13 @@ export default function App() {
     })
     .onChange((e) => {
       "worklet";
-      // e.scale: 1(기준)에서 증가/감소
       let next = baseZoomSV.value + (e.scale - 1) * ZOOM_SENSITIVITY;
       if (next < MIN_ZOOM) next = MIN_ZOOM;
       if (next > MAX_ZOOM) next = MAX_ZOOM;
 
-      // 너무 잦은 업데이트 완화
       if (Math.abs(next - zoomSV.value) > 0.002) {
         zoomSV.value = next;
-        runOnJS(setZoom)(next); // UI State 업데이트는 JS 스레드로
+        runOnJS(setZoom)(next);
       }
     });
 
@@ -216,9 +186,10 @@ export default function App() {
         <CameraView
           style={StyleSheet.absoluteFill}
           ref={ref}
-          mode={mode}
+          mode="picture"                      // ✅ 사진 모드 고정
           facing={facing}
-          mute={false}
+          // ❌ 비디오 오디오 관련 prop 제거
+          // mute={false}
           responsiveOrientationWhenOrientationLocked
           enableTorch={torchOn}
           flash={flashMode}
@@ -234,7 +205,6 @@ export default function App() {
             { paddingTop: insets.top + TOP_ICONS_OFFSET, height: 72 + TOP_ICONS_OFFSET }
           ]}
         >
-
           <View style={styles.topBarRow}>
             <Pressable
               onPress={() => router.back()}
@@ -256,14 +226,12 @@ export default function App() {
                   pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
                 ]}
               >
-                <View style={[styles.iconBtn /* ratio는 항상 기본 스타일 */]}>
-                  <Text style={styles.iconText}>
-                    {ratio}
-                  </Text>
+                <View style={[styles.iconBtn]}>
+                  <Text style={styles.iconText}>{ratio}</Text>
                 </View>
               </Pressable>
 
-              {/* Flash (on/auto일 때만 배경 표시) */}
+              {/* Flash */}
               <Pressable
                 onPress={cycleFlash}
                 hitSlop={10}
@@ -276,12 +244,10 @@ export default function App() {
                 <View
                   style={[
                     styles.iconBtn,
-                    (flashMode === "on" || flashMode === "auto") && styles.iconBtnActive, // 활성화 배경
+                    (flashMode === "on" || flashMode === "auto") && styles.iconBtnActive,
                   ]}
                 >
-                  <Text style={styles.iconText}>
-                    Flash {flashMode.toUpperCase()}
-                  </Text>
+                  <Text style={styles.iconText}>Flash {flashMode.toUpperCase()}</Text>
                 </View>
               </Pressable>
 
@@ -295,15 +261,8 @@ export default function App() {
                   pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
                 ]}
               >
-                <View
-                  style={[
-                    styles.iconBtn,
-                    mirrorOn && styles.iconBtnActive,
-                  ]}
-                >
-                  <Text style={styles.iconText}>
-                    MIRROR
-                  </Text>
+                <View style={[styles.iconBtn, mirrorOn && styles.iconBtnActive]}>
+                  <Text style={styles.iconText}>MIRROR</Text>
                 </View>
               </Pressable>
             </View>
@@ -314,13 +273,10 @@ export default function App() {
         <View style={styles.topMask} pointerEvents="none" />
         <View style={styles.bottomMask} pointerEvents="none" />
 
-        {/* Zoom HUD - 하단 마스크 윗변 기준 */}
+        {/* Zoom HUD */}
         <View
           pointerEvents="none"
-          style={[
-            styles.zoomHudWrap,
-            { bottom: SCREEN_H * BOTTOM_MASK_RATIO - ZOOM_HUD_OFFSET }
-          ]}
+          style={[styles.zoomHudWrap, { bottom: SCREEN_H * BOTTOM_MASK_RATIO - ZOOM_HUD_OFFSET }]}
         >
           <Text style={styles.zoomHudText}>{(zoom * 100).toFixed(0)}%</Text>
         </View>
@@ -332,37 +288,26 @@ export default function App() {
             onPress={toggleTorch}
             hitSlop={10}
             android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
-            style={({ pressed }) => [
-              styles.bareIconBtn,               // ← 새 스타일 (보더/배경 없음)
-              pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
-            ]}
+            style={({ pressed }) => [styles.bareIconBtn, pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 }]}
           >
             <Image source={torchIcon} style={styles.torchIcon} />
           </Pressable>
 
-          {/* 셔터 */}
-          <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
+          {/* 셔터: 사진만 촬영 */}
+          <Pressable onPress={takePicture}>
             {({ pressed }) => (
               <View style={[styles.shutterBtn, { opacity: pressed ? 0.5 : 1 }]}>
-                <View
-                  style={[
-                    styles.shutterBtnInner,
-                    { backgroundColor: mode === "picture" ? "white" : "red" },
-                  ]}
-                />
+                <View style={[styles.shutterBtnInner, { backgroundColor: "white" }]} />
               </View>
             )}
           </Pressable>
-          
+
           {/* 우측: 카메라 전환 */}
           <Pressable
             onPress={toggleFacing}
             hitSlop={10}
             android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
-            style={({ pressed }) => [
-              styles.bareIconBtn,               
-              pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
-            ]}
+            style={({ pressed }) => [styles.bareIconBtn, pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 }]}
           >
             <Image source={facingIcon} style={styles.torchIcon} />
           </Pressable>
@@ -426,8 +371,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
-  // 상단 바
   topBar: {
     position: "absolute",
     top: 0,
@@ -444,15 +387,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-
   backBtn: {
     width: 36,
     height: 36,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  /* 상/하 마스크 */
   topMask: {
     position: "absolute",
     top: 0,
@@ -471,8 +411,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
     zIndex: 10,
   },
-
-  /* 셔터 영역 */
   shutterContainer: {
     position: "absolute",
     bottom: 44,
@@ -499,35 +437,27 @@ const styles = StyleSheet.create({
     height: 65,
     borderRadius: 65,
   },
-
-  // 아이콘 버튼(공용)
   iconBtnWrap: {
     borderRadius: 10,
     overflow: "hidden",
   },
-  // 기본은 배경 없음(투명) + 테두리만
   iconBtn: {
     padding: 10,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",           
-    // borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: "transparent",
     borderColor: "#C3C3C3",
     borderWidth: 1,
   },
-  // 활성화 시에만 배경 적용
   iconBtnActive: {
-    backgroundColor: "#929292",            
-    // borderColor: "#C3C3C3",
+    backgroundColor: "#929292",
   },
   iconText: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
   },
-
-  /* 미리보기 하단 버튼 */
   previewBtnWrap: {
     position: "absolute",
     left: 16,
@@ -559,20 +489,15 @@ const styles = StyleSheet.create({
     color: "#FEFEFE",
     fontSize: 16,
   },
-
-  // 공통 눌림 효과
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
   pressedSecondary: { transform: [{ scale: 0.98 }], opacity: 0.95 },
   iconPressed: { transform: [{ scale: 0.94 }], opacity: 0.85 },
-
-  // 숨김용
   hiddenControl: {
     width: 32,
     height: 32,
     alignItems: "center",
     justifyContent: "center",
   },
-
   zoomHudWrap: {
     position: "absolute",
     left: 0,
@@ -586,23 +511,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(217, 217, 217, 0.4)",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 10,          // 높이에 맞게 pill 느낌
-    overflow: "hidden",        // 둥근 모양 깨짐 방지
+    borderRadius: 10,
+    overflow: "hidden",
   },
-
-  // 토치
   bareIconBtn: {
-    width: 44,             // 터치 타겟 확보
+    width: 44,
     height: 44,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
   },
-
   torchIcon: {
     width: 32,
     height: 32,
     resizeMode: "contain",
   },
-
 });
