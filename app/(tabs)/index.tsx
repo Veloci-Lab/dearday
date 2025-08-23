@@ -390,19 +390,24 @@ export default function IndexScreen() {
         <View style={styles.dashboardContainer}>
           {/* 왼쪽 영역 */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Image
+            <ExpoImage
               source={
                 Dashboard.avatarUrl
                   ? { uri: Dashboard.avatarUrl }
-                  : require("@/assets/images/avatar.png") // 기본 아바타
+                  : require("@/assets/images/avatar.png")  // 기본 아바타
               }
               style={styles.avatar}
+              contentFit="cover"
+              cachePolicy="memory-disk"   // 디스크+메모리 캐시 활용
+              priority="normal"           // 리스트 우선순위 normal
+              transition={150}            // 페이드 인
+              recyclingKey={Dashboard.avatarUrl ?? "avatar-placeholder"}
             />
 
             <View style={{ marginLeft: 16 }}>
-              <Text style={ styles.nickname }>{Dashboard.nickname}</Text>
+              <Text style={styles.nickname}>{Dashboard.nickname}</Text>
               {Dashboard.joinedAt && (
-                <Text style={ styles.sinceText }>Since {Dashboard.joinedAt}</Text>
+                <Text style={styles.sinceText}>Since {Dashboard.joinedAt}</Text>
               )}
             </View>
           </View>
