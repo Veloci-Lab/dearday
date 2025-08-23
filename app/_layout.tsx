@@ -3,12 +3,13 @@ import { useFonts } from "expo-font";
 import * as Notifications from 'expo-notifications';
 import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import 'react-native-gesture-handler';
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import React, { useCallback, useEffect, useState } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+import { BrandedSplash } from "@/components/BrandedSplash";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const {
@@ -26,6 +27,8 @@ export default function RootLayout() {
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
   });
+
+  const [showBrandOverlay, setShowBrandOverlay] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -61,11 +64,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
+  const handleBrandFinish = useCallback(() => {
+    setShowBrandOverlay(false);
+  }, []);
+
+  if (!fontsLoaded || isLoggedIn === null) {
     return null;
   }
 
@@ -77,34 +84,19 @@ export default function RootLayout() {
           <Stack.Protected guard={!isLoggedIn}>
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
           </Stack.Protected>
-
           <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack.Protected>
-
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerLeft: () => (
-                  <Image
-                    source={require("@/assets/images/logo_blue.png")}
-                    style={{ width: 28, height: 28, resizeMode: "contain" }}
-                  />
-                ),
-                headerTitle: "",
-                headerRight: () => (
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacity onPress={() => router.push("/pending")}>
-                      <Feather name="inbox" size={20} color="#000" style={{ marginHorizontal: 8 }} />
-                    </TouchableOpacity>
-                  </View>
-                ),
-              }}
-            /> */}
           </Stack.Protected>
         </Stack>
+        {showBrandOverlay && (
+          <BrandedSplash
+            variant={hasCompletedOnboarding ? "post" : "pre"}
+            onFinish={handleBrandFinish}
+          />
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
