@@ -28,7 +28,7 @@ const { height } = Dimensions.get("window");
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { logIn, pendingRedirectUrl, clearPendingRedirectUrl, hasCompletedOnboarding } = useAuthStore();
+  const { logIn, pendingRedirectUrl, clearPendingRedirectUrl } = useAuthStore();
 
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
@@ -113,41 +113,36 @@ export default function SignInScreen() {
     }
   };
 
-  // ✅ 온보딩 상태에 따라 UI 스타일을 결정합니다.
-  const isPostOnboarding = hasCompletedOnboarding;
-  const containerStyle = isPostOnboarding ? s.containerBlue : s.containerWhite;
-  const logoSource = isPostOnboarding
-    ? require("@/assets/images/textmark_white.png")
-    : require("@/assets/images/textmark_blue.png");
-  const statusBarStyle = isPostOnboarding ? "light" : "dark";
-
   return (
-    <SafeAreaView style={[s.container, containerStyle]}>
-      <StatusBar style={statusBarStyle} />
+    <SafeAreaView style={s.container}>
+      <StatusBar style="light" />
 
+      {/* 중앙 로고 */}
       <View style={s.logoContainer}>
-        <Image 
-          source={logoSource} 
-          style={{ width: LOGO_W, height: LOGO_H }} 
-          resizeMode="contain" 
+        <Image
+          source={require("@/assets/images/textmark_blue.png")}
+          style={{ width: LOGO_W, height: LOGO_H }}
+          resizeMode="contain"
         />
       </View>
 
+      {/* 하단 버튼 영역 */}
       <View style={[s.footer, { paddingBottom: insets.bottom + 24 }]}>
+        {/* Google 버튼 */}
         <Pressable
           onPress={handleGoogleSignIn}
           disabled={loadingGoogle || loadingApple}
           style={({ pressed }) => [
-            s.socialBtn, 
-            s.googleBtn, 
-            pressed && { opacity: 0.9 }, 
-            (loadingGoogle || loadingApple) && { opacity: 0.7 }
+            s.socialBtn,
+            s.googleBtn,
+            pressed && { opacity: 0.9 },
+            (loadingGoogle || loadingApple) && { opacity: 0.7 },
           ]}
         >
-          <Image 
-            source={require("@/assets/images/google_logo.png")} 
-            style={s.socialIcon} 
-            resizeMode="contain" 
+          <Image
+            source={require("@/assets/images/google_logo.png")}
+            style={s.socialIcon}
+            resizeMode="contain"
           />
           <Text style={[s.socialText, s.googleText]}>Google로 계속하기</Text>
           <View style={s.rightArea}>
@@ -155,26 +150,27 @@ export default function SignInScreen() {
           </View>
         </Pressable>
 
+        {/* Apple 버튼 */}
         {Platform.OS === "ios" && (
           <Pressable
             onPress={handleAppleSignIn}
             disabled={loadingGoogle || loadingApple}
             style={({ pressed }) => [
-              s.socialBtn, 
-              s.appleBtn, 
-              { marginTop: 12 }, 
-              pressed && { opacity: 0.9 }, 
-              (loadingGoogle || loadingApple) && { opacity: 0.7 }
+              s.socialBtn,
+              s.appleBtn,
+              { marginTop: 12 },
+              pressed && { opacity: 0.9 },
+              (loadingGoogle || loadingApple) && { opacity: 0.7 },
             ]}
           >
-            <Image 
-              source={require("@/assets/images/apple_logo.png")} 
-              style={s.socialIcon} 
-              resizeMode="contain" 
+            <Image
+              source={require("@/assets/images/apple_logo.png")}
+              style={s.socialIcon}
+              resizeMode="contain"
             />
             <Text style={[s.socialText, s.appleText]}>Apple로 계속하기</Text>
             <View style={s.rightArea}>
-              {loadingApple && <ActivityIndicator size="small" color="#FFFFFF" />}
+              {loadingApple && <ActivityIndicator size="small" color="#5B8DEF" />}
             </View>
           </Pressable>
         )}
@@ -184,53 +180,57 @@ export default function SignInScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
-  // ✅ 배경색 스타일 추가
-  containerWhite: { backgroundColor: "#FFF" },
-  containerBlue: { backgroundColor: "#5B8DEF" },
-  logoContainer: { 
-    flex: 1, 
-    alignItems: "center", 
-    justifyContent: "center", 
-    marginTop: -(height * 0.05) 
+  container: {
+    flex: 1,
+    backgroundColor: "#FFF",
   },
-  footer: { 
-    position: "absolute", 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    paddingHorizontal: 24, 
-    alignItems: "center", 
-    width: "100%" 
+  logoContainer: {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  // 원하는 비율만큼 위로 이동 (여기선 10%)
+  marginTop: -(height * 0.05),
+},
+  footer: {
+    position: "absolute", // ✅ 하단 고정
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    width: "100%",
   },
-  socialBtn: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    borderRadius: 12, 
-    height: 54, 
-    minWidth: 280, 
-    paddingHorizontal: 14, 
-    width: "100%", 
-    maxWidth: 420 
+
+  // 공통 소셜 버튼
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    height: 54,
+    minWidth: 280,
+    paddingHorizontal: 14,
+    elevation: 4,
+    width: "100%",
+    maxWidth: 420,
   },
-  socialIcon: { 
-    width: 20, 
-    height: 20, 
-    marginRight: 8 
+  socialIcon: { width: 20, height: 20, marginRight: 8 },
+  socialText: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111",
   },
-  socialText: { 
-    flex: 1, 
-    textAlign: "center", 
-    fontSize: 15, 
-    fontFamily: "Pretendard-Bold" 
+  rightArea: { width: 24, alignItems: "center", justifyContent: "center" },
+
+  googleBtn: {
+    backgroundColor: "#F2F2F2",
   },
-  rightArea: { 
-    width: 24, 
-    alignItems: "center", 
-    justifyContent: "center" 
-  },
-  googleBtn: { backgroundColor: "#F2F2F2" },
   googleText: { color: "#1F1F1F" },
-  appleBtn: { backgroundColor: "#000000" },
-  appleText: { color: "#FFFFFF" },
+  appleBtn: {
+    backgroundColor: "#000000",
+  },
+  appleText: {
+    color: "#FFFFFF",
+  },
 });
