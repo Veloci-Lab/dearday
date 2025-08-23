@@ -73,7 +73,7 @@ async function updateExpoPushToken(profileId: string, token: string) {
   const { error } = await supabase
     .from("profiles")
     .update({ [column]: token })
-    .eq("profile_id", profileId);
+    .eq("profile_id", Number(profileId));
 
   if (error) throw error;
 }
@@ -220,7 +220,7 @@ export default function IndexScreen() {
       const { data: mem, error: memErr } = await supabase
         .from("memories")
         .select("memory_id, is_completed")
-        .eq("profile_id", profileId)
+        .eq("profile_id", Number(profileId))
         .eq("date", today)
         .single();
 
@@ -254,8 +254,6 @@ export default function IndexScreen() {
       );
 
       const next = (items.filter(Boolean) as TodayItem[]);
-      console.log(next);
-      
 
       setTodayCount(count ?? 0);
       // 동일 데이터면 스킵(깜빡임 방지)
@@ -289,7 +287,7 @@ export default function IndexScreen() {
               location
             )
           `)
-          .eq("profile_id", profileId)
+          .eq("profile_id", Number(profileId))
           .eq("is_completed", true)
           .order("date", { ascending: false });
 

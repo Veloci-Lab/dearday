@@ -51,7 +51,7 @@ export default function TodayScreen() {
         const { data, error } = await supabase
           .from("memories")
           .select("memory_id")
-          .eq("profile_id", profileId)
+          .eq("profile_id", Number(profileId))
           .eq("date", today)
           .maybeSingle();
 
@@ -72,22 +72,41 @@ export default function TodayScreen() {
       const { data: mem } = await supabase
         .from("memories")
         .select("memory_id")
-        .eq("profile_id", profileId)
-        .eq("memory_id", memory_id)
+        .eq("profile_id", Number(profileId))
+        .eq("memory_id", Number(memory_id))
         .maybeSingle();
       if (!mem) { setEntries([]); setSelectedIds([]); setLoading(false); return; }
 
       const { data: rows, error: e2 } = await supabase
         .from("memory_entries")
-        .select("memory_entry_id, image_url, is_selected, entry_index")
-        .eq("memory_id", memory_id)
+        .select("memory_entry_id, is_selected, entry_index, image_path, image_thumb_path")
+        .eq("memory_id", Number(memory_id))
         .order("entry_index", { ascending: true });
 
       if (e2 || !rows) { setEntries([]); setSelectedIds([]); setLoading(false); return; }
 
-      const withImages = rows.filter(r => !!r.image_url);
-      setEntries(withImages);
-      setSelectedIds(withImages.filter(r => r.is_selected).map(r => String(r.memory_entry_id)));
+      // 여기서 signed URL 발급
+      const withUrls = await Promise.all(
+        rows.map(async (r) => {
+          const path = r.image_thumb_path ?? r.image_path;
+          if (!path) return null;
+
+          const { data, error } = await supabase
+            .storage
+            .from("pictures")
+            .createSignedUrl(path, 300); // 5분만 유효 (짧게)
+          if (error || !data?.signedUrl) return null;
+
+          return {
+            ...r,
+            display_url: data.signedUrl,
+          };
+        })
+      );
+
+      const valid = withUrls.filter(Boolean) as any[];
+      setEntries(valid);
+      setSelectedIds(valid.filter(r => r.is_selected).map(r => String(r.memory_entry_id)));
       setLoading(false);
     })();
   }, [profileId, memory_id]);
@@ -159,7 +178,7 @@ export default function TodayScreen() {
                   onPress={() => toggleSelect(id)}
                   style={[styles.imageWrapper, isSelected && { opacity: 0.8, borderWidth: 2, borderColor: "#5B8DEF" }]}
                 >
-                  <Image source={{ uri: entry.image_url }} style={styles.image} />
+                  <Image source={{ uri: entry.display_url }} style={styles.image} />
                   {isSelected && (
                     <View className="checkOverlay" style={styles.checkOverlay}>
                       <Text style={styles.checkMark}>✓</Text>

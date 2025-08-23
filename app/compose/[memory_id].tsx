@@ -23,7 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const { width, height } = Dimensions.get("window");
 const ITEM_WIDTH = width * 0.7;
 const ITEM_MARGIN = width * 0.05;
-const FOOTER_HEIGHT = 72; // ✅ 하단 버튼 영역 높이만큼 여유
+const FOOTER_HEIGHT = 72; // 하단 버튼 영역 높이만큼 여유
 
 export default function ComposeScreen() {
   const navigation = useNavigation();
@@ -61,8 +61,8 @@ export default function ComposeScreen() {
       const { data: memoryData, error: memoryError } = await supabase
         .from("memories")
         .select("memory_id, is_completed, thumbnail_entry_id")
-        .eq("profile_id", profileId)
-        .eq("memory_id", memory_id)
+        .eq("profile_id", Number(profileId))
+        .eq("memory_id", Number(memory_id))
         .maybeSingle();
 
       if (memoryError || !memoryData) {
@@ -72,8 +72,8 @@ export default function ComposeScreen() {
 
       const { data: entriesData, error: entriesError } = await supabase
         .from("memory_entries")
-        .select("memory_entry_id, image_url, content, location")
-        .eq("memory_id", memory_id)
+        .select("memory_entry_id, content, location, image_path, image_thumb_path")
+        .eq("memory_id", Number(memory_id))
         .eq("is_selected", true)
         .order("entry_index", { ascending: true });
 
@@ -82,11 +82,34 @@ export default function ComposeScreen() {
         return;
       }
 
-      const mapped = entriesData.map((entry) => ({
-        ...entry,
-        locationInput: entry.location ?? "",
-        contentInput: entry.content ?? "",
-      }));
+      // signed URL 발급
+      const mapped = await Promise.all(
+        (entriesData ?? []).map(async (entry) => {
+          let thumbUrl: string | null = null;
+          let fullUrl: string | null = null;
+
+          if (entry.image_thumb_path) {
+            const { data } = await supabase.storage
+              .from("pictures")
+              .createSignedUrl(entry.image_thumb_path, 300);
+            thumbUrl = data?.signedUrl ?? null;
+          }
+          if (entry.image_path) {
+            const { data } = await supabase.storage
+              .from("pictures")
+              .createSignedUrl(entry.image_path, 300);
+            fullUrl = data?.signedUrl ?? null;
+          }
+
+          return {
+            ...entry,
+            locationInput: entry.location ?? "",
+            contentInput: entry.content ?? "",
+            thumbUrl,
+            fullUrl,
+          };
+        })
+      );
       setEntries(mapped);
 
       // 썸네일 초기화 (기능 유지)
@@ -137,7 +160,7 @@ export default function ComposeScreen() {
           is_completed: true,
           thumbnail_entry_id: thumbnailId,
         })
-        .eq("memory_id", memory_id);
+        .eq("memory_id", Number(memory_id));
 
       // Alert.alert("완료", "기록이 저장되었어요.");
       router.push("/");
@@ -187,11 +210,11 @@ export default function ComposeScreen() {
               <View style={styles.itemContainer}>
                 <Pressable
                   onPress={() => {
-                    setViewerUri(item.image_url);
+                    setViewerUri(item.fullUrl); // 모달은 원본 URL
                     setViewerVisible(true);
                   }}
                 >
-                  <Image source={{ uri: item.image_url }} style={styles.image} />
+                  <Image source={{ uri: item.thumbUrl ?? item.fullUrl }} style={styles.image} />
                 </Pressable>
 
                 {isThumbnail && <View pointerEvents="none" style={styles.selectedOverlay} />}
@@ -253,7 +276,13 @@ export default function ComposeScreen() {
         <View style={styles.viewerBackdrop}>
           <View style={styles.viewerPanel}>
             <View style={styles.viewerImageWrap}>
-              {viewerUri && <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" />}
+              {viewerUri && (
+                <Image
+                  source={{ uri: viewerUri }}
+                  style={styles.viewerImage}
+                  resizeMode="contain"
+                />
+              )}
             </View>
             <TouchableOpacity style={styles.viewerCloseBelow} onPress={() => setViewerVisible(false)}>
               <Feather name="x" size={22} color="#fff" />
