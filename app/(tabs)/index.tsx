@@ -10,9 +10,10 @@ import { Camera } from "expo-camera";
 import { Image as ExpoImage } from "expo-image";
 // import * as Location from "expo-location";
 // import * as MediaLibrary from "expo-media-library";
+import { getSignedUrl } from "@/utils/signedUrlCache";
 import { router, useFocusEffect } from "expo-router";
 import { DateTime } from "luxon";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -88,6 +89,8 @@ export default function IndexScreen() {
   const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [rows, setRows] = useState<MemoryThumbRow[]>([]);
 
+  const isFirstLoad = useRef(true);
+
   // DASHBOARD
   const [Dashboard, setDashboard] = useState<Dashboard>({
     nickname: "",
@@ -98,7 +101,9 @@ export default function IndexScreen() {
   });
 
   // TODAY
-  const [todayImages, setTodayImages] = useState<string[]>([]);
+  type TodayItem = { path: string; url: string };
+  const [todayCount, setTodayCount] = useState(0);
+  const [todayImages, setTodayImages] = useState<TodayItem[]>([]);
   const [showToday, setShowToday] = useState(false); // ← 오늘 영역 노출 여부
 
   // 화면 가로 폭/표시 썸네일 수 계산
@@ -138,14 +143,13 @@ export default function IndexScreen() {
           .select("nickname, avatar_url, created_at, timezone")
           .eq("profile_id", Number(profileId))
           .single(),
-
         supabase
           .from("memories")
           .select("memory_id")
           .eq("profile_id", Number(profileId)),
       ]);
 
-      // 사진 개수 카운트
+      // PHOTOS 카운트 
       let photos = 0;
       if (!memIdsRes.error && memIdsRes.data.length) {
         const memIds = memIdsRes.data.map((m) => m.memory_id);
@@ -153,13 +157,13 @@ export default function IndexScreen() {
           .from("memory_entries")
           .select("memory_entry_id", { count: "exact", head: true })
           .in("memory_id", memIds)
-          .not("image_url", "is", null);
-
+          .or("image_path.not.is.null,image_thumb_path.not.is.null");
         if (!countError) {
           photos = count ?? 0;
         }
       }
 
+      // DAYS 카운트 
       const tz =
         (prof?.timezone as string | null) ||
         Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -169,29 +173,34 @@ export default function IndexScreen() {
       let joinedAtYear: string | null = null;
 
       if (!profError && prof?.created_at) {
-        // created_at(UTC) → 유저 타임존
         const createdLocal = DateTime.fromISO(prof.created_at, { zone: "utc" }).setZone(tz);
         const todayLocal = DateTime.now().setZone(tz);
-
-        // 자정 기준 일수(+1: 첫날 포함)
         const diffDays = todayLocal.startOf("day").diff(createdLocal.startOf("day"), "days").days;
         days = Math.max(1, Math.floor(diffDays) + 1);
-
-        // yyyy.LL
         joinedAtYear = createdLocal.toFormat("yyyy.LL");
       }
 
-      setDashboard({
+      const next = {
         nickname: prof?.nickname ?? "-",
-        avatarUrl: prof?.avatar_url ?? null, // UI에서 없을 때 placeholder 처리
+        avatarUrl: prof?.avatar_url ?? null,
         joinedAt: joinedAtYear ?? "-",
         days,
         photos,
-      });
+      };
+
+      // 값이 동일하면 setState 스킵 → 리렌더 방지
+      setDashboard((prev) => (
+        prev.nickname === next.nickname &&
+        prev.avatarUrl === next.avatarUrl &&
+        prev.joinedAt === next.joinedAt &&
+        prev.days === next.days &&
+        prev.photos === next.photos
+          ? prev
+          : next
+      ));
     } catch (e) {
       console.error("fetchDashboard error:", e);
-      // 전부 안전 기본값
-      setDashboard({
+      setDashboard((prev) => prev ?? {
         nickname: "-",
         avatarUrl: null,
         joinedAt: "-",
@@ -205,9 +214,9 @@ export default function IndexScreen() {
     if (!profileId) return;
 
     try {
-      const today = getLocalDateString()
+      const today = getLocalDateString();
 
-      // 1) 오늘자 memory_id 조회
+      // 1) 오늘 memory
       const { data: mem, error: memErr } = await supabase
         .from("memories")
         .select("memory_id, is_completed")
@@ -215,38 +224,52 @@ export default function IndexScreen() {
         .eq("date", today)
         .single();
 
-      // 없거나 이미 완료면 숨김
+      // 없거나 완료면 감춤
       if (memErr || !mem || mem.is_completed === true) {
-        setTodayImages(prev => (prev.length ? [] : prev));
+        setTodayImages([]);
+        setTodayCount(0);
         setShowToday(false);
         return;
       }
 
-      // 2) 해당 memory의 entries 중 이미지 있는 것만
-      const { data: entries, error: entErr } = await supabase
+      // 2) entries (원본/썸네일 하나라도 있는 것만)
+      const { data: entries, error: entErr, count } = await supabase
         .from("memory_entries")
-        .select("image_url, created_at")
+        .select("created_at, image_path, image_thumb_path", { count: "exact" })
         .eq("memory_id", mem.memory_id)
-        .not("image_url", "is", null)
-        .order("created_at", { ascending: false });
+        .or("image_path.not.is.null,image_thumb_path.not.is.null")
+        .order("created_at", { ascending: false })
+        .limit(3);
 
       if (entErr) throw entErr;
 
-      const urls = (entries ?? [])
-        .map((e: any) => e.image_url as string)
-        .filter(Boolean);
+      // 3) path -> signed URL (썸네일 우선), 병렬 처리
+      const items = await Promise.all(
+        (entries ?? []).map(async (e: any) => {
+          const path: string | null = e.image_thumb_path ?? e.image_path ?? null;
+          if (!path) return null;
+          const url = await getSignedUrl(path, "pictures", 3600); // 버킷/TTL 필요하면 변경
+          return url ? { path, url } : null;
+        })
+      );
+
+      const next = (items.filter(Boolean) as TodayItem[]);
+      console.log(next);
       
-      // 동일 데이터면 스킵 → 깜빡임 최소화
+
+      setTodayCount(count ?? 0);
+      // 동일 데이터면 스킵(깜빡임 방지)
       setTodayImages(prev => {
-        if (JSON.stringify(prev) !== JSON.stringify(urls)) return urls;
-        return prev;
+        const same =
+          prev.length === next.length &&
+          prev.every((p, i) => p.path === next[i].path && p.url === next[i].url);
+        return same ? prev : next;
       });
-      setShowToday(urls.length > 0); // 사진이 1장 이상일 때만 표시
+      setShowToday((count ?? 0) > 0);
     } catch (e) {
-      console.error("❌ today images fetch error:", (e as Error).message);
+      console.error("❌ fetchTodayImages error:", (e as Error).message);
     }
   }, [profileId]);
-
 
   const fetchThumbnails = useCallback(
     async (showLoading: boolean = true) => {
@@ -299,23 +322,20 @@ export default function IndexScreen() {
     (async () => {
       const alreadyRequested = await checkPermissions();
       if (mounted && !alreadyRequested) setVisible(true);
-      await fetchDashboard();
-      await fetchTodayImages(); // TODAY 목록 로딩
-      await fetchThumbnails(true); // 메인 목록 로딩
     })();
 
     return () => { mounted = false; };
-  }, [profileId, fetchTodayImages, fetchThumbnails]);
+  }, [profileId]);
 
   // 재진입
   useFocusEffect(
     useCallback(() => {
       fetchDashboard();
       fetchTodayImages();
-      fetchThumbnails(false);
-    }, [fetchTodayImages, fetchThumbnails])
+      fetchThumbnails(isFirstLoad.current);
+      isFirstLoad.current = false;
+    }, [fetchDashboard, fetchTodayImages, fetchThumbnails])
   );
-
 
   /* -------------------------
    * Handlers
@@ -431,31 +451,45 @@ export default function IndexScreen() {
         {showToday && (
           <View style={styles.todayContainer}>
             <View style={styles.left}>
-              <Text style={styles.count}>{todayImages.length}</Text>
+              <Text style={styles.count}>{todayCount}</Text>
               <Text style={styles.todayText}>TODAY</Text>
             </View>
 
             <View style={styles.center}>
-              {todayImages.slice(0, maxThumbs).map((uri, idx) => (
-                <ExpoImage
-                  key={idx}
-                  source={{ uri }}
-                  style={styles.thumb}
-                  contentFit="cover"
-                  transition={150}
-                  onError={(e: any) => {
-                    // expo-image: e.error
-                    // RN Image:   e.nativeEvent.error
-                    const msg = e?.error ?? e?.nativeEvent?.error ?? e;
-                    console.warn("today thumb error:", msg);
-                  }}
-                />
-              ))}
+              {[0, 1, 2].map((idx) => {
+                const item = todayImages[idx];
+                const isLast = idx === 2 && todayCount > 3;
+
+                if (!item) {
+                  // 🔹 사진 없으면 빈 박스
+                  return <View key={`empty-${idx}`} style={styles.thumbWrapEmpty} />;
+                }
+
+                return (
+                  <View key={item.path} style={styles.thumbWrap}>
+                    <ExpoImage
+                      source={{ uri: item.url }}
+                      style={styles.thumb}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={150}
+                      recyclingKey={item.path}
+                    />
+                    {isLast && (
+                      <View style={styles.overlay}>
+                        <Text style={styles.overlayText}>+{todayCount - 3}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+
+              {/* → 화살표 네모 */}
+              <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
+                <Feather name="arrow-right" size={24} color="#5B8DEF" />
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
-              <Feather name="arrow-right" size={24} color="#5B8DEF" />
-            </TouchableOpacity>
           </View>
         )}
 
@@ -612,17 +646,46 @@ const styles = StyleSheet.create({
     color: "#5B8DEF", 
     textAlign: "center" 
   },
-  center: { flexDirection: "row", flex: 1, gap: 2, overflow: "hidden", marginLeft: 8 },
-  thumb: { width: 72, height: 72, borderRadius: 7 },
+  center: { flexDirection: "row", flex: 1, gap: 4, marginLeft: 8 },
+
+  thumbWrapEmpty: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 7,
+    backgroundColor: "#F0F3F8", // 빈칸 회색
+  },
+  thumbWrap: {
+    flex: 1,
+    aspectRatio: 1, // 정사각형 유지
+    borderRadius: 7,
+    overflow: "hidden",
+    position: "relative",
+  },
+  thumb: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 7,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  overlayText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+
   arrowBtn: {
-    width: 72,
-    height: 72,
+    flex: 1,
+    aspectRatio: 1,
     borderRadius: 7,
     backgroundColor: "rgba(228, 238, 255, 1)",
-    // Color: "#5B8DEF",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 8,
+    marginLeft: 4,
   },
 
   // 피드영역
