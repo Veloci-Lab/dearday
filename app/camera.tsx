@@ -50,6 +50,8 @@ export default function App() {
 
   const [ratio, setRatio] = useState<"4:3" | "16:9" | "1:1">("4:3");
   const [btnBlockH, setBtnBlockH] = useState(0);
+  const topOffset = insets.top + 16;  // 해치 + 패딩
+  const bottomOffset = btnBlockH + (insets.bottom || 0) + 16;
 
   const torchIcon = require("@/assets/images/icons/torch.png");
   const facingIcon = require("@/assets/images/icons/facing.png");
@@ -148,7 +150,7 @@ export default function App() {
               right: 0,
               bottom: bottomOffset,
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "flex-end",
             }}
           >
             <View style={[styles.previewFrame, { aspectRatio: ar }]}>
@@ -157,7 +159,17 @@ export default function App() {
           </View>
         ) : (
           // 1:1, 4:3 전용 → 그냥 중앙 배치
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <View
+            style={{
+              position: "absolute",
+              top: topOffset,
+              left: 0,
+              right: 0,
+              bottom: bottomOffset,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <View style={[styles.previewFrame, { aspectRatio: ar }]}>
               <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
             </View>
@@ -166,7 +178,7 @@ export default function App() {
 
         {/* 하단 버튼 */}
         <View
-          style={[styles.previewBtnGroup, { paddingBottom: insets.bottom + 16 }]}
+          style={[styles.previewBtnGroup, { paddingBottom: insets.bottom }]}
           onLayout={(e) => setBtnBlockH(e.nativeEvent.layout.height)}
         >
           <Pressable
@@ -181,108 +193,129 @@ export default function App() {
             )}
           </Pressable>
 
-          <Pressable onPress={() => setUri(null)} style={styles.secondaryBtn} hitSlop={8}>
-            <Text style={styles.secondaryBtnText}>다시 찍을래요</Text>
-          </Pressable>
+          <Pressable
+  onPress={() => setUri(null)}
+  hitSlop={10}
+  style={styles.secondaryLink}   // height 제거
+>
+  <Text style={styles.secondaryLinkText}>다시 찍을래요</Text>
+</Pressable>
+
         </View>
       </View>
     );
   };
 
-  const renderCamera = () => (
-    <GestureDetector gesture={pinchGesture}>
-      <View style={{ flex: 1, width: "100%", alignItems: "center", justifyContent: "center" }}>
-        <CameraView
-          style={ratio === "1:1" ? { width: "100%", aspectRatio: 1 } : StyleSheet.absoluteFill}
-          ref={ref}
-          mode="picture"
-          facing={facing}
-          responsiveOrientationWhenOrientationLocked
-          enableTorch={torchOn}
-          flash={flashMode}
-          mirror={facing === "front" && mirrorOn}
-          zoom={zoom}
-          ratio={ratio}
-        />
+  const renderCamera = () => {
+    const arNum = ratio === "1:1" ? 1 : ratio === "16:9" ? 9 / 16 : 3 / 4;
 
-        {/* 상단 바 */}
-        <View style={[styles.topBar, { paddingTop: insets.top + 16, height: 72 + 16 }]}>
-          <View style={styles.topBarRow}>
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={12}
-              android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
-              style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+    return (
+      <GestureDetector gesture={pinchGesture}>
+        {/* 전체 배경은 검정 */}
+        <View style={{ flex: 1, width: "100%", backgroundColor: "#000" }}>
+          {/* 카메라 박스를 화면 가운데에 배치 */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            {/* 🚩 iOS: 모든 비율을 컨테이너에서 고정 (여기서 레터박스가 생김)
+                🚩 Android: 1:1만 컨테이너, 나머지는 기존처럼 풀스크린 유지 */}
+            <View
+              style={Platform.select({
+                ios: {
+                  width: "100%",
+                  maxWidth: 900,          // 필요시 조정(레터박스 두께 바꾸고 싶으면 maxWidth 조정)
+                  aspectRatio: arNum,     // 1:1 / 4:3 / 16:9 모두 컨테이너에 비율 적용
+                  overflow: "hidden",
+                },
+                android:
+                  ratio === "1:1"
+                    ? { width: "100%", aspectRatio: 1, overflow: "hidden" }
+                    : StyleSheet.absoluteFill,
+              })}
             >
-              <Feather name="x" size={22} color="#fff" />
-            </Pressable>
-            {/* 우측 상단에는 추가 없음 */}
-            <View style={{ width: 36 }} />
+              <CameraView
+                ref={ref}
+                style={StyleSheet.absoluteFill} // 컨테이너를 '가득' 채우기만 함
+                mode="picture"
+                facing={facing}
+                responsiveOrientationWhenOrientationLocked
+                enableTorch={torchOn}
+                flash={flashMode}
+                mirror={facing === "front" && mirrorOn}
+                zoom={zoom}
+                // ✅ iOS는 ratio 전달하지 않음(무시됨). Android에만 전달.
+                {...(Platform.OS === "android" ? { ratio } : {})}
+              />
+            </View>
           </View>
-        </View>
 
-        {/* 하단 컨트롤 묶음 */}
-        <View style={[styles.bottomWrap, { paddingBottom: insets.bottom + 20 }]}>
-          {/* ↑ 가장 위: 확대 비율 HUD */}
-          <View style={styles.zoomHud}>
-            <Text style={styles.zoomHudText}>{(zoom * 100).toFixed(0)}%</Text>
-          </View>
-
-          {/* 그 아래: 셔터 단독 중앙 */}
-          <Pressable onPress={takePicture} hitSlop={10} style={styles.shutterBtn}>
-            <View style={styles.shutterBtnInner} />
-          </Pressable>
-
-          {/* 맨 아래 라인: [토치] [미러/비율/플래시] [전/후면] */}
-          <View style={styles.controlRow}>
-            <Pressable onPress={toggleTorch} hitSlop={10} style={styles.sideIconBtn}>
-              <Image source={torchIcon} contentFit="contain" style={styles.sideIcon} />
-            </Pressable>
-
-            <View style={styles.centerPill}>
-              {/* Mirror */}
-              <Pressable onPress={toggleMirror} style={styles.pillBtn}>
-                <Image
-                  source={mirrorOn ? mirrorOnIcon : mirrorOffIcon}
-                  style={styles.pillIcon}
-                  contentFit="contain"
-                />
-              </Pressable>
-
-              <View style={styles.pillDivider} />
-
-              {/* Ratio */}
-              <Pressable onPress={toggleRatio} style={styles.pillBtn}>
-                <Text style={styles.pillText}>{ratio}</Text>
-              </Pressable>
-
-              <View style={styles.pillDivider} />
-
-              {/* Flash */}
-              <Pressable onPress={cycleFlash} style={styles.pillBtn}>
-                <Image
-                  source={
-                    flashMode === "on"
-                      ? flashOnIcon
-                      : flashMode === "auto"
-                      ? flashAutoIcon
-                      : flashOffIcon
-                  }
-                  style={styles.pillIcon}
-                  contentFit="contain"
-                />
-              </Pressable>
+          {/* 하단 컨트롤 (그대로) */}
+          <View style={[styles.bottomWrap, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.zoomHud}>
+              <Text style={styles.zoomHudText}>{(zoom * 100).toFixed(0)}%</Text>
             </View>
 
-
-            <Pressable onPress={toggleFacing} hitSlop={10} style={styles.sideIconBtn}>
-              <Image source={facingIcon} contentFit="contain" style={styles.sideIcon} />
+            <Pressable onPress={takePicture} hitSlop={10} style={styles.shutterBtn}>
+              <View style={styles.shutterBtnInner} />
             </Pressable>
+
+            <View style={styles.controlRow}>
+              <Pressable onPress={toggleTorch} hitSlop={10} style={styles.sideIconBtn}>
+                <Image source={torchIcon} contentFit="contain" style={styles.sideIcon} />
+              </Pressable>
+
+              <View style={styles.centerPill}>
+                <Pressable onPress={toggleMirror} style={styles.pillBtn}>
+                  <Image
+                    source={mirrorOn ? mirrorOnIcon : mirrorOffIcon}
+                    style={styles.pillIcon}
+                    contentFit="contain"
+                  />
+                </Pressable>
+                <View style={styles.pillDivider} />
+
+                <Pressable onPress={toggleRatio} style={styles.pillBtn}>
+                  <Text style={styles.pillText}>{ratio}</Text>
+                </Pressable>
+                <View style={styles.pillDivider} />
+
+                <Pressable onPress={cycleFlash} style={styles.pillBtn}>
+                  <Image
+                    source={
+                      flashMode === "on"
+                        ? flashOnIcon
+                        : flashMode === "auto"
+                        ? flashAutoIcon
+                        : flashOffIcon
+                    }
+                    style={styles.pillIcon}
+                    contentFit="contain"
+                  />
+                </Pressable>
+              </View>
+
+              <Pressable onPress={toggleFacing} hitSlop={10} style={styles.sideIconBtn}>
+                <Image source={facingIcon} contentFit="contain" style={styles.sideIcon} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* 상단 바 */}
+          <View style={[styles.topBar, { paddingTop: insets.top + 16, height: 72 + 16 }]}>
+            <View style={styles.topBarRow}>
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={12}
+                android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
+                style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+              >
+                <Feather name="x" size={22} color="#fff" />
+              </Pressable>
+              <View style={{ width: 36 }} />
+            </View>
           </View>
         </View>
-      </View>
-    </GestureDetector>
-  );
+      </GestureDetector>
+    );
+  };
 
   return (
     <>
@@ -290,6 +323,22 @@ export default function App() {
       {/* 권한 없으면: 설정 유도 화면만 노출 */}
       {!granted ? (
         <View style={styles.container}>
+          <View style={[styles.topBar, { paddingTop: insets.top + 16, height: 72 + 16 }]}>
+            <View style={styles.topBarRow}>
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={12}
+                android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
+                style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="닫기"
+              >
+                <Feather name="x" size={22} color="#fff" />
+              </Pressable>
+              <View style={{ width: 36 }} />
+            </View>
+          </View>
+
           <Text style={{ textAlign: "center", marginBottom: 16, color: "#fff" }}>
             사진 촬영을 위해 카메라 권한을 켜주세요.
           </Text>
@@ -475,4 +524,13 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
    },
   secondaryBtnText: { color: "#FEFEFE", fontSize: 17 , fontWeight: "400" },
+  secondaryLink: {
+    paddingVertical: 8, // 살짝만 터치 영역
+  },
+  secondaryLinkText: {
+    color: "#FEFEFE",
+    fontSize: 16,
+    fontWeight: "400",
+    // textDecorationLine: "underline" // 원하면 링크 느낌
+  },
 });
