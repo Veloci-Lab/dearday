@@ -3,7 +3,8 @@ import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
-import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { router, useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -27,6 +28,19 @@ import {
 const AVATAR_BUCKET = "avatars";
 const LOCAL_FALLBACK = require("@/assets/images/avatar.png");
 
+// URL에서 파일명만 뽑기 (쿼리스트립 제거 안전처리)
+function getFileNameFromUrl(url?: string | null): string | null {
+  if (!url) return null;
+  try {
+    const clean = url.split("?")[0];
+    const parts = clean.split("/");
+    const last = parts[parts.length - 1];
+    return last || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProfileEditScreen() {
   const navigation = useNavigation();
   const { profileId } = useAuthStore();
@@ -49,8 +63,8 @@ export default function ProfileEditScreen() {
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
-          <Text style={ styles.Title }>My Dearday</Text>
-          <Text style={ styles.SubTitle }>프로필 편집</Text>
+          <Text style={styles.Title}>My Dearday</Text>
+          <Text style={styles.SubTitle}>프로필 편집</Text>
         </View>
       ),
       headerLeft: () => (
@@ -102,8 +116,8 @@ export default function ProfileEditScreen() {
 
   // ===== 로컬에서 아바타 삭제(저장 때 DB 반영) =====
   const deleteAvatarLocal = () => {
-    setImage(null);          // 미리보기 제거
-    setPendingDelete(true);  // 저장 시 avatar_url=null 반영
+    setImage(null); // 미리보기 제거
+    setPendingDelete(true); // 저장 시 avatar_url=null 반영
     setSheetVisible(false);
   };
 
@@ -111,7 +125,7 @@ export default function ProfileEditScreen() {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.9,
@@ -131,7 +145,7 @@ export default function ProfileEditScreen() {
     }
   };
 
-  // ✅ 저장 시에만 업로드/DB 업데이트
+  // 저장 시에만 업로드/DB 업데이트
   const handleSave = async () => {
     if (!profileId || !nickname.trim()) {
       Alert.alert("입력 오류", "닉네임을 입력해주세요.");
@@ -151,6 +165,10 @@ export default function ProfileEditScreen() {
 
     setIsSaving(true);
 
+    // 이전 아바타 URL/파일명 (업데이트 성공 후 삭제용)
+    const oldUrl: string | null = profile?.avatar_url ?? null;
+    const oldFileName: string | null = getFileNameFromUrl(oldUrl);
+
     try {
       const payload: Record<string, any> = {};
       if (changedNickname) payload.nickname = nickname.trim();
@@ -160,13 +178,20 @@ export default function ProfileEditScreen() {
         // 삭제 예약 시: DB에 null 저장
         payload.avatar_url = null;
       } else if (image) {
-        // 로컬 파일이면 업로드
+        // file://만 업로드 대상으로 판단 (필요시 content:// 추가)
         const isLocalFile = image.startsWith("file:");
         if (isLocalFile) {
-          const base64 = await FileSystem.readAsStringAsync(image, {
+          // 1) 업로드 전에 320x320 정사각으로 리사이즈 (품질 0.82)
+          const manip = await ImageManipulator.manipulateAsync(
+            image,
+            [{ resize: { width: 320, height: 320 } }],
+            { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG }
+          );
+
+          // 2) 리사이즈 결과(file://)를 base64로 읽고 → Uint8Array로 변환
+          const base64 = await FileSystem.readAsStringAsync(manip.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
-
           const binary =
             typeof atob !== "undefined"
               ? atob(base64)
@@ -174,11 +199,15 @@ export default function ProfileEditScreen() {
           const bytes = new Uint8Array(binary.length);
           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
+          // 3) 파일명 버저닝 + 서버 캐시(immutable)
           const fileName = `avatar_${profileId}_${Date.now()}.jpg`;
-
           const { error: upErr } = await supabase.storage
             .from(AVATAR_BUCKET)
-            .upload(fileName, bytes, { contentType: "image/jpeg", upsert: false });
+            .upload(fileName, bytes, {
+              contentType: "image/jpeg",
+              upsert: false,
+              cacheControl: "public, max-age=31536000, immutable",
+            });
           if (upErr) throw upErr;
 
           const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(fileName);
@@ -194,10 +223,17 @@ export default function ProfileEditScreen() {
           .eq("profile_id", profileId);
         if (error) throw error;
 
+        // 업로드/업데이트 성공 시: 이전 아바타 파일 삭제 (파일명으로 바로 삭제)
+        if (pendingDelete && oldFileName) {
+          await supabase.storage.from(AVATAR_BUCKET).remove([oldFileName]);
+        } else if (oldUrl && payload.avatar_url !== undefined && oldUrl !== payload.avatar_url && oldFileName) {
+          await supabase.storage.from(AVATAR_BUCKET).remove([oldFileName]);
+        }
+
         // 로컬 상태 반영
         setProfile((p: any) => ({ ...(p ?? {}), ...payload }));
         if (payload.nickname) setInitialNickname(payload.nickname);
-        if (payload.avatar_url !== undefined) setImage(payload.avatar_url);
+        if (payload.avatar_url !== undefined) setImage(payload.avatar_url ?? null);
       }
 
       Alert.alert("완료", "프로필이 저장되었습니다.");
@@ -252,10 +288,7 @@ export default function ProfileEditScreen() {
               style={styles.avatar}
               source={image ? { uri: image } : LOCAL_FALLBACK}
             />
-            <TouchableOpacity
-              style={styles.avatarEdit}
-              onPress={openAvatarSheet}
-            >
+            <TouchableOpacity style={styles.avatarEdit} onPress={openAvatarSheet}>
               <Feather name="camera" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -276,7 +309,7 @@ export default function ProfileEditScreen() {
               onBlur={() => setNickFocused(false)}
               returnKeyType="done"
             />
-            {(nickname.trim().length === 0) && (
+            {nickname.trim().length === 0 && (
               <View pointerEvents="none" style={styles.placeholderWrap}>
                 <Text style={styles.placeholderText}>닉네임을 입력해주세요</Text>
               </View>
@@ -299,10 +332,14 @@ export default function ProfileEditScreen() {
           </TouchableOpacity>
         </View>
         {dupState === "ok" && (
-          <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>사용 가능한 닉네임입니다.</Text>
+          <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>
+            사용 가능한 닉네임입니다.
+          </Text>
         )}
         {dupState === "taken" && (
-          <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>이미 사용 중인 닉네임입니다.</Text>
+          <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>
+            이미 사용 중인 닉네임입니다.
+          </Text>
         )}
       </ScrollView>
 
@@ -359,53 +396,66 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -8,
     bottom: -4,
-    width: 30, height: 30, borderRadius: 15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: "#5B8DEF",
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 2, borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
-  label: { 
+  label: {
     fontFamily: "Pretendard-SemiBold",
-    fontSize: 14, 
-    color: "#333", 
-    marginBottom: 8 
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 8,
   },
   input: {
-    height: 50, borderRadius: 10,
-    borderWidth: 1, borderColor: "#E2E8F0",
-    paddingHorizontal: 12, fontSize: 16, fontFamily: "Pretendard-Regular",
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    fontSize: 16,
+    fontFamily: "Pretendard-Regular",
   },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#F2F2F2" },
   saveButton: { backgroundColor: "#5B8DEF", padding: 16, borderRadius: 12, alignItems: "center" },
-  saveButtonText: { 
+  saveButtonText: {
     fontFamily: "Pretendard-Bold",
-    color: "#fff", 
-    fontSize: 16 
+    color: "#fff",
+    fontSize: 16,
   },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   inputFlex: { flex: 1 },
   dupBtn: {
-    height: 50, paddingHorizontal: 12,
-    borderRadius: 10, backgroundColor: "#EFF3FF",
-    alignItems: "center", justifyContent: "center",
+    height: 50,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: "#EFF3FF",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  dupBtnText: { 
+  dupBtnText: {
     fontFamily: "Pretendard-SemiBold",
     color: "#5B8DEF",
   },
-  Title: { 
+  Title: {
     fontFamily: "Pretendard-Bold",
     fontSize: 18,
-    color: "#5B8DEF" },
-  SubTitle: { 
+    color: "#5B8DEF",
+  },
+  SubTitle: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 12, 
-    color: "#929292", 
-    marginTop: 2 },
-  placeholder: { 
+    fontSize: 12,
+    color: "#929292",
+    marginTop: 2,
+  },
+  placeholder: {
     fontFamily: "Pretendard-Regular",
-    color: "#A0AEC0", 
-    fontSize: 16 
+    color: "#A0AEC0",
+    fontSize: 16,
   },
   inputWrap: {
     height: 50,
@@ -429,8 +479,6 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     color: "#A3AAB8",
   },
-
-  // ===== ActionSheet(Modal) styles =====
   sheetBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

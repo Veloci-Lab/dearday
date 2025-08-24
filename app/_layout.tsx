@@ -2,18 +2,19 @@ import { useAuthStore } from "@/utils/authStore";
 import { useFonts } from "expo-font";
 import * as Notifications from 'expo-notifications';
 import { router, SplashScreen, Stack } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { BrandedSplash } from "@/components/BrandedSplash";
-// import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const {
     logIn,
     isLoggedIn,
+    authLoading,
     hasCompletedOnboarding,
     pendingRedirectUrl,
     setPendingRedirectUrl,
@@ -26,8 +27,6 @@ export default function RootLayout() {
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
   });
-
-  const [showBrandOverlay, setShowBrandOverlay] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -62,38 +61,52 @@ export default function RootLayout() {
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync().catch(() => {});
+    if (fontsLoaded && !authLoading) {
+      SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, authLoading]);
 
-  const handleBrandFinish = useCallback(() => {
-    setShowBrandOverlay(false);
-  }, []);
-
-  if (!fontsLoaded || isLoggedIn === null) {
-    return null;
+  if (!fontsLoaded || authLoading) {
+    return null; // 아직 준비 안됐으면 SplashScreen 유지
   }
 
     return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack>
-        <Stack.Protected guard={!isLoggedIn}>
-          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-        </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack.Protected>
-      </Stack>
-      {showBrandOverlay && (
-        <BrandedSplash
-          variant={hasCompletedOnboarding ? "post" : "pre"}
-          onFinish={handleBrandFinish}
-        />
-      )}
+      <SafeAreaProvider>
+        <StatusBar style="auto" />
+        <Stack>
+          <Stack.Protected guard={!isLoggedIn}>
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+          </Stack.Protected>
+
+          <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          </Stack.Protected>
+
+          <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* <Stack.Screen
+              name="(tabs)"
+              options={{
+                headerLeft: () => (
+                  <Image
+                    source={require("@/assets/images/logo_blue.png")}
+                    style={{ width: 28, height: 28, resizeMode: "contain" }}
+                  />
+                ),
+                headerTitle: "",
+                headerRight: () => (
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <TouchableOpacity onPress={() => router.push("/pending")}>
+                      <Feather name="inbox" size={20} color="#000" style={{ marginHorizontal: 8 }} />
+                    </TouchableOpacity>
+                  </View>
+                ),
+              }}
+            /> */}
+          </Stack.Protected>
+        </Stack>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
