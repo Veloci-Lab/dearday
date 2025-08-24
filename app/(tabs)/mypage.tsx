@@ -89,9 +89,12 @@ export default function MypageScreen() {
   };
 
   const EditCornerButton = ({ onPress }: { onPress: () => void }) => (
-    <Pressable onPress={onPress} style={[styles.editAtCorner, styles.editBadge]} hitSlop={8}>
-      <Feather name="edit-2" size={16} color="#5B8DEF" />
-    </Pressable>
+    // 카드 오른쪽에 세로로 꽉 차게 붙여 중앙 정렬 → 텍스트와 높낮이 일치
+    <View style={styles.editAtCornerWrap} pointerEvents="box-none">
+      <Pressable onPress={onPress} style={styles.editBadge} hitSlop={8}>
+        <Feather name="edit-2" size={16} color="#5B8DEF" />
+      </Pressable>
+    </View>
   );
 
   // 프로필 불러오기
@@ -281,7 +284,13 @@ const styles = StyleSheet.create({
     paddingRight: 56, // 아이콘(28) + 여백(16~20) 만큼 공간 비워두기
   },
 
-  editAtCorner: { position: "absolute", right: 16, top: 16 },
+  editAtCornerWrap: { 
+    position: "absolute", 
+    right: 16, 
+    top: 0, 
+    bottom: 0, 
+    justifyContent: "center" 
+  },
 
   // 아이콘 배지 스타일
   editBadge: {
