@@ -2,12 +2,11 @@ import { useAuthStore } from "@/utils/authStore";
 import { useFonts } from "expo-font";
 import * as Notifications from 'expo-notifications';
 import { router, SplashScreen, Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { BrandedSplash } from "@/components/BrandedSplash";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+// import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -76,28 +75,25 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
+    return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <StatusBar style="auto" />
-        <Stack>
-          <Stack.Protected guard={!isLoggedIn}>
-            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack.Protected>
-        </Stack>
-        {showBrandOverlay && (
-          <BrandedSplash
-            variant={hasCompletedOnboarding ? "post" : "pre"}
-            onFinish={handleBrandFinish}
-          />
-        )}
-      </SafeAreaProvider>
+      <Stack>
+        <Stack.Protected guard={!isLoggedIn}>
+          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack.Protected>
+      </Stack>
+      {showBrandOverlay && (
+        <BrandedSplash
+          variant={hasCompletedOnboarding ? "post" : "pre"}
+          onFinish={handleBrandFinish}
+        />
+      )}
     </GestureHandlerRootView>
   );
 }

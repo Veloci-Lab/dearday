@@ -12,12 +12,12 @@ import {
   Image,
   Platform,
   Pressable,
-  SafeAreaView,
+  /*SafeAreaView,*/
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** 로고 비율 고정 (textmark_white.png 기준) */
 const LOGO_AR = 253 / 53;

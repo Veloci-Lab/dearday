@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Dimensions, Image, StyleSheet, View } from "react-native";
+import {
+  Animated,
+  Dimensions,
+  Image,
+  StyleSheet,
+  View,
+} from "react-native";
 
 const LOGO_AR = 253 / 53;
 const LOGO_H = 44;
@@ -18,14 +24,29 @@ export function BrandedSplash({
   fadeMs?: number;
 }) {
   const opacity = useRef(new Animated.Value(1)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    Animated.timing(opacity, {
+    mountedRef.current = true;
+    // 안전을 위해 마운트 시 초기값 보정
+    opacity.setValue(1);
+
+    animRef.current = Animated.timing(opacity, {
       toValue: 0,
       duration: fadeMs,
       delay: showMs,
       useNativeDriver: true,
-    }).start(() => onFinish());
+    });
+
+    animRef.current.start(({ finished }) => {
+      if (finished && mountedRef.current) onFinish();
+    });
+
+    return () => {
+      mountedRef.current = false;
+      animRef.current?.stop(); // ? 언마운트 중 애니메이션 정지
+    };
   }, [variant, opacity, onFinish, showMs, fadeMs]);
 
   const isPost = variant === "post";
@@ -38,10 +59,10 @@ export function BrandedSplash({
   return (
     <Animated.View style={[styles.wrap, { opacity }]}>
       <View style={[styles.fill, { backgroundColor: bg }]}>
-        <Image 
-            source={logo} 
-            style={{ width: LOGO_W, height: LOGO_H }}
-            resizeMode="contain" 
+        <Image
+          source={logo}
+          style={{ width: LOGO_W, height: LOGO_H }}
+          resizeMode="contain"
         />
       </View>
     </Animated.View>
@@ -52,7 +73,10 @@ const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
     zIndex: 9999,
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   fill: {
     flex: 1,
