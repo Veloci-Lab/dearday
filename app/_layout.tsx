@@ -14,6 +14,7 @@ export default function RootLayout() {
   const {
     logIn,
     isLoggedIn,
+    authLoading,
     hasCompletedOnboarding,
     pendingRedirectUrl,
     setPendingRedirectUrl,
@@ -60,13 +61,13 @@ export default function RootLayout() {
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && !authLoading) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, authLoading]);
 
-  if (!fontsLoaded) {
-    return null;
+  if (!fontsLoaded || authLoading) {
+    return null; // 아직 준비 안됐으면 SplashScreen 유지
   }
 
   return (

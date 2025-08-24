@@ -3,6 +3,8 @@ import { create } from "zustand";
 
 type AuthState = {
   isLoggedIn: boolean;
+  authLoading: boolean;
+  setAuthLoading: (v: boolean) => void;
   hasCompletedOnboarding: boolean;
   profileId: string | null;
   logIn: () => Promise<void>;
@@ -15,49 +17,54 @@ type AuthState = {
 
 export const useAuthStore = create<AuthState>((set) => ({
   isLoggedIn: false,
+  authLoading: true,
+  setAuthLoading: (v) => set({ authLoading: v }),
   hasCompletedOnboarding: false,
   profileId: null,
-  pendingRedirectUrl: null,
-
   logIn: async () => {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+    set({ authLoading: true }); // 로그인 확인 시작
+    
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-    if (session?.user) {
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("profile_id, has_completed_onboarding")
-        .eq("uid", session.user.id)
-        .single();
+      if (session?.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("profile_id, has_completed_onboarding")
+          .eq("uid", session.user.id)
+          .single();
 
-      if (!profileError && profile) {
-        set({
-          isLoggedIn: true,
-          hasCompletedOnboarding: profile.has_completed_onboarding ?? false,
-          profileId: profile.profile_id,
-        });
-        return;
+        if (!profileError && profile) {
+          set({
+            isLoggedIn: true,
+            hasCompletedOnboarding: profile.has_completed_onboarding ?? false,
+            profileId: profile.profile_id,
+          });
+          return;
+        }
       }
+
+      // 세션이 없거나, 프로필 조회 실패한 경우
+      set({
+        isLoggedIn: false,
+        hasCompletedOnboarding: false,
+        profileId: null,
+      });
+    } finally {
+      set({ authLoading: false }); // 로그인 확인 끝
     }
-
-    // 세션이 없거나, 프로필 조회 실패한 경우
-    set({
-      isLoggedIn: false,
-      hasCompletedOnboarding: false,
-      profileId: null,
-    });
   },
-
   logOut: () =>
     set({
       isLoggedIn: false,
       hasCompletedOnboarding: false,
       profileId: null,
-    }),
-
+  }),
   setHasCompletedOnboarding: (v) => set({ hasCompletedOnboarding: v }),
+  pendingRedirectUrl: null,
   setPendingRedirectUrl: (v) => set({ pendingRedirectUrl: v }),
   clearPendingRedirectUrl: () => set({ pendingRedirectUrl: null }),
 }));
