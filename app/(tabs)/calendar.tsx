@@ -426,6 +426,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   Dimensions,
   FlatList,
   Image,
@@ -435,9 +436,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-  AppState,
 } from 'react-native';
-import { Calendar, DateObject } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { todayString } from 'react-native-calendars/src/expandableCalendar/commons';
 
 type DayData = { memory_id: string; thumb?: string };

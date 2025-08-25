@@ -1,7 +1,6 @@
-// layouts.tsx
 import { Image } from "expo-image";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native"; // ✅ Text 추가
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FeedItem } from "./types";
 import { isPH } from "./utils";
 
@@ -32,12 +31,14 @@ export function Tile({
   height,
   radius,
   onPressItem,
+  showInfo = false, // ✅ 추가: 가로 2칸 이상일 때만 true로 넘김
 }: {
   it: FeedItem;
   width: number;
   height: number;
   radius: number;
   onPressItem?: (item: FeedItem) => void;
+  showInfo?: boolean;
 }) {
   if (isPH(it)) {
     return <PlaceholderBox width={width} height={height} radius={radius} />;
@@ -55,44 +56,29 @@ export function Tile({
     />
   );
 
-  // 왼쪽 하단 오버레이
-  const Overlay = (
+  // 왼쪽 하단 오버레이 (가로 2칸 이상일 때만)
+  const Overlay = showInfo ? (
     <View
       style={{
         position: "absolute",
         left: 6,
         bottom: 6,
-        // backgroundColor: "rgba(0,0,0,0.45)",
-        // borderRadius: 4,
         paddingHorizontal: 12,
         paddingVertical: 12,
         maxWidth: width - 12,
       }}
       pointerEvents="none"
     >
-      {!!it.dateISO && (
-        <Text style={{ color: "#FEFEFE", fontSize: 20 }}>
-          {it.dateISO}
-        </Text>
-      )}
+      {!!it.dateISO && <Text style={{ color: "#FEFEFE", fontSize: 20 }}>{it.dateISO}</Text>}
       {!!it.place && (
-        <Text
-          numberOfLines={1}
-          style={{ color: "#F2F2F2", fontSize: 15 }}
-        >
+        <Text numberOfLines={1} style={{ color: "#F2F2F2", fontSize: 15 }}>
           {it.place}
         </Text>
       )}
     </View>
-  );
+  ) : null;
 
-  // 공통 래퍼: 오버플로우 클립으로 둥근 모서리 안에 오버레이 포함
-  const WrapperStyle = {
-    width,
-    height,
-    borderRadius: radius,
-    overflow: "hidden" as const,
-  };
+  const WrapperStyle = { width, height, borderRadius: radius, overflow: "hidden" as const };
 
   if (!pressable) {
     return (
@@ -104,12 +90,7 @@ export function Tile({
   }
 
   return (
-    <Pressable
-      onPress={() => onPressItem?.(it)}
-      accessibilityRole="button"
-      style={WrapperStyle}
-      android_ripple={{}}
-    >
+    <Pressable onPress={() => onPressItem?.(it)} accessibilityRole="button" style={WrapperStyle} android_ripple={{}}>
       {Img}
       {Overlay}
     </Pressable>

@@ -3,6 +3,7 @@ import { getLocalDateString } from "@/utils/date";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { Stack, router, useLocalSearchParams } from "expo-router";
@@ -23,6 +24,51 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/* =========================
+ * Helpers
+ * ========================= */
+
+/** file:// URI -> Uint8Array (Supabase 업로드용: base64 경유) */
+async function uriToBytes(uri: string): Promise<Uint8Array> {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const binary =
+    typeof atob !== "undefined"
+      ? atob(base64)
+      : Buffer.from(base64, "base64").toString("binary");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** Public 버킷 업로드 (성공 시 public URL 반환) */
+async function uploadToStorageReturnUrl(
+  bucket: string,
+  objectPath: string,
+  bytes: Uint8Array,
+  contentType: string = "image/jpeg",
+  cacheControl: string = "public, max-age=31536000, immutable"
+): Promise<string> {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(objectPath, bytes, {
+      contentType,
+      upsert: false,
+      cacheControl,
+    });
+
+  if (error) throw error;
+
+  // public URL 반환 (버킷이 public이어야 함)
+  const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+  return data.publicUrl;
+}
+
+/* =========================
+ * Screen
+ * ========================= */
+
 export default function QuickMemoScreen() {
   const insets = useSafeAreaInsets();
   const { profileId } = useAuthStore();
@@ -32,16 +78,19 @@ export default function QuickMemoScreen() {
     notification_id?: string;
   }>();
 
-  const [previewUri, setPreviewUri] = useState<string | null>(null);  // 로컬 미리보기
-  const [remoteUrl, setRemoteUrl] = useState<string | null>(null);    // 업로드 완료 후 public URL
+  const [previewUri, setPreviewUri] = useState<string | null>(null); // 로컬 미리보기
+  const [remoteUrls, setRemoteUrls] = useState<{ original: string | null; thumb: string | null }>({
+    original: null,
+    thumb: null,
+  }); // 업로드 완료 후 public URL들
   const [uploading, setUploading] = useState(false);
   const [placeName, setPlaceName] = useState<string>("");
   const [text, setText] = useState<string>("");
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // 업로드 작업 Promise 보관(저장 버튼에서 대기)
-  const uploadPromiseRef = useRef<Promise<string> | null>(null);
+  // 업로드 작업 Promise 보관(저장 버튼에서 대기) - 원본+썸네일 URL 반환
+  const uploadPromiseRef = useRef<Promise<{ original: string; thumb: string }> | null>(null);
 
   // 로컬 사진 세팅
   useEffect(() => {
@@ -49,38 +98,44 @@ export default function QuickMemoScreen() {
     setPreviewUri(decodeURIComponent(local_uri));
   }, [local_uri]);
 
-  // 들어오자마자 업로드 시작
+  // 들어오자마자 업로드 시작 (원본 + 썸네일) -> public bucket: "photos"
   useEffect(() => {
-    if (!previewUri || remoteUrl || uploading) return;
+    if (!previewUri || remoteUrls.original || remoteUrls.thumb || uploading) return;
 
-    const startUpload = async (uri: string): Promise<string> => {
+    const startUpload = async (uri: string): Promise<{ original: string; thumb: string }> => {
       setUploading(true);
       try {
-        // 파일 읽기 → base64 → 바이트로 변환
-        const base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        const BUCKET = "photos"; // public 버킷
+        const ts = Date.now();
+        const baseKey = `${profileId}_${ts}`;
 
-        // RN 환경에서 atob가 있을 수도/없을 수도 있어서 분기
-        const binary =
-          typeof atob !== "undefined"
-            ? atob(base64)
-            : Buffer.from(base64, "base64").toString("binary");
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        /* === 1) 원본 업로드 (고화질 유지) === */
+        const origBytes = await uriToBytes(uri);
+        const origPath = `original/photo_${baseKey}.jpg`; // photos/original/*
+        const finalOriginalUrl = await uploadToStorageReturnUrl(
+          BUCKET,
+          origPath,
+          origBytes,
+          "image/jpeg"
+        );
 
-        const fileName = `photo_${profileId}_${Date.now()}.jpg`;
-        const { error: uploadErr } = await supabase.storage
-          .from("photos")
-          .upload(fileName, bytes, { contentType: "image/jpeg", upsert: false });
-        if (uploadErr) throw uploadErr;
+        /* === 2) 썸네일 생성 & 업로드 (긴 변 480px) === */
+        const manip = await ImageManipulator.manipulateAsync(
+          uri,
+          [{ resize: { width: 480 } }], // 긴 변 기준 480px
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const thumbBytes = await uriToBytes(manip.uri);
+        const thumbPath = `thumb/photo_${baseKey}.jpg`; // photos/thumb/*
+        const finalThumbUrl = await uploadToStorageReturnUrl(
+          BUCKET,
+          thumbPath,
+          thumbBytes,
+          "image/jpeg"
+        );
 
-        const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
-        const imageUrl = urlData?.publicUrl;
-        if (!imageUrl) throw new Error("Public URL 생성 실패");
-
-        setRemoteUrl(imageUrl);
-        return imageUrl;
+        setRemoteUrls({ original: finalOriginalUrl, thumb: finalThumbUrl });
+        return { original: finalOriginalUrl, thumb: finalThumbUrl };
       } finally {
         setUploading(false);
       }
@@ -88,7 +143,7 @@ export default function QuickMemoScreen() {
 
     const p = startUpload(previewUri);
     uploadPromiseRef.current = p;
-  }, [previewUri, remoteUrl, uploading]);
+  }, [previewUri, remoteUrls.original, remoteUrls.thumb, uploading, profileId]);
 
   // 위치를 문자열로 조합
   function pickNicePlace(geo?: Location.LocationGeocodedAddress | null) {
@@ -127,7 +182,7 @@ export default function QuickMemoScreen() {
     router.replace("/camera");
   }, []);
 
-  // 저장: 업로드 완료될 때까지 대기 → memories 준비 → memory_entries insert
+  // 저장: 업로드 완료 → memories 준비 → memory_entries insert (URL 저장)
   const handleSave = useCallback(async () => {
     if (saving) return;
     try {
@@ -135,17 +190,23 @@ export default function QuickMemoScreen() {
       if (!profileId) throw new Error("로그인이 필요합니다.");
       if (!previewUri) throw new Error("이미지 경로가 없습니다.");
 
-      // 업로드가 아직이면 완료될 때까지 대기
-      let finalUrl = remoteUrl;
-      if (!finalUrl) {
+      // 업로드 완료 대기
+      let finalOriginalUrl = remoteUrls.original;
+      let finalThumbUrl = remoteUrls.thumb;
+
+      if (!finalOriginalUrl || !finalThumbUrl) {
         if (!uploadPromiseRef.current) {
           Alert.alert("오류", "사진 업로드를 시작하지 못했어요. 다시 시도해주세요.");
           setSaving(false);
           return;
         }
-        finalUrl = await uploadPromiseRef.current;
+        const res = await uploadPromiseRef.current;
+        finalOriginalUrl = res.original;
+        finalThumbUrl = res.thumb;
       }
-      if (!finalUrl) throw new Error("업로드된 이미지 URL이 없습니다.");
+      if (!finalOriginalUrl || !finalThumbUrl) {
+        throw new Error("업로드된 이미지 URL이 없습니다.");
+      }
 
       // 오늘자 memories 찾거나 생성
       const today = getLocalDateString();
@@ -182,11 +243,12 @@ export default function QuickMemoScreen() {
           ? Math.max(...existingEntries.map((e: any) => e.entry_index)) + 1
           : 0;
 
-      // memory_entries insert
+      // memory_entries insert (URL 저장!)
       const insertData: any = {
         memory_id,
         entry_index: entryIndex,
-        image_url: finalUrl,
+        image_url: finalOriginalUrl,        // URL 저장
+        image_thumb_url: finalThumbUrl,     // URL 저장
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         location: placeName.trim() || null,
         content: text.trim() || null,
@@ -203,7 +265,7 @@ export default function QuickMemoScreen() {
     } finally {
       setSaving(false);
     }
-  }, [saving, profileId, previewUri, remoteUrl, placeName, text, notification_id]);
+  }, [saving, profileId, previewUri, remoteUrls.original, remoteUrls.thumb, placeName, text, notification_id]);
 
   const hasImage = useMemo(() => !!previewUri, [previewUri]);
 
@@ -222,15 +284,13 @@ export default function QuickMemoScreen() {
         <View style={styles.imageWrap}>
           {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
 
-          {/*  상단 그라데이션 오버레이 (터치 막지 않도록 pointerEvents) */}
           <LinearGradient
             pointerEvents="none"
             colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "transparent"]}
             locations={[0, 0.5, 1]}
             style={styles.imageGradient}
-          /> 
+          />
 
-          {/* 뒤로가기 버튼 (아이콘은 밝은색으로) */}
           <Pressable
             onPress={goBackToCamera}
             style={({ pressed }) => [
@@ -272,13 +332,6 @@ export default function QuickMemoScreen() {
           multiline
           editable={!saving}
         />
-
-        {/* 업로드 진행 상태 보조 텍스트(선택) */}
-        {/* {uploading && (
-          <Text style={{ marginTop: 8, color: "#888", fontSize: 12 }}>
-            사진을 업로드하는 중이에요…
-          </Text>
-        )} */}
       </ScrollView>
 
       {/* 하단 완료 버튼 */}
@@ -286,7 +339,7 @@ export default function QuickMemoScreen() {
         <TouchableOpacity
           onPress={handleSave}
           style={styles.footerButton}
-          disabled={saving || !hasImage}           // 필요하면 || uploading 추가해서 업로드 중엔 터치 막아도 됨
+          disabled={saving || !hasImage}
         >
           {saving ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -304,8 +357,8 @@ const styles = StyleSheet.create({
   imageWrap: {
     position: "relative",
     width: "100%",
-    borderRadius: 10,       // ⬅️ 추가
-    overflow: "hidden",     // ⬅️ 추가 (그라데이션 라운드에 맞게 클리핑)
+    borderRadius: 10,
+    overflow: "hidden",
   },
   image: {
     width: "100%",
@@ -318,7 +371,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: 96,             // ⬅️ 상단만 덮을 높이. 필요시 80~120 사이로 조절
+    height: 96,
   },
   backFab: {
     position: "absolute",
@@ -331,63 +384,61 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.35)", // ⬅️ 버튼 뒤 원형 배경
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
-  h1: { 
+  h1: {
     fontFamily: "Pretendard-Bold",
-    fontSize: 20, 
-    lineHeight: 28, 
-    //fontWeight: "700", 
-    color: "#0F172A" 
+    fontSize: 20,
+    lineHeight: 28,
+    color: "#0F172A",
   },
-  sub: { 
+  sub: {
     fontFamily: "Pretendard-Regular",
-    marginTop: 6, 
-    fontSize: 13, 
-    color: "#929292" 
+    marginTop: 6,
+    fontSize: 13,
+    color: "#929292",
   },
-  label: { 
+  label: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 14, 
-    marginBottom: 8, 
-    color: "#0D0D0D" 
+    fontSize: 14,
+    marginBottom: 8,
+    color: "#0D0D0D",
   },
-  input: { 
+  input: {
     fontFamily: "Pretendard-Regular",
-    borderWidth: 1, 
-    borderColor: "#ddd", 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    paddingVertical: 10, 
-    fontSize: 14, 
-    marginBottom: 16 
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 16,
   },
-  textarea: { 
+  textarea: {
     fontFamily: "Pretendard-Regular",
-    borderWidth: 1, 
-    borderColor: "#ddd", 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    paddingVertical: 10, 
-    fontSize: 14, 
-    height: 100, 
-    textAlignVertical: "top" 
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    height: 100,
+    textAlignVertical: "top",
   },
-  footerWrapper: { 
-    padding: 16, 
-    backgroundColor: "#fff", 
-    borderTopWidth: 1, 
-    borderTopColor: "#ddd" 
+  footerWrapper: {
+    padding: 16,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
   },
-  footerButton: { 
-    backgroundColor: "#5B8DEF", 
-    borderRadius: 8, 
-    paddingVertical: 14, 
-    alignItems: "center" 
+  footerButton: {
+    backgroundColor: "#5B8DEF",
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: "center",
   },
-  footerText: { 
+  footerText: {
     fontFamily: "Pretendard-Bold",
-    color: "#fff", 
-    //fontWeight: "bold" 
+    color: "#fff",
   },
 });
