@@ -238,6 +238,8 @@ const InboxButton = ({ color = "#000" }: { color?: string }) => (
   </Pressable>
 );
 
+const INBOX_BUTTON_WIDTH = 37; // 아이콘(25) + 좌우 패딩(6+6)
+
 /* ------ 커스텀 탭바 ------- */
 function CustomTabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
@@ -385,7 +387,9 @@ export default function TabsLayout() {
             </View>
           ),
           headerRight: () => <InboxButton />,
-          headerRightContainerStyle: { paddingRight: 13 },
+          headerRightContainerStyle: { paddingRight: 16 },
+          headerLeft: () => <View style={{ width: INBOX_BUTTON_WIDTH }} />,
+          headerLeftContainerStyle: { paddingLeft: 16 },
         }}
       />
 
