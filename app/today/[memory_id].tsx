@@ -436,7 +436,7 @@ export default function TodayScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
        {/* 상단 안내 */}
       <View style={styles.header}>
-        <Text style={styles.title}>{formattedDate} 하루동안 찍으신 사진이에요</Text>
+        <Text style={styles.title}>{formattedDate}에 찍은 사진들이에요</Text>
         <Text style={styles.subtitle}>N장을 골라서 기록해주세요</Text>
       </View>
 
