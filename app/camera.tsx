@@ -22,13 +22,9 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// ★ 핀치 제스처 & Reanimated
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
-
-import { Dimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function App() {
   const { profileId } = useAuthStore();
@@ -41,48 +37,45 @@ export default function App() {
   const insets = useSafeAreaInsets();
   const [isUploading, setIsUploading] = useState(false);
 
-  // 플래시/토치/미러 상태
   const [flashMode, setFlashMode] = useState<FlashMode>("off");
   const [torchOn, setTorchOn] = useState(false);
   const [mirrorOn, setMirrorOn] = useState(true);
 
-  // 줌 상태 (UI 표기용) + shared values(제스처 계산용)
-  const [zoom, setZoom] = useState(0);        // 0 ~ 1, HUD/CameraView용
-  const zoomSV = useSharedValue(0);           // worklet에서 사용하는 값
-  const baseZoomSV = useSharedValue(0);       // 핀치 시작 기준
+  const [zoom, setZoom] = useState(0);
+  const zoomSV = useSharedValue(0);
+  const baseZoomSV = useSharedValue(0);
   const MIN_ZOOM = 0;
   const MAX_ZOOM = 1;
   const ZOOM_SENSITIVITY = 0.8;
 
   const [ratio, setRatio] = useState<"4:3" | "16:9" | "1:1">("4:3");
+  const [btnBlockH, setBtnBlockH] = useState(0);
+  const topOffset = insets.top + 16;  // 해치 + 패딩
+  const bottomOffset = btnBlockH + (insets.bottom || 0) + 16;
 
-  // 배율
-  const { height: SCREEN_H } = Dimensions.get("window");
-  const BOTTOM_MASK_RATIO = 0.24;   // styles.bottomMask.height와 동일
-  const ZOOM_HUD_OFFSET = 16 + 28;  // 윗변에서 '아래로' 내릴 픽셀 (28: 배율 박스 높이)
+  const torchIcon = require("@/assets/images/icons/torch.png");
+  const facingIcon = require("@/assets/images/icons/facing.png");
+  const mirrorOnIcon = require("@/assets/images/icons/mirror_on.png");
+  const mirrorOffIcon = require("@/assets/images/icons/mirror_off.png");
+  const flashOnIcon = require("@/assets/images/icons/flash_on.png");
+  const flashOffIcon = require("@/assets/images/icons/flash_off.png");
+  const flashAutoIcon = require("@/assets/images/icons/flash_auto.png");
 
-  // 하단 아이콘
-  const torchIcon = require("@/assets/images/torch.png");
-  const facingIcon = require("@/assets/images/facing.png");
-
-  // topBar 패딩
-  const TOP_ICONS_OFFSET = 16; // 원하는 만큼 조절 (px)
-
+  // 최초 한 번: 'undetermined'이면 다이얼로그 요청
   useEffect(() => {
     if (permission?.status === "undetermined") requestPermission();
-    const subscription = AppState.addEventListener("change", (s) => {
+  }, [permission?.status, requestPermission]);
+
+  // 설정 다녀오거나 포그라운드 복귀 시: 항상 최신 상태 재확인
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") requestPermission();
     });
-    return () => subscription.remove();
-  }, [permission]);
+    return () => sub.remove();
+  }, [requestPermission]);
 
-  if (!permission) return null;
+  const granted = permission?.granted === true;
 
-  const isDenied = permission.status === "denied";
-  const isRequesting = !permission.granted && !isDenied;
-  const showStackHeader = isDenied || isRequesting;
-
-  // 갤러리 저장
   const saveToGallery = async (localUri: string) => {
     try {
       const { status, canAskAgain } = await MediaLibrary.requestPermissionsAsync();
@@ -99,27 +92,19 @@ export default function App() {
   };
 
   const takePicture = async () => {
-    const photo = await ref.current?.takePictureAsync();
+    const photo = await ref.current?.takePictureAsync({ shutterSound: false });
     if (!photo?.uri) return;
     setUri(photo.uri);
     saveToGallery(photo.uri);
   };
 
-  const toggleFacing = () => {
-    setFacing((prev) => (prev === "back" ? "front" : "back"));
-  };
-
-  const cycleFlash = () => {
+  const toggleFacing = () => setFacing((prev) => (prev === "back" ? "front" : "back"));
+  const cycleFlash = () =>
     setFlashMode((prev) => (prev === "off" ? "on" : prev === "on" ? "auto" : "off"));
-  };
-
   const toggleTorch = () => setTorchOn((t) => !t);
-
   const toggleMirror = () => setMirrorOn((m) => !m);
-
-  const toggleRatio = () => {
+  const toggleRatio = () =>
     setRatio((prev) => (prev === "4:3" ? "16:9" : prev === "16:9" ? "1:1" : "4:3"));
-  };
 
   const handleConfirmPhoto = async () => {
     if (!uri) return;
@@ -132,7 +117,6 @@ export default function App() {
     });
   };
 
-  // ★ 핀치 제스처(Worklet-safe)
   const pinchGesture = Gesture.Pinch()
     .onBegin(() => {
       "worklet";
@@ -143,217 +127,227 @@ export default function App() {
       let next = baseZoomSV.value + (e.scale - 1) * ZOOM_SENSITIVITY;
       if (next < MIN_ZOOM) next = MIN_ZOOM;
       if (next > MAX_ZOOM) next = MAX_ZOOM;
-
       if (Math.abs(next - zoomSV.value) > 0.002) {
         zoomSV.value = next;
         runOnJS(setZoom)(next);
       }
     });
 
-  const renderPicture = () => (
-    <View style={{ flex: 1, width: "100%", backgroundColor: "#000" }}>
-      <Image source={{ uri }} contentFit="contain" style={StyleSheet.absoluteFill} />
-      <View style={styles.topMask} pointerEvents="none" />
-      <View style={styles.bottomMask} pointerEvents="none" />
-      <View style={[styles.previewBtnWrap, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable
-          onPress={handleConfirmPhoto}
-          disabled={isUploading}
-          style={[styles.primaryBtn, isUploading && { opacity: 0.7 }]}
-        >
-          {isUploading ? (
-            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-          ) : (
-            <Text style={styles.primaryBtnText}>이 사진으로 기록하기</Text>
-          )}
-        </Pressable>
+  const renderPicture = () => {
+    if (!uri) return null;
+    const ar = ratio === "1:1" ? 1 : ratio === "16:9" ? 9 / 16 : 3 / 4;
+    const bottomOffset = btnBlockH + (insets.bottom || 0) + 16;
 
-        <Pressable
-          onPress={() => setUri(null)}
-          hitSlop={10}
-          android_ripple={{ color: "rgba(255,255,255,0.15)" }}
-          style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressedSecondary]}
-        >
-          <Text style={styles.secondaryBtnText}>다시 찍을래요</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-
-  const renderCamera = () => (
-    <GestureDetector gesture={pinchGesture}>
-      <View style={{ flex: 1, width: "100%" }}>
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          ref={ref}
-          mode="picture"                      // ✅ 사진 모드 고정
-          facing={facing}
-          // ❌ 비디오 오디오 관련 prop 제거
-          // mute={false}
-          responsiveOrientationWhenOrientationLocked
-          enableTorch={torchOn}
-          flash={flashMode}
-          mirror={facing === "front" && mirrorOn}
-          zoom={zoom} // 0~1
-          ratio={ratio}
-        />
-
-        {/* 상단 바: 뒤로가기 + Flash / Mirror / Zoom% */}
-        <View
-          style={[
-            styles.topBar,
-            { paddingTop: insets.top + TOP_ICONS_OFFSET, height: 72 + TOP_ICONS_OFFSET }
-          ]}
-        >
-          <View style={styles.topBarRow}>
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={12}
-              android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
-              style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
-            >
-              <Feather name="x" size={22} color="#fff" />
-            </Pressable>
-
-            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-              {/* Ratio */}
-              <Pressable
-                onPress={toggleRatio}
-                hitSlop={10}
-                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 24 }}
-                style={({ pressed }) => [
-                  styles.iconBtnWrap,
-                  pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
-                ]}
-              >
-                <View style={[styles.iconBtn]}>
-                  <Text style={styles.iconText}>{ratio}</Text>
-                </View>
-              </Pressable>
-
-              {/* Flash */}
-              <Pressable
-                onPress={cycleFlash}
-                hitSlop={10}
-                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 24 }}
-                style={({ pressed }) => [
-                  styles.iconBtnWrap,
-                  pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.iconBtn,
-                    (flashMode === "on" || flashMode === "auto") && styles.iconBtnActive,
-                  ]}
-                >
-                  <Text style={styles.iconText}>Flash {flashMode.toUpperCase()}</Text>
-                </View>
-              </Pressable>
-
-              {/* Mirror */}
-              <Pressable
-                onPress={toggleMirror}
-                hitSlop={10}
-                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 24 }}
-                style={({ pressed }) => [
-                  styles.iconBtnWrap,
-                  pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
-                ]}
-              >
-                <View style={[styles.iconBtn, mirrorOn && styles.iconBtnActive]}>
-                  <Text style={styles.iconText}>MIRROR</Text>
-                </View>
-              </Pressable>
+    return (
+      <View style={{ flex: 1, width: "100%", backgroundColor: "#000" }}>
+        {ratio === "16:9" ? (
+          // 16:9 전용 → 남는 영역 중앙 정렬
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: bottomOffset,
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <View style={[styles.previewFrame, { aspectRatio: ar }]}>
+              <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
             </View>
           </View>
-        </View>
-
-        {/* 상/하 반투명 마스크 (제스처 통과) */}
-        <View style={styles.topMask} pointerEvents="none" />
-        <View style={styles.bottomMask} pointerEvents="none" />
-
-        {/* Zoom HUD */}
-        <View
-          pointerEvents="none"
-          style={[styles.zoomHudWrap, { bottom: SCREEN_H * BOTTOM_MASK_RATIO - ZOOM_HUD_OFFSET }]}
-        >
-          <Text style={styles.zoomHudText}>{(zoom * 100).toFixed(0)}%</Text>
-        </View>
-
-        {/* 하단 셔터/토치/카메라전환 */}
-        <View style={styles.shutterContainer}>
-          {/* 좌측: 토치 */}
-          <Pressable
-            onPress={toggleTorch}
-            hitSlop={10}
-            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
-            style={({ pressed }) => [styles.bareIconBtn, pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 }]}
+        ) : (
+          // 1:1, 4:3 전용 → 그냥 중앙 배치
+          <View
+            style={{
+              position: "absolute",
+              top: topOffset,
+              left: 0,
+              right: 0,
+              bottom: bottomOffset,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <Image source={torchIcon} style={styles.torchIcon} />
-          </Pressable>
+            <View style={[styles.previewFrame, { aspectRatio: ar }]}>
+              <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
+            </View>
+          </View>
+        )}
 
-          {/* 셔터: 사진만 촬영 */}
-          <Pressable onPress={takePicture}>
-            {({ pressed }) => (
-              <View style={[styles.shutterBtn, { opacity: pressed ? 0.5 : 1 }]}>
-                <View style={[styles.shutterBtnInner, { backgroundColor: "white" }]} />
-              </View>
+        {/* 하단 버튼 */}
+        <View
+          style={[styles.previewBtnGroup, { paddingBottom: insets.bottom }]}
+          onLayout={(e) => setBtnBlockH(e.nativeEvent.layout.height)}
+        >
+          <Pressable
+            onPress={handleConfirmPhoto}
+            disabled={isUploading}
+            style={[styles.primaryBtn, isUploading && { opacity: 0.7 }]}
+          >
+            {isUploading ? (
+              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+            ) : (
+              <Text style={styles.primaryBtnText}>마음에 들어요</Text>
             )}
           </Pressable>
 
-          {/* 우측: 카메라 전환 */}
           <Pressable
-            onPress={toggleFacing}
-            hitSlop={10}
-            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 28 }}
-            style={({ pressed }) => [styles.bareIconBtn, pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 }]}
-          >
-            <Image source={facingIcon} style={styles.torchIcon} />
-          </Pressable>
+  onPress={() => setUri(null)}
+  hitSlop={10}
+  style={styles.secondaryLink}   // height 제거
+>
+  <Text style={styles.secondaryLinkText}>다시 찍을래요</Text>
+</Pressable>
+
         </View>
       </View>
-    </GestureDetector>
-  );
+    );
+  };
+
+  const renderCamera = () => {
+    const arNum = ratio === "1:1" ? 1 : ratio === "16:9" ? 9 / 16 : 3 / 4;
+
+    return (
+      <GestureDetector gesture={pinchGesture}>
+        {/* 전체 배경은 검정 */}
+        <View style={{ flex: 1, width: "100%", backgroundColor: "#000" }}>
+          {/* 카메라 박스를 화면 가운데에 배치 */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            {/* 🚩 iOS: 모든 비율을 컨테이너에서 고정 (여기서 레터박스가 생김)
+                🚩 Android: 1:1만 컨테이너, 나머지는 기존처럼 풀스크린 유지 */}
+            <View
+              style={Platform.select({
+                ios: {
+                  width: "100%",
+                  maxWidth: 900,          // 필요시 조정(레터박스 두께 바꾸고 싶으면 maxWidth 조정)
+                  aspectRatio: arNum,     // 1:1 / 4:3 / 16:9 모두 컨테이너에 비율 적용
+                  overflow: "hidden",
+                },
+                android:
+                  ratio === "1:1"
+                    ? { width: "100%", aspectRatio: 1, overflow: "hidden" }
+                    : StyleSheet.absoluteFill,
+              })}
+            >
+              <CameraView
+                ref={ref}
+                style={StyleSheet.absoluteFill} // 컨테이너를 '가득' 채우기만 함
+                mode="picture"
+                facing={facing}
+                responsiveOrientationWhenOrientationLocked
+                enableTorch={torchOn}
+                flash={flashMode}
+                mirror={facing === "front" && mirrorOn}
+                zoom={zoom}
+                // ✅ iOS는 ratio 전달하지 않음(무시됨). Android에만 전달.
+                {...(Platform.OS === "android" ? { ratio } : {})}
+              />
+            </View>
+          </View>
+
+          {/* 하단 컨트롤 (그대로) */}
+          <View style={[styles.bottomWrap, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.zoomHud}>
+              <Text style={styles.zoomHudText}>{(zoom * 100).toFixed(0)}%</Text>
+            </View>
+
+            <Pressable onPress={takePicture} hitSlop={10} style={styles.shutterBtn}>
+              <View style={styles.shutterBtnInner} />
+            </Pressable>
+
+            <View style={styles.controlRow}>
+              <Pressable onPress={toggleTorch} hitSlop={10} style={styles.sideIconBtn}>
+                <Image source={torchIcon} contentFit="contain" style={styles.sideIcon} />
+              </Pressable>
+
+              <View style={styles.centerPill}>
+                <Pressable onPress={toggleMirror} style={styles.pillBtn}>
+                  <Image
+                    source={mirrorOn ? mirrorOnIcon : mirrorOffIcon}
+                    style={styles.pillIcon}
+                    contentFit="contain"
+                  />
+                </Pressable>
+                <View style={styles.pillDivider} />
+
+                <Pressable onPress={toggleRatio} style={styles.pillBtn}>
+                  <Text style={styles.pillText}>{ratio}</Text>
+                </Pressable>
+                <View style={styles.pillDivider} />
+
+                <Pressable onPress={cycleFlash} style={styles.pillBtn}>
+                  <Image
+                    source={
+                      flashMode === "on"
+                        ? flashOnIcon
+                        : flashMode === "auto"
+                        ? flashAutoIcon
+                        : flashOffIcon
+                    }
+                    style={styles.pillIcon}
+                    contentFit="contain"
+                  />
+                </Pressable>
+              </View>
+
+              <Pressable onPress={toggleFacing} hitSlop={10} style={styles.sideIconBtn}>
+                <Image source={facingIcon} contentFit="contain" style={styles.sideIcon} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* 상단 바 */}
+          <View style={[styles.topBar, { paddingTop: insets.top + 16, height: 72 + 16 }]}>
+            <View style={styles.topBarRow}>
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={12}
+                android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
+                style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+              >
+                <Feather name="x" size={22} color="#fff" />
+              </Pressable>
+              <View style={{ width: 36 }} />
+            </View>
+          </View>
+        </View>
+      </GestureDetector>
+    );
+  };
 
   return (
     <>
-      <Stack.Screen
-        options={
-          showStackHeader
-            ? {
-                headerTitle: () => null,
-                headerLeft: () => (
-                  <Pressable
-                    style={{ flexDirection: "row", alignItems: "center" }}
-                    onPress={() => router.back()}
-                  >
-                    <Feather name="chevron-left" size={24} color="black" />
-                  </Pressable>
-                ),
-              }
-            : { headerShown: false }
-        }
-      />
-
-      {isDenied ? (
+      <Stack.Screen options={{ headerShown: false }} />
+      {/* 권한 없으면: 설정 유도 화면만 노출 */}
+      {!granted ? (
         <View style={styles.container}>
+          <View style={[styles.topBar, { paddingTop: insets.top + 16, height: 72 + 16 }]}>
+            <View style={styles.topBarRow}>
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={12}
+                android_ripple={{ color: "rgba(255,255,255,0.2)", radius: 28 }}
+                style={({ pressed }) => [styles.backBtn, pressed && styles.iconPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="닫기"
+              >
+                <Feather name="x" size={22} color="#fff" />
+              </Pressable>
+              <View style={{ width: 36 }} />
+            </View>
+          </View>
+
           <Text style={{ textAlign: "center", marginBottom: 16, color: "#fff" }}>
-            카메라 권한이 필요합니다.{"\n"}설정에서 권한을 허용해주세요.
+            사진 촬영을 위해 카메라 권한을 켜주세요.
           </Text>
           <Button
             title="설정 열기"
-            onPress={() => {
-              if (Platform.OS === "ios") Linking.openURL("app-settings:");
-              else Linking.openSettings();
-            }}
+            onPress={() =>
+              Platform.OS === "ios" ? Linking.openURL("app-settings:") : Linking.openSettings()
+            }
           />
-        </View>
-      ) : isRequesting ? (
-        <View style={styles.container}>
-          <Text style={{ textAlign: "center", marginBottom: 16, color: "#fff" }}>
-            권한 요청 중입니다...
-          </Text>
         </View>
       ) : uri ? (
         <View style={styles.container}>{renderPicture()}</View>
@@ -371,6 +365,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  /* 상단바 */
   topBar: {
     position: "absolute",
     top: 0,
@@ -393,137 +389,148 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  topMask: {
+  iconPressed: {
+    transform: [{ scale: 0.94 }],
+    opacity: 0.85,
+  },
+
+  /* 하단 전체 래퍼 */
+  bottomWrap: {
     position: "absolute",
-    top: 0,
     left: 0,
     right: 0,
-    height: "28%",
-    backgroundColor: "rgba(0,0,0,0.35)",
-    zIndex: 10,
-  },
-  bottomMask: {
-    position: "absolute",
     bottom: 0,
-    left: 0,
-    right: 0,
-    height: "24%",
-    backgroundColor: "rgba(0,0,0,0.35)",
-    zIndex: 10,
-  },
-  shutterContainer: {
-    position: "absolute",
-    bottom: 44,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 30,
-    zIndex: 30,
+    paddingHorizontal: 16,
+    gap: 20, // 확대비율 - 셔터 - 컨트롤 라인 간격
   },
-  shutterBtn: {
-    backgroundColor: "transparent",
-    borderWidth: 10,
-    borderColor: "#5B8DEF",
-    width: 75,
-    height: 75,
-    borderRadius: 75,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shutterBtnInner: {
-    width: 65,
-    height: 65,
-    borderRadius: 65,
-  },
-  iconBtnWrap: {
+
+  /* 확대비율 HUD */
+  zoomHud: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 10,
-    overflow: "hidden",
-  },
-  iconBtn: {
-    padding: 10,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-    borderColor: "#C3C3C3",
-    borderWidth: 1,
-  },
-  iconBtnActive: {
-    backgroundColor: "#929292",
-  },
-  iconText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  previewBtnWrap: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 24,
-    gap: 10,
-    zIndex: 30,
-  },
-  primaryBtn: {
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#5B8DEF",
-  },
-  primaryBtnText: {
-    fontFamily: "Pretendard-Bold",
-    color: "#fff",
-    fontSize: 16,
-  },
-  secondaryBtn: {
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryBtnText: {
-    fontFamily: "Pretendard-Regular",
-    color: "#FEFEFE",
-    fontSize: 16,
-  },
-  pressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
-  pressedSecondary: { transform: [{ scale: 0.98 }], opacity: 0.95 },
-  iconPressed: { transform: [{ scale: 0.94 }], opacity: 0.85 },
-  hiddenControl: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  zoomHudWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 25,
+    backgroundColor: "#D9D9D966",
   },
   zoomHudText: {
     fontSize: 15,
     color: "#FEFEFE",
-    backgroundColor: "rgba(217, 217, 217, 0.4)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    overflow: "hidden",
   },
-  bareIconBtn: {
-    width: 44,
-    height: 44,
+
+  /* 셔터 버튼 */
+  shutterBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 10,
+    borderColor: "#5B8DEF",
+    width: 86,
+    height: 86,
+    borderRadius: 86,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
   },
-  torchIcon: {
+  shutterBtnInner: {
+    width: 74,
+    height: 74,
+    borderRadius: 74,
+    backgroundColor: "white",
+  },
+
+  /* 맨 아래 컨트롤 라인 */
+  controlRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // 좌: 토치 / 중앙: pill / 우: 전환
+  },
+  sideIconBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sideIcon: {
     width: 32,
     height: 32,
-    resizeMode: "contain",
+  },
+
+  /* 중앙 pill (미러 / 비율 / 플래시) */
+  centerPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 6,
+    borderColor: "rgba(217, 217, 217, 0.4)",
+    borderWidth: 1,
+  },
+  pillIcon: {
+    width: 22,
+    height: 22,
+    tintColor: "#fff", // 필요하면 흰색 틴트
+  },
+  pillBtn: {
+    paddingHorizontal: 10,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillText: {
+    color: "#fff",
+    fontSize: 15,
+  },
+  pillDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+
+  // 미리보기 프레임(라운드 + 테두리)
+  previewFrame: {
+    width: "86%",
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#111", // 빈 공간 보일 때 대비
+  },
+
+  // 하단 버튼 그룹
+  previewBtnGroup: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+    alignItems: "center",
+    gap: 10,
+  },
+  // 사진 선택
+  primaryBtn: {
+    height: 56,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#5B8DEF",
+    alignSelf: "stretch",
+  },
+  primaryBtnText: { color: "#FEFEFE", fontSize: 17, fontWeight: "700" },
+  // 재촬영
+  secondaryBtn: { 
+    height: 56,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
+   },
+  secondaryBtnText: { color: "#FEFEFE", fontSize: 17 , fontWeight: "400" },
+  secondaryLink: {
+    paddingVertical: 8, // 살짝만 터치 영역
+  },
+  secondaryLinkText: {
+    color: "#FEFEFE",
+    fontSize: 16,
+    fontWeight: "400",
+    // textDecorationLine: "underline" // 원하면 링크 느낌
   },
 });

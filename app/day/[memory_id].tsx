@@ -19,6 +19,7 @@ import {
 } from "react-native";
 
 import MasonryGrid from "@/components/masonry/MasonryGrid";
+import { dailyUserSeed } from "@/components/masonry/seed";
 import type { FeedItem } from "@/components/masonry/types";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
@@ -202,10 +203,10 @@ export default function DayByMemory() {
           gap={6}
           padding={16}
           options={{
-            seed: 20250810,
-            initialOrder: ["L1", "L2", "L3"],
+            seed: dailyUserSeed(profileId ?? "anon"),
+            initialOrder: ["L1"],
             noConsecutive: true,
-            allowed: ["L1", "L2", "L3"],
+            allowed: ["L1", "L2", "L3", "L4", "L5"],
           }}
         />
       ) : (
