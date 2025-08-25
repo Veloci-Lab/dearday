@@ -72,7 +72,7 @@ export default function ComposeScreen() {
 
       const { data: entriesData, error: entriesError } = await supabase
         .from("memory_entries")
-        .select("memory_entry_id, image_url, content, location")
+        .select("memory_entry_id, image_url, image_thumb_url, content, location")
         .eq("memory_id", memory_id)
         .eq("is_selected", true)
         .order("entry_index", { ascending: true });
@@ -191,7 +191,7 @@ export default function ComposeScreen() {
                     setViewerVisible(true);
                   }}
                 >
-                  <Image source={{ uri: item.image_url }} style={styles.image} />
+                  <Image source={{ uri: item.image_thumb_url || item.image_url }} style={styles.image} />
                 </Pressable>
 
                 {isThumbnail && <View pointerEvents="none" style={styles.selectedOverlay} />}

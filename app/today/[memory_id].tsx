@@ -376,7 +376,7 @@ export default function TodayScreen() {
 
       const { data: rows, error: e2 } = await supabase
         .from("memory_entries")
-        .select("memory_entry_id, image_url, is_selected, entry_index")
+        .select("memory_entry_id, image_url, image_thumb_url, is_selected, entry_index")
         .eq("memory_id", memory_id)
         .order("entry_index", { ascending: true });
 
@@ -456,7 +456,7 @@ export default function TodayScreen() {
                   onPress={() => toggleSelect(id)}
                   style={[styles.imageWrapper, isSelected && { opacity: 0.8, borderWidth: 2, borderColor: "#5B8DEF" }]}
                 >
-                  <Image source={{ uri: entry.image_url }} style={styles.image} />
+                  <Image source={{ uri: entry.image_thumb_url || entry.image_url }} style={styles.image} />
                   {isSelected && (
                     <View className="checkOverlay" style={styles.checkOverlay}>
                       <Text style={styles.checkMark}>✓</Text>

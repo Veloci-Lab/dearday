@@ -661,6 +661,7 @@
 
 // });
 
+// app/(tabs)/index.tsx
 import MasonryGrid from "@/components/masonry/MasonryGrid";
 import type { FeedItem } from "@/components/masonry/types";
 import { useAuthStore } from "@/utils/authStore";
@@ -698,6 +699,7 @@ type MemoryThumbRow = {
   thumb: {
     memory_entry_id: number;
     image_url: string | null;
+    image_thumb_url: string | null; // ✅ 썸네일 필드 추가
     location: string | null;
   } | null;
 };
@@ -765,10 +767,11 @@ export default function IndexScreen() {
   const feedItems: FeedItem[] = useMemo(
     () =>
       rows
-        .filter((m) => !!m.thumb?.image_url)
+        .filter((m) => !!m.thumb?.image_url) // 원본 이미지가 있는 경우만
         .map((m) => ({
           id: String(m.memory_id),
-          imageUrl: m.thumb?.image_url ?? "./assets/images/thumbnail.png",
+          // ✅ 수정: 썸네일 URL 우선 사용
+          imageUrl: m.thumb?.image_thumb_url || m.thumb?.image_url!,
           dateISO: m.date.replace(/-/g, ".") + ".",
           place: m.thumb?.location ?? "",
         })),
@@ -863,17 +866,19 @@ export default function IndexScreen() {
         return;
       }
 
+      // ✅ 수정: image_thumb_url 필드 추가
       const { data: entries, error: entErr } = await supabase
         .from("memory_entries")
-        .select("image_url, created_at")
+        .select("image_url, image_thumb_url, created_at")
         .eq("memory_id", mem.memory_id)
         .not("image_url", "is", null)
         .order("created_at", { ascending: false });
 
       if (entErr) throw entErr;
 
+      // ✅ 수정: 썸네일 URL 우선 사용
       const urls = (entries ?? [])
-        .map((e: any) => e.image_url as string)
+        .map((e: any) => (e.image_thumb_url || e.image_url) as string)
         .filter(Boolean);
       
       setTodayImages(prev => {
@@ -893,6 +898,7 @@ export default function IndexScreen() {
       if (showLoading) setMemoriesLoading(true);
 
       try {
+        // ✅ 수정: thumb 조회 시 image_thumb_url 필드 추가
         const { data, error } = await supabase
           .from("memories")
           .select(`
@@ -901,6 +907,7 @@ export default function IndexScreen() {
             thumb:memory_entries!memories_thumbnail_entry_id_fkey (
               memory_entry_id,
               image_url,
+              image_thumb_url,
               location
             )
           `)
@@ -959,7 +966,7 @@ export default function IndexScreen() {
     }
 
     try {
-      const { status: camStatus } = await Camera.requestCameraPermissionsAsync();
+      await Camera.requestCameraPermissionsAsync();
     } catch (err) {
       console.error("카메라 권한 요청 실패:", err);
     }
@@ -973,8 +980,7 @@ export default function IndexScreen() {
     setVisible(false);
   }, [profileId]);
 
-  // ✅ 수정: TODAY 탭 렌더링을 위한 데이터 가공
-  const { totalImages, displayImages, remainingCount, renderItems } = useMemo(() => {
+  const { totalImages, remainingCount, renderItems } = useMemo(() => {
     const totalImages = todayImages.length;
     const displayImages = todayImages.slice(0, 3);
     const remainingCount = totalImages > 3 ? totalImages - 3 : 0;
@@ -982,7 +988,7 @@ export default function IndexScreen() {
     const renderItems = new Array(3).fill(null);
     displayImages.forEach((uri, i) => (renderItems[i] = uri));
     
-    return { totalImages, displayImages, remainingCount, renderItems };
+    return { totalImages, remainingCount, renderItems };
   }, [todayImages]);
 
 
@@ -1042,7 +1048,6 @@ export default function IndexScreen() {
               <Text style={styles.todayText}>TODAY</Text>
             </View>
 
-            {/* ✅ 수정: 썸네일 표시 로직 변경 */}
             <View style={styles.center}>
               {renderItems.map((uri, index) => (
                 <View key={index} style={styles.thumbContainer}>
@@ -1179,7 +1184,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     marginHorizontal: 16,
-    marginBottom: 16, //다른 피드와 간격
+    marginBottom: 16,
   },
   left: { marginRight: 12, alignItems: 'center' },
   todayText: {
@@ -1236,8 +1241,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#929292",
   },
-
-  // ✅ 썸네일 관련 스타일 추가/수정
   thumbContainer: {
     flex: 1,
     aspectRatio: 1,
