@@ -4,8 +4,8 @@ import * as Notifications from 'expo-notifications';
 import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import 'react-native-gesture-handler';
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -67,10 +67,10 @@ export default function RootLayout() {
   }, [fontsLoaded, authLoading]);
 
   if (!fontsLoaded || authLoading) {
-    return null; // ì•„ì§ ì¤€ë¹„ ì•ˆëìœ¼ë©´ SplashScreen ìœ ì§€
+    return null; // ¾ÆÁ÷ ÁØºñ ¾ÈµÆÀ¸¸é SplashScreen À¯Áö
   }
 
-  return (
+    return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
