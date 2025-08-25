@@ -205,6 +205,7 @@ export default function IndexScreen() {
     if (!profileId) return;
 
     try {
+      setShowToday(true);
       const today = getLocalDateString()
 
       // 1) 오늘자 memory_id 조회
@@ -217,8 +218,9 @@ export default function IndexScreen() {
 
       // 없거나 이미 완료면 숨김
       if (memErr || !mem) {
-        setTodayImages(prev => (prev.length ? [] : prev));
-        setShowToday(false);
+        // setTodayImages(prev => (prev.length ? [] : prev));
+        // setShowToday(false);
+        setTodayImages([]);
         return;
       }
 
@@ -241,7 +243,7 @@ export default function IndexScreen() {
         if (JSON.stringify(prev) !== JSON.stringify(urls)) return urls;
         return prev;
       });
-      setShowToday(urls.length > 0); // 사진이 1장 이상일 때만 표시
+      //setShowToday(true); // 사진이 1장 이상일 때만 표시
     } catch (e) {
       console.error("❌ today images fetch error:", (e as Error).message);
     }
