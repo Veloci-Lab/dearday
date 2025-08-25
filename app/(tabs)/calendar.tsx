@@ -18,6 +18,9 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { todayString } from 'react-native-calendars/src/expandableCalendar/commons';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const CAL_HEIGHT = SCREEN_HEIGHT * 0.45;
+
 type DayData = { memory_id: string; thumb?: string };
 type PhotoMap = Record<string, DayData>;
 type EntryRow = { memory_entry_id: string; image_url: string | null; entry_index: number };
@@ -125,87 +128,206 @@ export default function CalendarScreen() {
 
   const CAL_PAD_H = 16;
   const H_GAP = 6;  // 가로 간격
-  const V_GAP = 2;  // 세로 간격
+  const V_GAP = 0;  // 세로 간격
   const totalGap = H_GAP * 6;
   const cellWidth = (Dimensions.get('window').width - CAL_PAD_H * 2 - totalGap) / 7;
   const RED = '#FF4D3D';
 
+//   return (
+//     <View style={{ flex: 1, backgroundColor: "#fff" }}>
+//       <Calendar
+//         ref={calRef}
+//         key={`cal-${currentMonth}`}
+//         hideArrows
+//         style={{ paddingVertical: 8 }}
+//         renderHeader={(date: any) => {
+//           const [yy, mm] = currentMonth.split('-').map(Number);
+//           const monthLabel = `${yy}년 ${mm}월`;
+
+//           const goPrev = () => {
+//             const d = new Date(currentMonth);
+//             d.setMonth(d.getMonth() - 1);
+//             const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+//             setCurrentMonth(nextStr);
+//           };
+//           const goNext = () => {
+//             const d = new Date(currentMonth);
+//             d.setMonth(d.getMonth() + 1);
+//             const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+//             setCurrentMonth(nextStr);
+//           };
+
+//           return (
+//             <View style={[styles.headerRow, { paddingHorizontal: CAL_PAD_H, alignSelf: 'stretch', width: '100%' }]}>
+//               {/* 왼쪽: 〈 월 〉 묶음 */}
+//               <View style={styles.headerLeftGroup}>
+//                 <TouchableOpacity onPress={goPrev} hitSlop={10}>
+//                   <Feather name="chevron-left" size={22} color="#111" />
+//                 </TouchableOpacity>
+//                 <Text style={styles.monthLabel}>{monthLabel}</Text>
+//                 <TouchableOpacity onPress={goNext} hitSlop={10}>
+//                   <Feather name="chevron-right" size={22} color="#111" />
+//                 </TouchableOpacity>
+//               </View>
+
+//               {/* 오른쪽: TODAY */}
+//               <TouchableOpacity onPress={goThisMonth} hitSlop={6}>
+//                 <Image
+//                   source={require("@/assets/images/icons/TODAY.png")}
+//                   style={styles.todayIcon}
+//                 />
+//               </TouchableOpacity>
+//             </View>
+//           );
+//         }}
+//         current={currentMonth}
+//         enableSwipeMonths
+//         onMonthChange={(m) => setCurrentMonth(m.dateString.slice(0, 7) + '-01')}
+//         theme={{ 
+//           textDayHeaderFontSize: 11, 
+//           textSectionTitleColor: '#8E8E93',
+//           textDayHeaderFontFamily: 'Pretendard-SemiBold',
+//           textMonthFontFamily: 'Pretendard-Bold',
+//           textDayFontFamily: 'Pretendard-Regular',
+//         }}
+//         dayComponent={({ date, state, onPress }) => {
+//           const ds = date.dateString;
+//           const data = monthMap[ds];
+//           const uri = data?.thumb;
+//           const isSelected = ds === selectedDate;
+//           const isToday = ds === todayISO;
+//           const hasPhoto = !!uri;
+//           const textStyle = [styles.dayNumber, hasPhoto ? styles.dayOnPhoto : styles.dayDefault, state === 'disabled' && styles.dayDisabled, isSelected && { color: RED }];
+//           return (
+//             <Pressable onPress={() => { onPress?.(date); onSelectDay(ds); }} style={{ paddingVertical: V_GAP, paddingHorizontal: H_GAP / 2 }}>
+//               <View style={[{ width: cellWidth, height: cellWidth, borderRadius: 10, overflow: 'hidden', justifyContent: 'flex-end' }, hasPhoto ? styles.bgHasPhoto : styles.bgNoPhoto, isSelected && { borderWidth: 2, borderColor: RED }]}>
+//                 {hasPhoto && <Image source={{ uri }} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0.75 }} />}
+//                 {isToday && <View style={styles.todayDot} />}
+//                 <View style={{ padding: 6 }}><Text style={textStyle}>{date.day}</Text></View>
+//               </View>
+//             </Pressable>
+//           );
+//         }}
+//       />
+//       <View style={{ height: 1, backgroundColor: "#EFEFF0" }} />
+
+//       <View style={{ flex: 1 }}>
+//         <ScrollView>
+//           {hasPhotosForSelectedDate && (
+//             <View style={[styles.bottomHeader, { justifyContent: 'center' }]}>
+//               <TouchableOpacity style={styles.dateChip} onPress={() => selectedMemoryId && router.push(`/day/${selectedMemoryId}`)}>
+//                 <Text style={styles.dateChipText}>{selectedDateLabel}</Text>
+//                 <Feather name="chevron-right" size={14} color="#3577FF" />
+//               </TouchableOpacity>
+//             </View>
+//           )}
+//           {selectedDate && (
+//             <FlatList
+//               data={entries.filter((e) => !!e.image_url)}
+//               keyExtractor={(it) => it.memory_entry_id}
+//               numColumns={3}
+//               scrollEnabled={false}
+//               columnWrapperStyle={{ gap: 10, paddingHorizontal: 16 }}
+//               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+//               contentContainerStyle={{ paddingVertical: 12, paddingBottom: 24 }}
+//               renderItem={({ item }) => (
+//                 <View style={{ flex: 1 }}>
+//                   <View style={styles.gridItem}>
+//                     <Image source={{ uri: item.image_url as string }} style={{ width: '100%', height: '100%' }} />
+//                   </View>
+//                 </View>
+//               )}
+//             />
+//           )}
+//         </ScrollView>
+//       </View>
+//     </View>
+//   );
+// }
+
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <Calendar
-        ref={calRef}
-        key={`cal-${currentMonth}`}
-        hideArrows
-        style={{ paddingVertical: 8 }}
-        renderHeader={(date: any) => {
-          const [yy, mm] = currentMonth.split('-').map(Number);
-          const monthLabel = `${yy}년 ${mm}월`;
+      {/* 달력을 View로 감싸고 높이 지정 */}
+      <View style={{ height: CAL_HEIGHT }}>
+        <Calendar
+          ref={calRef}
+          key={`cal-${currentMonth}`}
+          hideArrows
+          renderHeader={(date: any) => {
+            const [yy, mm] = currentMonth.split('-').map(Number);
+            const monthLabel = `${yy}년 ${mm}월`;
 
-          const goPrev = () => {
-            const d = new Date(currentMonth);
-            d.setMonth(d.getMonth() - 1);
-            const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-            setCurrentMonth(nextStr);
-          };
-          const goNext = () => {
-            const d = new Date(currentMonth);
-            d.setMonth(d.getMonth() + 1);
-            const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-            setCurrentMonth(nextStr);
-          };
+            const goPrev = () => {
+              const d = new Date(currentMonth);
+              d.setMonth(d.getMonth() - 1);
+              const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+              setCurrentMonth(nextStr);
+            };
+            const goNext = () => {
+              const d = new Date(currentMonth);
+              d.setMonth(d.getMonth() + 1);
+              const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+              setCurrentMonth(nextStr);
+            };
 
-          return (
-            <View style={[styles.headerRow, { paddingHorizontal: CAL_PAD_H, alignSelf: 'stretch', width: '100%' }]}>
-              {/* 왼쪽: 〈 월 〉 묶음 */}
-              <View style={styles.headerLeftGroup}>
-                <TouchableOpacity onPress={goPrev} hitSlop={10}>
-                  <Feather name="chevron-left" size={22} color="#111" />
-                </TouchableOpacity>
-                <Text style={styles.monthLabel}>{monthLabel}</Text>
-                <TouchableOpacity onPress={goNext} hitSlop={10}>
-                  <Feather name="chevron-right" size={22} color="#111" />
+            return (
+              <View style={[styles.headerRow, { paddingHorizontal: CAL_PAD_H, alignSelf: 'stretch', width: '100%' }]}>
+                <View style={styles.headerLeftGroup}>
+                  <TouchableOpacity onPress={goPrev} hitSlop={10}>
+                    <Feather name="chevron-left" size={22} color="#111" />
+                  </TouchableOpacity>
+                  <Text style={styles.monthLabel}>{monthLabel}</Text>
+                  <TouchableOpacity onPress={goNext} hitSlop={10}>
+                    <Feather name="chevron-right" size={22} color="#111" />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={goThisMonth} hitSlop={6}>
+                  <Image
+                    source={require("@/assets/images/icons/TODAY.png")}
+                    style={styles.todayIcon}
+                  />
                 </TouchableOpacity>
               </View>
-
-              {/* 오른쪽: TODAY */}
-              <TouchableOpacity onPress={goThisMonth} hitSlop={6}>
-                <Image
-                  source={require("@/assets/images/icons/TODAY.png")}
-                  style={styles.todayIcon}
-                />
-              </TouchableOpacity>
-            </View>
-          );
-        }}
-        current={currentMonth}
-        enableSwipeMonths
-        onMonthChange={(m) => setCurrentMonth(m.dateString.slice(0, 7) + '-01')}
-        theme={{ 
-          textDayHeaderFontSize: 11, 
-          textSectionTitleColor: '#8E8E93',
-          textDayHeaderFontFamily: 'Pretendard-SemiBold',
-          textMonthFontFamily: 'Pretendard-Bold',
-          textDayFontFamily: 'Pretendard-Regular',
-        }}
-        dayComponent={({ date, state, onPress }) => {
-          const ds = date.dateString;
-          const data = monthMap[ds];
-          const uri = data?.thumb;
-          const isSelected = ds === selectedDate;
-          const isToday = ds === todayISO;
-          const hasPhoto = !!uri;
-          const textStyle = [styles.dayNumber, hasPhoto ? styles.dayOnPhoto : styles.dayDefault, state === 'disabled' && styles.dayDisabled, isSelected && { color: RED }];
-          return (
-            <Pressable onPress={() => { onPress?.(date); onSelectDay(ds); }} style={{ paddingVertical: V_GAP, paddingHorizontal: H_GAP / 2 }}>
-              <View style={[{ width: cellWidth, height: cellWidth, borderRadius: 10, overflow: 'hidden', justifyContent: 'flex-end' }, hasPhoto ? styles.bgHasPhoto : styles.bgNoPhoto, isSelected && { borderWidth: 2, borderColor: RED }]}>
-                {hasPhoto && <Image source={{ uri }} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0.75 }} />}
-                {isToday && <View style={styles.todayDot} />}
-                <View style={{ padding: 6 }}><Text style={textStyle}>{date.day}</Text></View>
-              </View>
-            </Pressable>
-          );
-        }}
-      />
+            );
+          }}
+          current={currentMonth}
+          enableSwipeMonths
+          onMonthChange={(m) => setCurrentMonth(m.dateString.slice(0, 7) + '-01')}
+          theme={{
+            textDayHeaderFontSize: 11,
+            textSectionTitleColor: '#8E8E93',
+            textDayHeaderFontFamily: 'Pretendard-SemiBold',
+            textMonthFontFamily: 'Pretendard-Bold',
+            textDayFontFamily: 'Pretendard-Regular',
+            'stylesheet.calendar.main': {
+                week: {
+                  marginTop: 2,
+                  marginBottom: 2,
+                  flexDirection: 'row',
+                  justifyContent: 'space-around',
+                },
+              },
+          }}
+          dayComponent={({ date, state, onPress }) => {
+            const ds = date.dateString;
+            const data = monthMap[ds];
+            const uri = data?.thumb;
+            const isSelected = ds === selectedDate;
+            const isToday = ds === todayISO;
+            const hasPhoto = !!uri;
+            const textStyle = [styles.dayNumber, hasPhoto ? styles.dayOnPhoto : styles.dayDefault, state === 'disabled' && styles.dayDisabled, isSelected && { color: RED }];
+            return (
+              <Pressable onPress={() => { onPress?.(date); onSelectDay(ds); }} style={{ paddingHorizontal: H_GAP / 2 }}>
+                <View style={[{ width: cellWidth, height: cellWidth, borderRadius: 10, overflow: 'hidden', justifyContent: 'flex-end' }, hasPhoto ? styles.bgHasPhoto : styles.bgNoPhoto, isSelected && { borderWidth: 2, borderColor: RED }]}>
+                  {hasPhoto && <Image source={{ uri }} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0.75 }} />}
+                  {isToday && <View style={styles.todayDot} />}
+                  <View style={{ padding: 6 }}><Text style={textStyle}>{date.day}</Text></View>
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      </View>
       <View style={{ height: 1, backgroundColor: "#EFEFF0" }} />
 
       <View style={{ flex: 1 }}>
