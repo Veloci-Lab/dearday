@@ -278,7 +278,7 @@ import { getLocalDateString } from "@/utils/date";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -308,6 +308,13 @@ export default function TodayScreen() {
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [memoryDate, setMemoryDate] = useState<string | null>(null);
+
+    const formattedDate = useMemo(() => {
+    if (!memoryDate) return "";
+    const [_, month, day] = memoryDate.split('-').map(Number);
+    return `${month}월 ${day}일`;
+  }, [memoryDate]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -330,7 +337,7 @@ export default function TodayScreen() {
     if (memory_id === "-1") {
       (async () => {
         const today = getLocalDateString();
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("memories")
           .select("memory_id")
           .eq("profile_id", profileId)
@@ -341,7 +348,9 @@ export default function TodayScreen() {
           router.replace(`/today/${data.memory_id}`);
         } else {
           // 오늘 메모리 없음 → 빈 상태
-          setEntries([]); setSelectedIds([]); setLoading(false);
+          setEntries([]); 
+          setSelectedIds([]); 
+          setLoading(false);
         }
       })();
       return; // 아래 fetch 막기
@@ -353,11 +362,17 @@ export default function TodayScreen() {
 
       const { data: mem } = await supabase
         .from("memories")
-        .select("memory_id")
+        .select("memory_id, date")
         .eq("profile_id", profileId)
         .eq("memory_id", memory_id)
         .maybeSingle();
-      if (!mem) { setEntries([]); setSelectedIds([]); setLoading(false); return; }
+      if (!mem) { 
+        setEntries([]); 
+        setSelectedIds([]); 
+        setLoading(false); 
+        return; 
+      }
+      setMemoryDate(mem.date);
 
       const { data: rows, error: e2 } = await supabase
         .from("memory_entries")
@@ -421,7 +436,7 @@ export default function TodayScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
        {/* 상단 안내 */}
       <View style={styles.header}>
-        <Text style={styles.title}>오늘 하루동안 찍으신 사진이에요</Text>
+        <Text style={styles.title}>{formattedDate} 하루동안 찍으신 사진이에요</Text>
         <Text style={styles.subtitle}>N장을 골라서 기록해주세요</Text>
       </View>
 
