@@ -238,6 +238,8 @@ const InboxButton = ({ color = "#000" }: { color?: string }) => (
   </Pressable>
 );
 
+const INBOX_BUTTON_WIDTH = 37; // 아이콘(25) + 좌우 패딩(6+6)
+
 /* ------ 커스텀 탭바 ------- */
 function CustomTabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
@@ -385,7 +387,9 @@ export default function TabsLayout() {
             </View>
           ),
           headerRight: () => <InboxButton />,
-          headerRightContainerStyle: { paddingRight: 13 },
+          headerRightContainerStyle: { paddingRight: 16 },
+          headerLeft: () => <View style={{ width: INBOX_BUTTON_WIDTH }} />,
+          headerLeftContainerStyle: { paddingLeft: 16 },
         }}
       />
 
@@ -413,11 +417,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
     paddingHorizontal: 8,
-    // shadowColor: "#000",
-    // shadowOpacity: 0.12,
-    // shadowRadius: 10,
-    // shadowOffset: { width: 0, height: 4 },
-    // elevation: 6,
     borderWidth: 2,
     borderColor: "#f2f2f2",
   },
@@ -426,23 +425,16 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Bold",
     fontSize: 12, 
     marginTop: 1, 
-    //fontWeight: "600" 
   },
   fab: {
     position: "absolute",
     backgroundColor: "#5B8DEF",
     alignItems: "center",
     justifyContent: "center",
-    // shadowColor: "#000",
-    // shadowOpacity: 0.25,
-    // shadowRadius: 12,
-    // shadowOffset: { width: 0, height: 6 },
-    // elevation: 8,
   },
   Title: { 
     fontFamily: "Pretendard-Bold",
     fontSize: 18, 
-    //fontWeight: "700", 
     color: "#5B8DEF" },
   SubTitle: { 
     fontFamily: "Pretendard-Regular",
