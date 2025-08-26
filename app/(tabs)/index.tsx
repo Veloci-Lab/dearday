@@ -1066,8 +1066,18 @@ export default function IndexScreen() {
               ))}
             </View>
 
-            <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
+            {/* <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
               <Feather name="edit-3" size={24} color="#5B8DEF" />
+            </TouchableOpacity> */}
+            <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
+              {totalImages > 0 ? (
+                <Image
+                  source={require("@/assets/images/edit.png")}
+                  style={{ width: 24, height: 24 }} // 아이콘 크기에 맞게 조절해주세요
+                />
+              ) : (
+                <Feather name="arrow-right" size={24} color="#5B8DEF" />
+              )}
             </TouchableOpacity>
           </View>
         )}
