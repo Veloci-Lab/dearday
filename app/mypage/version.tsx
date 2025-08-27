@@ -30,13 +30,19 @@ export default function VersionScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoRow}>
-          <Image
+          {/* <Image
             source={require("@/assets/images/logo_blue.png")}
             style={styles.logoImg}
             accessible
             accessibilityLabel="Dearday 로고"
           /> 
-          <Text style={styles.logoLabel}>Dearday</Text>
+          <Text style={styles.logoLabel}>Dearday</Text> */}
+          <Image
+            source={require("@/assets/images/textmark_blue.png")}
+            style={styles.logoImg}
+            accessible
+            accessibilityLabel="Dearday 로고"
+          /> 
         </View>
         <Text style={styles.versionText}>현재 버전: {appVersion}</Text>
         <Text style={styles.updateText}>최신 버전을 사용하고 있습니다.</Text>
@@ -54,8 +60,9 @@ const styles = StyleSheet.create({
     borderTopColor: "#f2f2f2"
   }, 
   content: { padding: 30, alignItems: 'center' }, 
-  logoRow: { flexDirection: "row", alignItems: "center", marginBottom: 24 },
-  logoImg: { width: 30, height: 30, resizeMode: "contain", marginRight: 8 },
+  logoRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  // logoImg: { width: 30, height: 30, resizeMode: "contain", marginRight: 8 },
+  logoImg: { height: 30, resizeMode: "contain" },
   logoLabel: { 
     fontFamily: "Pretendard-Bold",
     fontSize: 26, 
