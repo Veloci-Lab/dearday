@@ -79,6 +79,11 @@
 
 //   useEffect(() => {
 //     navigation.setOptions({
+//       headerShadowVisible: false,
+//       headerStyle: {
+//         borderBottomWidth: 1,
+//         borderBottomColor: '#f2f2f2',
+//       },
 //       headerLeft: () => (
 //         <Pressable
 //           style={{ flexDirection: "row", alignItems: "center" }}
@@ -99,7 +104,7 @@
 //       headerRight: () => (
 //         <View style={{ flexDirection: "row", alignItems: "center" }}>
 //           <TouchableOpacity onPress={onFlip}>
-//             <Feather name="repeat" size={20} color="#5B8DEF" style={{ marginHorizontal: 8 }} />
+//             <Feather name="repeat" size={20} color="#5B8DEF" style={{ marginHorizontal: 20 }} />
 //           </TouchableOpacity>
 //           <TouchableOpacity
 //             onPress={() => router.push(`/today/${memory_id}`)}
@@ -110,7 +115,7 @@
 //               style={{ 
 //                 width: 30, 
 //                 height: 30, 
-//                 marginHorizontal: 8,
+//                 marginHorizontal: -3,
 //                 opacity: memory_id ? 1 : 0.3
 //               }}
 //             />
@@ -335,7 +340,7 @@
 // // ================================
 // function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
 //   const PADDING = 16;
-//   const GAP = 6;
+//   const GAP = 24; // 이미지 간 간격 증가
 //   return (
 //     <ScrollView
 //       contentContainerStyle={{ padding: PADDING, gap: GAP, backgroundColor: "#fff" }}
@@ -349,21 +354,23 @@
 //                 style={{ width: "100%", height: width * 0.75, borderRadius: 16 }}
 //                 contentFit="cover"
 //               />
-//               <TopLeftBadge time={it.dateISO} place={it.place} />
+//               <BottomLeftBadge time={it.dateISO} place={it.place} />
 //             </View>
 //           ) : null}
-//           <View style={it.content && { padding: 16 }}>
-//             {it.content ? <Text style={styles.bodyText}>{it.content}</Text> : null}
-//           </View>
+//           {it.content ? (
+//             <View style={{ paddingHorizontal: 10, paddingTop: 10 }}>
+//               <Text style={styles.bodyText}>{it.content}</Text>
+//             </View>
+//           ) : null}
 //         </View>
 //       ))}
 //     </ScrollView>
 //   );
 // }
 
-// function TopLeftBadge({ time, place }: { time?: string; place?: string }) {
+// function BottomLeftBadge({ time, place }: { time?: string; place?: string }) {
 //   return (
-//     <View style={{ position: "absolute", left: 10, top: 10 }}>
+//     <View style={{ position: "absolute", left: 10, bottom: 10 }}>
 //       {!!time && (
 //         <Text
 //           style={{
@@ -371,6 +378,8 @@
 //             color: "white",
 //             textShadowColor: "rgba(0,0,0,0.6)",
 //             textShadowRadius: 4,
+//             textShadowOffset: { width: 0, height: 1 },
+//             fontSize: 20,
 //           }}
 //         >
 //           {time}
@@ -384,7 +393,8 @@
 //             opacity: 0.85,
 //             textShadowColor: "rgba(0,0,0,0.6)",
 //             textShadowRadius: 4,
-//             fontSize: 12,
+//             textShadowOffset: { width: 0, height: 1 },
+//             fontSize: 15,
 //           }}
 //         >
 //           {place}
@@ -413,11 +423,11 @@
 //     fontFamily: "Pretendard-Regular",
 //     fontSize: 12,
 //     color: "#929292",
-//     marginTop: 2,
+//     marginTop: -1,
 //   },
 //   bodyText: {
 //     fontFamily: "Pretendard-Regular",
-//     fontSize: 14,
+//     fontSize: 15,
 //     lineHeight: 20,
 //     color: "#0D0D0D",
 //   },
@@ -489,6 +499,7 @@ import { dailyUserSeed } from "@/components/masonry/seed";
 import type { FeedItem } from "@/components/masonry/types";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
+import { LinearGradient } from "expo-linear-gradient";
 
 import * as MediaLibrary from "expo-media-library";
 import ViewShot from "react-native-view-shot";
@@ -818,6 +829,19 @@ function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
                 style={{ width: "100%", height: width * 0.75, borderRadius: 16 }}
                 contentFit="cover"
               />
+               <LinearGradient
+                   pointerEvents="none"
+                   colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)']}
+                   locations={[0, 0.4, 1]}
+                   style={{
+                       position: 'absolute',
+                       left: 0,
+                       right: 0,
+                       bottom: 0,
+                       height: '50%',
+                       borderRadius: 16,
+                   }}
+               />
               <BottomLeftBadge time={it.dateISO} place={it.place} />
             </View>
           ) : null}

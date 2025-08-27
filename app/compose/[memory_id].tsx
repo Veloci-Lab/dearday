@@ -800,7 +800,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");
 const ITEM_WIDTH = 231;
+const ITEM_HORIZONTAL_MARGIN = 8;
+const ITEM_TOTAL_MARGIN = ITEM_HORIZONTAL_MARGIN * 2;
 const ITEM_MARGIN = (width - ITEM_WIDTH) / 2;
+const FLATLIST_PADDING = ITEM_MARGIN - ITEM_HORIZONTAL_MARGIN;
 const FOOTER_HEIGHT = 72;
 
 export default function ComposeScreen() {
@@ -952,7 +955,8 @@ export default function ComposeScreen() {
           data={entries}
           horizontal
           pagingEnabled
-          snapToInterval={ITEM_WIDTH + (ITEM_MARGIN - (width - ITEM_WIDTH) / 2) * 2}
+          //snapToInterval={ITEM_WIDTH + (ITEM_MARGIN - (width - ITEM_WIDTH) / 2) * 2}
+          snapToInterval={ ITEM_WIDTH + ITEM_TOTAL_MARGIN }
           decelerationRate="fast"
           contentContainerStyle={styles.flatListContent}
           showsHorizontalScrollIndicator={false}
@@ -990,7 +994,7 @@ export default function ComposeScreen() {
           }}
           onMomentumScrollEnd={(e) => {
             const contentOffset = e.nativeEvent.contentOffset.x;
-            const newIndex = Math.round(contentOffset / (ITEM_WIDTH + (ITEM_MARGIN - (width - ITEM_WIDTH) / 2) * 2));
+            const newIndex = Math.round(contentOffset / (ITEM_WIDTH + ITEM_TOTAL_MARGIN ));
             if (newIndex !== currentIndex) setCurrentIndex(newIndex);
           }}
         />
@@ -1088,15 +1092,18 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     marginTop: 4,
     fontSize: 13,
-    color: "#929292"
+    color: "#929292",
+    marginBottom: 25,
   },
   flatListContent: {
-    paddingHorizontal: (width - ITEM_WIDTH) / 2
+    // paddingHorizontal: (width - ITEM_WIDTH) / 2
+    paddingHorizontal: FLATLIST_PADDING,
   },
   itemContainer: {
     width: ITEM_WIDTH,
     height: ITEM_WIDTH,
-    marginHorizontal: (ITEM_MARGIN - (width - ITEM_WIDTH) / 2),
+    //marginHorizontal: (ITEM_MARGIN - (width - ITEM_WIDTH) / 2),
+    marginHorizontal: ITEM_HORIZONTAL_MARGIN,
     borderRadius: 20,
     overflow: "hidden",
     backgroundColor: "#eee",
