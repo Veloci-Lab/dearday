@@ -4,7 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { router, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function EditTimeScreen() {
   const navigation = useNavigation();
@@ -19,6 +19,7 @@ export default function EditTimeScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -97,7 +98,12 @@ export default function EditTimeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" }, 
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff",
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+  }, 
   content: { padding: 20, flexGrow: 1 }, 
   section: { marginBottom: 24 }, 
   label: { 
@@ -135,5 +141,6 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 }
+    marginTop: -1 
+  }
 });

@@ -1,8 +1,9 @@
+// // app/pending.tsx
 // import { useAuthStore } from "@/utils/authStore";
 // import { supabase } from '@/utils/supabase';
 // import { Feather } from "@expo/vector-icons";
-// import { router, useNavigation } from 'expo-router';
-// import React, { useEffect, useState } from 'react';
+// import { router, useFocusEffect, useNavigation } from 'expo-router';
+// import React, { useCallback, useEffect, useState } from 'react';
 // import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 // import { Swipeable } from 'react-native-gesture-handler';
 
@@ -12,10 +13,9 @@
 // };
 
 // type EntryRow = {
-//   memory_entry_id: string;
 //   memory_id: string;
 //   image_url: string | null;
-//   entry_index: number;
+//   image_thumb_url: string | null;
 // };
 
 // type Card = {
@@ -31,8 +31,49 @@
 //   const [cards, setCards] = useState<Card[]>([]);
 //   const [loading, setLoading] = useState(true);
 
+//   const fetchIncompleteMemories = useCallback(async () => {
+//     try {
+//       const { data: memories } = await supabase.from('memories').select('memory_id, date').eq('profile_id', profileId).eq('is_completed', false).order('date', { ascending: false });
+//       const list = (memories as MemoryRow[]) ?? [];
+//       if (list.length === 0) {
+//         setCards([]);
+//         return;
+//       }
+
+//       const memoryIds = list.map(m => m.memory_id);
+//       const { data: entries } = await supabase.from('memory_entries').select('memory_id, image_url, image_thumb_url').in('memory_id', memoryIds).not('image_url', 'is', null).order('entry_index', { ascending: true });
+
+//       const byMem = new Map<string, string[]>();
+//       (entries as EntryRow[] ?? []).forEach(e => {
+//         const imageUrl = e.image_thumb_url || e.image_url;
+//         if (!imageUrl) return;
+//         const arr = byMem.get(e.memory_id) ?? [];
+//         arr.push(imageUrl);
+//         byMem.set(e.memory_id, arr);
+//       });
+
+//       const cardsData: Card[] = list.map(m => ({
+//         memory_id: m.memory_id,
+//         date: m.date,
+//         weekday: weekdayLabel(m.date),
+//         images: byMem.get(m.memory_id) ?? [],
+//       }));
+//       setCards(cardsData);
+//     } catch (e) {
+//       console.error('load incomplete memories error:', e);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [profileId]);
+
 //   useEffect(() => {
 //     navigation.setOptions({
+//       headerShadowVisible: false,
+//       headerStyle: {
+//         backgroundColor: '#fff',
+//         borderBottomWidth: 2,
+//         borderBottomColor: '#f2f2f2',
+//       },
 //       headerLeft: () => (
 //         <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
 //           <Feather name="chevron-left" size={24} color="#000" />
@@ -48,53 +89,42 @@
 //     });
 //   }, [navigation]);
 
-//   useEffect(() => {
-//     (async () => {
+//   useFocusEffect(
+//     useCallback(() => {
 //       setLoading(true);
-//       try {
-//         const { data: memories } = await supabase.from('memories').select('memory_id, date').eq('profile_id', profileId).eq('is_completed', false).order('date', { ascending: false });
-//         const list = (memories as MemoryRow[]) ?? [];
-//         if (list.length === 0) { setCards([]); return; }
-
-//         const memoryIds = list.map(m => m.memory_id);
-//         const { data: entries } = await supabase.from('memory_entries').select('memory_id, image_url').in('memory_id', memoryIds).not('image_url', 'is', null).order('entry_index', { ascending: true });
-        
-//         const byMem = new Map<string, string[]>();
-//         (entries as EntryRow[] ?? []).forEach(e => {
-//           if (!e.image_url) return;
-//           const arr = byMem.get(e.memory_id) ?? [];
-//           arr.push(e.image_url);
-//           byMem.set(e.memory_id, arr);
-//         });
-
-//         const cardsData: Card[] = list.map(m => ({
-//           memory_id: m.memory_id,
-//           date: m.date,
-//           weekday: weekdayLabel(m.date),
-//           images: byMem.get(m.memory_id) ?? [],
-//         }));
-//         setCards(cardsData);
-//       } catch (e) {
-//         console.error('load incomplete memories error:', e);
-//       } finally {
-//         setLoading(false);
+//       if(profileId) {
+//         fetchIncompleteMemories();
 //       }
-//     })();
-//   }, [profileId]);
+//     }, [profileId, fetchIncompleteMemories])
+//   );
 
 //   const monthOf = (d: string) => Number(d.slice(5, 7));
 
-//   function confirmDelete(memory_id: string) {
-//     Alert.alert("삭제할까요?", "이 날짜의 미완성 기록을 삭제합니다.", [
+//   // ✅✅✅ 데이터베이스 함수(RPC)를 호출하도록 수정된 삭제 로직 ✅✅✅
+//   async function confirmDelete(memory_id: string) {
+//     Alert.alert("삭제할까요?", "이 날짜의 미완성 기록과 모든 사진이 영구적으로 삭제됩니다.", [
 //       { text: "취소", style: "cancel" },
 //       {
 //         text: "삭제", style: "destructive",
 //         onPress: async () => {
-//           const { error } = await supabase.from("memories").delete().eq("memory_id", memory_id);
-//           if (!error) {
+//           try {
+//             // 1. Supabase에 만들어둔 함수를 호출합니다.
+//             const { error } = await supabase.rpc('delete_memory_and_entries', {
+//               memory_id_to_delete: memory_id
+//             });
+
+//             // 2. 함수 실행 중 오류가 발생하면 여기서 throw 됩니다.
+//             if (error) throw error;
+
+//             // 3. 성공했을 때만 화면 상태를 업데이트합니다.
 //             setCards(prev => prev.filter(c => c.memory_id !== memory_id));
-//           } else {
-//             Alert.alert("삭제 실패", "잠시 후 다시 시도해 주세요.");
+
+//           } catch (error: any) {
+//             console.error("삭제 RPC 실패:", error);
+//             Alert.alert(
+//               "삭제 실패",
+//               `데이터베이스에서 항목을 삭제하지 못했습니다.\n\n오류: ${error.message}`
+//             );
 //           }
 //         },
 //       },
@@ -105,8 +135,14 @@
 //     <>
 //       {loading ? ( <View style={styles.center}><Text>불러오는 중…</Text></View> )
 //       : cards.length === 0 ? ( <View style={styles.emptyWrap}>
-//           <View style={styles.emptyCircle}><Image source={require('@/assets/images/logo_blue.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} /></View>
-//           <Text style={styles.emptyText}>기록 안 된 항목이 없어요.</Text>
+//           {/* <View style={styles.emptyCircle}>
+//             <Image source={require('@/assets/images/logo_blue.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
+//           </View> */}
+//           <Image 
+//             source={require('@/assets/images/logo_center.png')} 
+//             style={{ width: 35, height: 26, resizeMode: 'contain' }} 
+//           />
+//           <Text style={styles.emptyText}>아무것도 없어요!</Text>
 //         </View> )
 //       : (
 //         <FlatList
@@ -148,7 +184,7 @@
 
 // function MemoryCard({ item }: { item: Card }) {
 //   const dateLabel = item.date.replaceAll('-', '.');
-//   const weekday = `(${item.weekday.slice(0, 1)})`; // (금)
+//   const weekday = `(${item.weekday.slice(0, 1)})`;
 
 //   const onEdit = () => {
 //     router.push(`/today/${item.memory_id}`);
@@ -179,7 +215,6 @@
 //             )}
 //           </View>
 //         ))}
-//         {/* 사진이 4장보다 적을 때 빈 공간을 채웁니다. */}
 //         {Array.from({ length: MAX_IMAGES_SHOWN - displayImages.length }).map((_, i) => <View key={`placeholder-${i}`} style={styles.thumbBox} />)}
         
 //         <Pressable onPress={onEdit} style={[styles.thumbBox, styles.editBtn]}>
@@ -196,9 +231,12 @@
 //   return ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'][wd];
 // }
 
-// /* ✅ [수정] 스타일 전체 */
 // const styles = StyleSheet.create({
-//   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+//   center: { 
+//     flex: 1, 
+//     alignItems: 'center', 
+//     justifyContent: 'center',
+//   },
 //   monthHeader: {
 //     paddingHorizontal: 16,
 //     paddingVertical: 10,
@@ -208,7 +246,6 @@
 //   monthHeaderText: {
 //     fontFamily: "Pretendard-Bold",
 //     fontSize: 16,
-//     //fontWeight: '700',
 //     color: '#1C1C1E'
 //   },
 //   card: {
@@ -225,26 +262,23 @@
 //   cardDate: { 
 //     fontFamily: "Pretendard-Medium",
 //     fontSize: 16, 
-//     //fontWeight: '700', 
 //     color: '#111' 
 //   },
 //   cardWeekday: { 
 //     fontFamily: "Pretendard-Medium",
 //     fontSize: 16, 
 //     color: '#111', 
-//     //fontWeight: '500' 
 //   },
-
 //   imageRowContainer: {
 //     flexDirection: 'row',
-//     gap: 8, // 각 아이템 사이의 간격
+//     gap: 8,
 //   },
 //   thumbBox: {
-//     flex: 1, // 5개의 아이템이 너비를 동일하게 나누어 가짐
-//     aspectRatio: 1, // 정사각형 비율 유지
+//     flex: 1,
+//     aspectRatio: 1,
 //     borderRadius: 8,
 //     overflow: 'hidden',
-//     backgroundColor: '#F0F3F8', // 빈 공간 배경색
+//     backgroundColor: '#F0F3F8',
 //   },
 //   thumbImg: { width: '100%', height: '100%' },
 //   editBtn: {
@@ -260,27 +294,18 @@
 //   moreText: { 
 //     fontFamily: "Pretendard-Regular", 
 //     color: "#fff", 
-//     //fontWeight: "800", 
 //     fontSize: 16 },
 //   emptyWrap: { 
 //     flex: 1, 
 //     alignItems: 'center', 
-//     justifyContent: 'center', 
-//     gap: 12 
-//   },
-//   emptyCircle: { 
-//     width: 44, 
-//     height: 44, 
-//     borderRadius: 22, 
-//     alignItems: 'center', 
-//     justifyContent: 'center', 
-//     backgroundColor: '#EFF3FF' 
+//     justifyContent: 'center',
+//     backgroundColor: "#FEFEFE"
 //   },
 //   emptyText: { 
+//     marginTop: 13,
 //     fontFamily: "Pretendard-Regular",
-//     color: '#8E8E93', 
-//     fontSize: 14, 
-//     //fontWeight: '600' 
+//     color: '#0d0d0d', 
+//     fontSize: 15, 
 //   },
 //   swipeDelete: { 
 //     width: 72, 
@@ -292,21 +317,22 @@
 //   Moments: { 
 //     fontFamily: "Pretendard-Bold",
 //     fontSize: 18, 
-//     //fontWeight: "700", 
 //     color: "#5B8DEF" },
 //   pendingPics: { 
 //     fontFamily: "Pretendard-Regular",
 //     fontSize: 12, 
 //     color: "#929292", 
-//     marginTop: 2 }
+//     marginTop: -1 }
 // });
+
+//////////////////////////////////////////////////////////////////////////////////
 
 // app/pending.tsx
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from '@/utils/supabase';
 import { Feather } from "@expo/vector-icons";
-import { router, useNavigation } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
@@ -315,11 +341,10 @@ type MemoryRow = {
   date: string;
 };
 
-// ✅ 수정: EntryRow 타입에 image_thumb_url 추가
 type EntryRow = {
   memory_id: string;
   image_url: string | null;
-  image_thumb_url: string | null; // 썸네일 필드
+  image_thumb_url: string | null;
 };
 
 type Card = {
@@ -335,8 +360,48 @@ export default function IncompleteMemoriesScreen() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchIncompleteMemories = useCallback(async () => {
+    try {
+      const { data: memories } = await supabase.from('memories').select('memory_id, date').eq('profile_id', profileId).eq('is_completed', false).order('date', { ascending: false });
+      const list = (memories as MemoryRow[]) ?? [];
+      if (list.length === 0) {
+        setCards([]);
+        return;
+      }
+
+      const memoryIds = list.map(m => m.memory_id);
+      const { data: entries } = await supabase.from('memory_entries').select('memory_id, image_url, image_thumb_url').in('memory_id', memoryIds).not('image_url', 'is', null).order('entry_index', { ascending: true });
+
+      const byMem = new Map<string, string[]>();
+      (entries as EntryRow[] ?? []).forEach(e => {
+        const imageUrl = e.image_thumb_url || e.image_url;
+        if (!imageUrl) return;
+        const arr = byMem.get(e.memory_id) ?? [];
+        arr.push(imageUrl);
+        byMem.set(e.memory_id, arr);
+      });
+
+      const cardsData: Card[] = list.map(m => ({
+        memory_id: m.memory_id,
+        date: m.date,
+        weekday: weekdayLabel(m.date),
+        images: byMem.get(m.memory_id) ?? [],
+      }));
+      setCards(cardsData);
+    } catch (e) {
+      console.error('load incomplete memories error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [profileId]);
+
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false, // 그림자 제거
+      // ✅ 헤더 자체의 스타일은 제거하거나 비워둡니다.
+      headerStyle: {
+        backgroundColor: '#fff',
+      },
       headerLeft: () => (
         <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
           <Feather name="chevron-left" size={24} color="#000" />
@@ -352,73 +417,48 @@ export default function IncompleteMemoriesScreen() {
     });
   }, [navigation]);
 
-  useEffect(() => {
-    (async () => {
+  useFocusEffect(
+    useCallback(() => {
       setLoading(true);
-      try {
-        const { data: memories } = await supabase.from('memories').select('memory_id, date').eq('profile_id', profileId).eq('is_completed', false).order('date', { ascending: false });
-        const list = (memories as MemoryRow[]) ?? [];
-        if (list.length === 0) { 
-          setCards([]); 
-          setLoading(false); // 로딩 종료
-          return; 
-        }
-
-        const memoryIds = list.map(m => m.memory_id);
-        // ✅ 수정: image_thumb_url 필드 추가
-        const { data: entries } = await supabase.from('memory_entries').select('memory_id, image_url, image_thumb_url').in('memory_id', memoryIds).not('image_url', 'is', null).order('entry_index', { ascending: true });
-        
-        const byMem = new Map<string, string[]>();
-        (entries as EntryRow[] ?? []).forEach(e => {
-          // ✅ 수정: 썸네일 URL 우선 사용, 없으면 원본 URL 사용
-          const imageUrl = e.image_thumb_url || e.image_url;
-          if (!imageUrl) return;
-
-          const arr = byMem.get(e.memory_id) ?? [];
-          arr.push(imageUrl);
-          byMem.set(e.memory_id, arr);
-        });
-
-        const cardsData: Card[] = list.map(m => ({
-          memory_id: m.memory_id,
-          date: m.date,
-          weekday: weekdayLabel(m.date),
-          images: byMem.get(m.memory_id) ?? [],
-        }));
-        setCards(cardsData);
-      } catch (e) {
-        console.error('load incomplete memories error:', e);
-      } finally {
-        setLoading(false);
+      if(profileId) {
+        fetchIncompleteMemories();
       }
-    })();
-  }, [profileId]);
+    }, [profileId, fetchIncompleteMemories])
+  );
 
   const monthOf = (d: string) => Number(d.slice(5, 7));
 
-  function confirmDelete(memory_id: string) {
-    Alert.alert("삭제할까요?", "이 날짜의 미완성 기록을 삭제합니다.", [
+  async function confirmDelete(memory_id: string) {
+    Alert.alert("삭제할까요?", "이 날짜의 미완성 기록과 모든 사진이 영구적으로 삭제됩니다.", [
       { text: "취소", style: "cancel" },
       {
         text: "삭제", style: "destructive",
         onPress: async () => {
-          const { error } = await supabase.from("memories").delete().eq("memory_id", memory_id);
-          if (!error) {
+          try {
+            const { error } = await supabase.rpc('delete_memory_and_entries', {
+              memory_id_to_delete: memory_id
+            });
+            if (error) throw error;
             setCards(prev => prev.filter(c => c.memory_id !== memory_id));
-          } else {
-            Alert.alert("삭제 실패", "잠시 후 다시 시도해 주세요.");
+          } catch (error: any) {
+            console.error("삭제 RPC 실패:", error);
+            Alert.alert("삭제 실패", `데이터베이스에서 항목을 삭제하지 못했습니다.\n\n오류: ${error.message}`);
           }
         },
       },
     ]);
   }
 
+  // ✅ 1. 모든 return 내용을 View로 감싸고 styles.container를 적용합니다.
   return (
-    <>
+    <View style={styles.container}>
       {loading ? ( <View style={styles.center}><Text>불러오는 중…</Text></View> )
       : cards.length === 0 ? ( <View style={styles.emptyWrap}>
-          <View style={styles.emptyCircle}><Image source={require('@/assets/images/logo_blue.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} /></View>
-          <Text style={styles.emptyText}>기록 안 된 항목이 없어요.</Text>
+          <Image 
+            source={require('@/assets/images/logo_center.png')} 
+            style={{ width: 35, height: 26, resizeMode: 'contain' }} 
+          />
+          <Text style={styles.emptyText}>아무것도 없어요!</Text>
         </View> )
       : (
         <FlatList
@@ -454,10 +494,11 @@ export default function IncompleteMemoriesScreen() {
           }}
         />
       )}
-    </>
+    </View>
   );
 }
 
+// ... MemoryCard, weekdayLabel ... (이하 생략)
 function MemoryCard({ item }: { item: Card }) {
   const dateLabel = item.date.replaceAll('-', '.');
   const weekday = `(${item.weekday.slice(0, 1)})`;
@@ -506,9 +547,19 @@ function weekdayLabel(yyyy_mm_dd: string) {
   const wd = new Date(y, m - 1, d).getDay();
   return ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'][wd];
 }
-
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // ✅ 2. container 스타일을 새로 추가하거나 수정합니다.
+  container: {
+    flex: 1,
+    backgroundColor: "#fff", // 기본 배경색
+    borderTopWidth: 1,
+    borderTopColor: '#f2f2f2',
+  },
+  center: { 
+    flex: 1, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
   monthHeader: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -541,7 +592,6 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     color: '#111', 
   },
-
   imageRowContainer: {
     flexDirection: 'row',
     gap: 8,
@@ -571,21 +621,14 @@ const styles = StyleSheet.create({
   emptyWrap: { 
     flex: 1, 
     alignItems: 'center', 
-    justifyContent: 'center', 
-    gap: 12 
-  },
-  emptyCircle: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    backgroundColor: '#EFF3FF' 
+    justifyContent: 'center',
+    backgroundColor: "#FEFEFE"
   },
   emptyText: { 
+    marginTop: 13,
     fontFamily: "Pretendard-Regular",
-    color: '#8E8E93', 
-    fontSize: 14, 
+    color: '#0d0d0d', 
+    fontSize: 15, 
   },
   swipeDelete: { 
     width: 72, 
@@ -602,5 +645,5 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 }
+    marginTop: -1 }
 });

@@ -27,6 +27,7 @@ export default function NotificationSettingsScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -198,8 +199,13 @@ export default function NotificationSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  content: { padding: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff",
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+   },
+  content: { paddingHorizontal: 20, paddingVertical: 5 },
   item: {
     flexDirection: "row",
     alignItems: "center",
@@ -257,6 +263,6 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12,
     color: "#929292",
-    marginTop: 2,
+    marginTop: -1,
   },
 });

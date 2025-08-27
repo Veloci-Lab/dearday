@@ -88,11 +88,21 @@ export default function MypageScreen() {
     moon: require("@/assets/images/icons/moon.png"),
   };
 
+  // const EditCornerButton = ({ onPress }: { onPress: () => void }) => (
+  //   // 카드 오른쪽에 세로로 꽉 차게 붙여 중앙 정렬 → 텍스트와 높낮이 일치
+  //   <View style={styles.editAtCornerWrap} pointerEvents="box-none">
+  //     <Pressable onPress={onPress} style={styles.editBadge} hitSlop={8}>
+  //       <Feather name="edit-2" size={16} color="#5B8DEF" />
+  //     </Pressable>
+  //   </View>
+  // );
   const EditCornerButton = ({ onPress }: { onPress: () => void }) => (
-    // 카드 오른쪽에 세로로 꽉 차게 붙여 중앙 정렬 → 텍스트와 높낮이 일치
     <View style={styles.editAtCornerWrap} pointerEvents="box-none">
-      <Pressable onPress={onPress} style={styles.editBadge} hitSlop={8}>
-        <Feather name="edit-2" size={16} color="#5B8DEF" />
+      <Pressable onPress={onPress} hitSlop={8}>
+        <Image
+          source={require("@/assets/images/edit_record.png")}
+          style={styles.editIconImage}
+        />
       </Pressable>
     </View>
   );
@@ -158,7 +168,7 @@ export default function MypageScreen() {
 
         {/* 메뉴 리스트 */}
         <SectionTitle>디어데이 설정</SectionTitle>
-        <View style={styles.card}>
+        <View style={styles.card2}>
           <SettingRow
             iconImg={ICONS.user}
             label="내 계정 관리"
@@ -209,6 +219,20 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
 
+  card2: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+    marginBottom: 12,
+    position: "relative",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 10,
+    elevation: 1,
+  },
+
   /* 프로필 카드 */
   profileRow: { flexDirection: "row", alignItems: "center" },
   avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#ccc" },
@@ -222,7 +246,7 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 13, 
     color: "#666", 
-    marginTop: 4 
+    marginTop: 1
   },
   editIcon: { position: "absolute", right: 16, top: 16 },
 
@@ -298,5 +322,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF3FF",
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: "#E6ECFF",
+  },
+
+  editIconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
   },
 });

@@ -2,12 +2,13 @@ import { Feather } from "@expo/vector-icons";
 import * as Application from 'expo-application';
 import { router, useNavigation } from "expo-router";
 import { useEffect } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, View, Image } from "react-native";
+import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function VersionScreen() {
   const navigation = useNavigation();
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -29,13 +30,19 @@ export default function VersionScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoRow}>
-          <Image
+          {/* <Image
             source={require("@/assets/images/logo_blue.png")}
             style={styles.logoImg}
             accessible
             accessibilityLabel="Dearday 로고"
           /> 
-          <Text style={styles.logoLabel}>Dearday</Text>
+          <Text style={styles.logoLabel}>Dearday</Text> */}
+          <Image
+            source={require("@/assets/images/textmark_blue.png")}
+            style={styles.logoImg}
+            accessible
+            accessibilityLabel="Dearday 로고"
+          /> 
         </View>
         <Text style={styles.versionText}>현재 버전: {appVersion}</Text>
         <Text style={styles.updateText}>최신 버전을 사용하고 있습니다.</Text>
@@ -45,10 +52,17 @@ export default function VersionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", justifyContent: 'center' }, 
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff", 
+    justifyContent: 'center',
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+  }, 
   content: { padding: 30, alignItems: 'center' }, 
-  logoRow: { flexDirection: "row", alignItems: "center", marginBottom: 24 },
-  logoImg: { width: 30, height: 30, resizeMode: "contain", marginRight: 8 },
+  logoRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  // logoImg: { width: 30, height: 30, resizeMode: "contain", marginRight: 8 },
+  logoImg: { height: 30, resizeMode: "contain" },
   logoLabel: { 
     fontFamily: "Pretendard-Bold",
     fontSize: 26, 
@@ -75,5 +89,5 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 }
+    marginTop: -1 }
 });
