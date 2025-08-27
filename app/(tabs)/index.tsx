@@ -1039,7 +1039,7 @@ export default function IndexScreen() {
           </View>
         </View>
 
-        <View style={{ height: 1, backgroundColor: "#F2F2F2", marginBottom: 16 }} />
+        <View style={{ height: 2, backgroundColor: "#F2F2F2", marginBottom: 16 }} />
 
         {showToday && (
           <View style={styles.todayContainer}>
@@ -1065,10 +1065,6 @@ export default function IndexScreen() {
                 </View>
               ))}
             </View>
-
-            {/* <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
-              <Feather name="edit-3" size={24} color="#5B8DEF" />
-            </TouchableOpacity> */}
             <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
               {totalImages > 0 ? (
                 <Image
@@ -1087,12 +1083,10 @@ export default function IndexScreen() {
             <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
           ) : feedItems.length === 0 && todayImages.length === 0 ? (
             <View style={styles.emptyWrap}>
-              <View style={styles.emptyIconCircle}>
-                <Image
-                  source={require("@/assets/images/logo_blue.png")}
-                  style={{ width: 28, height: 28, resizeMode: "contain" }}
-                />
-              </View>
+              <Image
+                source={require("@/assets/images/logo_center.png")}
+                style={{ width: 35, height: 26, resizeMode: "contain" }}
+              />
               <Text style={styles.emptyText}>아무것도 없어요!</Text>
             </View>
           ) : (
@@ -1230,21 +1224,13 @@ const styles = StyleSheet.create({
   emptyWrap: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 64,
-  },
-  emptyIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
+    paddingVertical: 250,
   },
   emptyText: {
+    marginTop: 13,
     fontFamily: "Pretendard-Regular",
-    fontSize: 14,
+    fontSize: 15,
     color: "#0D0D0D",
-    fontWeight: "600",
   },
   nickname: {
     fontFamily: "Pretendard-Bold",
