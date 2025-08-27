@@ -177,8 +177,7 @@ const styles = StyleSheet.create({
   rowTitle: { 
     fontFamily: "Pretendard-SemiBold",
     fontSize: 15, 
-    color: "#111", 
-    //fontWeight: "600" 
+    color: "#111",
   },
   rowValue: { 
     fontFamily: "Pretendard-Regular",
@@ -187,12 +186,12 @@ const styles = StyleSheet.create({
   },
   Title: { 
     fontFamily: "Pretendard-Bold",
-    fontSize: 18, 
-    //fontWeight: "700", 
+    fontSize: 18,
     color: "#5B8DEF" },
   SubTitle: { 
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: -1 }
+    marginTop: -1 
+  }
 });

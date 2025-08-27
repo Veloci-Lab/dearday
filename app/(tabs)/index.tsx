@@ -986,7 +986,7 @@ export default function IndexScreen() {
 
         <View style={{ height: 2, backgroundColor: "#F2F2F2", marginBottom: 16 }} />
 
-        {showToday && (
+        {/* {showToday && (
           <View style={styles.todayContainer}>
             <View style={styles.left}>
               <Text style={styles.count}>{totalImages}</Text>
@@ -1011,8 +1011,45 @@ export default function IndexScreen() {
               ))}
             </View>
             
-            {/* ✅ 수정된 부분: todayCompleted 기준으로 아이콘 변경 */}
             <TouchableOpacity style={styles.arrowBtn} onPress={() => router.push("/today/-1")}>
+              {todayCompleted ? (
+                <Image
+                  source={require("@/assets/images/edit.png")}
+                  style={{ width: 30, height: 30 }}
+                />
+              ) : (
+                <Feather name="arrow-right" size={24} color="#5B8DEF" />
+              )}
+            </TouchableOpacity>
+          </View>
+        )} */}
+
+        {showToday && (
+          <View style={styles.todayContainer}>
+            {/* 1. TODAY 텍스트 블록 */}
+            <View style={[styles.todayItem, styles.todayTextBox]}>
+              <Text style={styles.count}>{totalImages}</Text>
+              <Text style={styles.todayText}>TODAY</Text>
+            </View>
+
+            {/* 2. 이미지 3개 */}
+            {renderItems.map((uri, index) => (
+              <View key={index} style={styles.todayItem}>
+                {uri ? (
+                  <ExpoImage source={{ uri }} style={styles.thumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.thumb, styles.placeholderThumb]} />
+                )}
+                {index === 2 && remainingCount > 0 && (
+                  <View style={styles.overlay}>
+                    <Text style={styles.overlayText}>+{remainingCount}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+
+            {/* 3. 수정 버튼 */}
+            <TouchableOpacity style={[styles.todayItem, styles.arrowBtn]} onPress={() => router.push("/today/-1")}>
               {todayCompleted ? (
                 <Image
                   source={require("@/assets/images/edit.png")}
@@ -1132,42 +1169,42 @@ const styles = StyleSheet.create({
     color: "#5B8DEF",
   },
 
-  todayContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-  },
+  // todayContainer: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   backgroundColor: "#fff",
+  //   marginHorizontal: 16,
+  // },
   left: { marginRight: 12, alignItems: 'center' },
   todayText: {
     fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#C3C3C3",
     marginTop: -5,
-    marginLeft: 3,
-    marginRight: 4
+    marginLeft: -3,
+    // marginRight: 4
   },
   count: {
     fontFamily: "Pretendard-Medium",
     fontSize: 35,
     color: "#5B8DEF",
     textAlign: "center",
-    marginLeft: 5
+    marginLeft: -2
   },
   center: {
     flex: 1,
     flexDirection: "row",
     gap: 3,
   },
-  arrowBtn: {
-    width: 76,
-    height: 76,
-    borderRadius: 7,
-    backgroundColor: "#EFF3FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 4,
-  },
+  // arrowBtn: {
+  //   width: 76,
+  //   height: 76,
+  //   borderRadius: 7,
+  //   backgroundColor: "#EFF3FF",
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   marginLeft: 4,
+  // },
   emptyWrap: {
     alignItems: "center",
     justifyContent: "center",
@@ -1196,11 +1233,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  thumb: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 7,
-  },
+  // thumb: {
+  //   width: '100%',
+  //   height: '100%',
+  //   borderRadius: 7,
+  // },
   placeholderThumb: {
     backgroundColor: '#F0F3F8',
   },
@@ -1215,5 +1252,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontFamily: 'Pretendard-Bold',
     fontSize: 16,
+  },
+  // ✅ 수정: todayContainer 스타일 변경
+  todayContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    gap: 5, // 5개 아이템 사이의 간격
+  },
+  // ✅ 추가: 5개 아이템에 공통으로 적용될 스타일
+  todayItem: {
+    flex: 1, // 공간을 1/5씩 나눠가짐
+    aspectRatio: 1, // 정사각형 비율 유지
+    borderRadius: 7,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // ✅ 추가: TODAY 텍스트 박스 전용 스타일
+  todayTextBox: {
+    // 필요시 배경색 등 추가
+    // backgroundColor: '#f0f0f0',
+  },
+  arrowBtn: {
+    backgroundColor: "#EFF3FF",
+  },
+  thumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 7,
   },
 });

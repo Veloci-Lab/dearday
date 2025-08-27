@@ -414,6 +414,7 @@ export default function IncompleteMemoriesScreen() {
         </View>
       ),
       headerTitleAlign: "center",
+      headerRightContainerStyle: { paddingRight: 13 }, // 홈 화면과 동일한 여백
     });
   }, [navigation]);
 

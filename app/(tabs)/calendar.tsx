@@ -319,7 +319,7 @@ import { Calendar } from 'react-native-calendars';
 import { todayString } from 'react-native-calendars/src/expandableCalendar/commons';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CAL_HEIGHT = SCREEN_HEIGHT * 0.45;
+const CAL_HEIGHT = SCREEN_HEIGHT * 0.48;
 
 type DayData = { memory_id: string; thumb?: string };
 type PhotoMap = Record<string, DayData>;
