@@ -19,6 +19,7 @@ export default function EditTimeScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -97,7 +98,12 @@ export default function EditTimeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" }, 
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff",
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+  }, 
   content: { padding: 20, flexGrow: 1 }, 
   section: { marginBottom: 24 }, 
   label: { 

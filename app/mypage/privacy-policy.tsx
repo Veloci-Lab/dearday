@@ -11,6 +11,7 @@ export default function PrivacyPolicyScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -55,7 +56,12 @@ export default function PrivacyPolicyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff",
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+  },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   Title: { 
     fontFamily: "Pretendard-Bold",

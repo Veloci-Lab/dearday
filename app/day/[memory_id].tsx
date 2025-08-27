@@ -543,6 +543,11 @@ export default function DayByMemory() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
+      headerStyle: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#f2f2f2',
+      },
       headerLeft: () => (
         <Pressable
           style={{ flexDirection: "row", alignItems: "center" }}

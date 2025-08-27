@@ -25,6 +25,7 @@ export default function AccountScreen() {
   // 헤더 (제목 + 부제)
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -156,9 +157,14 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff",
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+  },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  list: { paddingHorizontal: 16, paddingTop: 8 },
+  list: { paddingHorizontal: 16, paddingTop: 5 },
 
   row: {
     height: 52,

@@ -675,6 +675,11 @@ export default function IncompleteMemoriesScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
+      headerStyle: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#f2f2f2',
+      },
       headerLeft: () => (
         <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
           <Feather name="chevron-left" size={24} color="#000" />

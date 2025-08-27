@@ -60,6 +60,7 @@ export default function ProfileEditScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -386,7 +387,12 @@ export default function ProfileEditScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff",
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: { padding: 24 },
   avatarBox: { alignItems: "center", marginBottom: 24 },

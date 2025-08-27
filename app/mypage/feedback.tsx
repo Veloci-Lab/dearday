@@ -7,6 +7,7 @@ export default function FeedbackScreen() {
   const navigation = useNavigation();
   useEffect(() => {
     navigation.setOptions({
+      headerShadowVisible: false,
       headerTitleAlign: "center",
       headerTitle: () => (
         <View style={{ alignItems: "center" }}>
@@ -40,7 +41,13 @@ export default function FeedbackScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center'}, 
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff', 
+    justifyContent: 'center',
+    borderTopWidth: 2,
+    borderTopColor: "#f2f2f2"
+  }, 
   content: { padding: 30, alignItems: 'center' }, 
   title: { 
     fontFamily: "Pretendard-Bold",
