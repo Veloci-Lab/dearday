@@ -175,13 +175,13 @@ export function Tile({
         left: 6,
         bottom: 6,
         paddingHorizontal: 12,
-        paddingVertical: 12,
+        paddingVertical: 10,
         maxWidth: width - 12,
       }}
       pointerEvents="none"
     >
       {!!it.dateISO && <Text style={{ 
-        fontFamily: "Pretendard-Bold", 
+        fontFamily: "RedHat-Bold", 
         color: "#FEFEFE", 
         fontSize: 20 
         }}>{it.dateISO}</Text>}

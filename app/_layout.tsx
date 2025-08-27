@@ -26,6 +26,7 @@ export default function RootLayout() {
     'Pretendard-Medium': require('@/assets/fonts/Pretendard-Medium.otf'),
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
+    'RedHat-Bold': require('@/assets/fonts/RedHatDisplay-Bold.ttf'),
   });
 
   useEffect(() => {

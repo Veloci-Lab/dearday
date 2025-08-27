@@ -858,11 +858,11 @@ function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
 
 function BottomLeftBadge({ time, place }: { time?: string; place?: string }) {
   return (
-    <View style={{ position: "absolute", left: 10, bottom: 10 }}>
+    <View style={{ position: "absolute", left: 12, bottom: 10 }}>
       {!!time && (
         <Text
           style={{
-            fontFamily: "Pretendard-Bold",
+            fontFamily: "RedHat-Bold",
             color: "white",
             textShadowColor: "rgba(0,0,0,0.6)",
             textShadowRadius: 4,
