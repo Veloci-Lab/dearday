@@ -494,8 +494,19 @@ export default function TodayScreen() {
 
       <ScrollView contentContainerStyle={styles.gridContainer}>
         {entries.length === 0 ? (
-          <View style={styles.centered}>
-            <Text style={{ fontFamily: "Pretendard-Regular", color: "#888" }}>오늘 등록된 사진이 없어요.</Text>
+          // <View style={styles.centered}>
+          //   <Text style={{ 
+          //     fontFamily: "Pretendard-Regular", 
+          //     color: "#888" 
+          //     }}>오늘 등록된 사진이 없어요.
+          //   </Text>
+          // </View>
+          <View style={styles.emptyWrap}>
+            <Image
+              source={require("@/assets/images/logo_center.png")}
+              style={{ width: 35, height: 26, resizeMode: "contain" }}
+            />
+            <Text style={styles.emptyText}>아무것도 없어요!</Text>
           </View>
         ) : (
           <View style={styles.grid}>
@@ -619,5 +630,16 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Bold",
     fontSize: 16,
     color: "#fff",
+  },
+  emptyWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 250,
+  },
+  emptyText: {
+    marginTop: 13,
+    fontFamily: "Pretendard-Regular",
+    fontSize: 15,
+    color: "#0D0D0D",
   },
 });

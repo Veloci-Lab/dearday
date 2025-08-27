@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
@@ -269,85 +270,162 @@ export default function QuickMemoScreen() {
 
   const hasImage = useMemo(() => !!previewUri, [previewUri]);
 
+  // return (
+  //   <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+  //     {/* 상단 네이티브 헤더 제거 */}
+  //     <Stack.Screen options={{ headerShown: false }} />
+
+  //     <ScrollView
+  //       contentContainerStyle={[
+  //         styles.container,
+  //         { paddingTop: 20 + (Platform.OS === "android" ? insets.top : 0) },
+  //       ]}
+  //     >
+  //       {/* 이미지 + 좌측 상단 뒤로가기 버튼 오버레이 */}
+  //       <View style={styles.imageWrap}>
+  //         {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
+
+  //         <LinearGradient
+  //           pointerEvents="none"
+  //           colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "transparent"]}
+  //           locations={[0, 0.5, 1]}
+  //           style={styles.imageGradient}
+  //         />
+
+  //         <Pressable
+  //           onPress={goBackToCamera}
+  //           style={({ pressed }) => [
+  //             styles.backFab,
+  //             pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  //           ]}
+  //           hitSlop={10}
+  //         >
+  //           <View style={styles.backFabBg}>
+  //             <Feather name="chevron-left" size={22} color="#fff" />
+  //           </View>
+  //         </Pressable>
+  //       </View>
+
+  //       <View style={{ marginVertical: 16 }}>
+  //         <Text style={styles.h1}>잊기 전에 정보를 넣어주세요</Text>
+  //         <Text style={styles.sub}>
+  //           {locating ? "현재 위치를 불러오는 중…" : "빈칸으로 둬도 좋아요. 언제든지 수정할 수 있어요"}
+  //         </Text>
+  //       </View>
+
+  //       {/* 장소 입력 */}
+  //       <Text style={styles.label}>내가 있는 곳</Text>
+  //       <TextInput
+  //         style={styles.input}
+  //         value={placeName}
+  //         onChangeText={setPlaceName}
+  //         placeholder="장소를 입력하세요"
+  //         editable={!saving}
+  //       />
+
+  //       {/* 텍스트 입력 */}
+  //       <Text style={styles.label}>순간의 기록</Text>
+  //       <TextInput
+  //         style={styles.textarea}
+  //         value={text}
+  //         onChangeText={setText}
+  //         placeholder="내용을 입력해주세요"
+  //         multiline
+  //         editable={!saving}
+  //       />
+  //     </ScrollView>
+
+  //     {/* 하단 완료 버튼 */}
+  //     <View style={styles.footerWrapper}>
+  //       <TouchableOpacity
+  //         onPress={handleSave}
+  //         style={styles.footerButton}
+  //         disabled={saving || !hasImage}
+  //       >
+  //         {saving ? (
+  //           <ActivityIndicator size="small" color="#fff" />
+  //         ) : (
+  //           <Text style={styles.footerText}>완료</Text>
+  //         )}
+  //       </TouchableOpacity>
+  //     </View>
+  //   </SafeAreaView>
+  // );
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* 상단 네이티브 헤더 제거 */}
       <Stack.Screen options={{ headerShown: false }} />
 
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { paddingTop: 20 + (Platform.OS === "android" ? insets.top : 0) },
-        ]}
+      {/* ✅ KeyboardAvoidingView로 전체 화면을 감쌉니다. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        {/* 이미지 + 좌측 상단 뒤로가기 버튼 오버레이 */}
-        <View style={styles.imageWrap}>
-          {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
+        <ScrollView
+          contentContainerStyle={[styles.container]}
+        >
+          <View style={styles.imageWrap}>
+            {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
+            <LinearGradient
+              pointerEvents="none"
+              colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "transparent"]}
+              locations={[0, 0.5, 1]}
+              style={styles.imageGradient}
+            />
+            <Pressable
+              onPress={goBackToCamera}
+              style={({ pressed }) => [
+                styles.backFab,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              hitSlop={10}
+            >
+              <View style={styles.backFabBg}>
+                <Feather name="chevron-left" size={22} color="#fff" />
+              </View>
+            </Pressable>
+          </View>
 
-          <LinearGradient
-            pointerEvents="none"
-            colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "transparent"]}
-            locations={[0, 0.5, 1]}
-            style={styles.imageGradient}
+          <View style={{ marginVertical: 16 }}>
+            <Text style={styles.h1}>잊기 전에 정보를 넣어주세요</Text>
+            <Text style={styles.sub}>
+              {locating ? "현재 위치를 불러오는 중…" : "빈칸으로 둬도 좋아요. 언제든지 수정할 수 있어요"}
+            </Text>
+          </View>
+
+          <Text style={styles.label}>내가 있는 곳</Text>
+          <TextInput
+            style={styles.input}
+            value={placeName}
+            onChangeText={setPlaceName}
+            placeholder="장소를 입력하세요"
+            editable={!saving}
           />
 
-          <Pressable
-            onPress={goBackToCamera}
-            style={({ pressed }) => [
-              styles.backFab,
-              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-            ]}
-            hitSlop={10}
+          <Text style={styles.label}>순간의 기록</Text>
+          <TextInput
+            style={styles.textarea}
+            value={text}
+            onChangeText={setText}
+            placeholder="내용을 입력해주세요"
+            multiline
+            editable={!saving}
+          />
+        </ScrollView>
+
+        <View style={styles.footerWrapper}>
+          <TouchableOpacity
+            onPress={handleSave}
+            style={styles.footerButton}
+            disabled={saving || !hasImage}
           >
-            <View style={styles.backFabBg}>
-              <Feather name="chevron-left" size={22} color="#fff" />
-            </View>
-          </Pressable>
+            {saving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.footerText}>완료</Text>
+            )}
+          </TouchableOpacity>
         </View>
-
-        <View style={{ marginVertical: 16 }}>
-          <Text style={styles.h1}>잊기 전에 정보를 넣어주세요</Text>
-          <Text style={styles.sub}>
-            {locating ? "현재 위치를 불러오는 중…" : "빈칸으로 둬도 좋아요. 언제든지 수정할 수 있어요"}
-          </Text>
-        </View>
-
-        {/* 장소 입력 */}
-        <Text style={styles.label}>내가 있는 곳</Text>
-        <TextInput
-          style={styles.input}
-          value={placeName}
-          onChangeText={setPlaceName}
-          placeholder="장소를 입력하세요"
-          editable={!saving}
-        />
-
-        {/* 텍스트 입력 */}
-        <Text style={styles.label}>순간의 기록</Text>
-        <TextInput
-          style={styles.textarea}
-          value={text}
-          onChangeText={setText}
-          placeholder="내용을 입력해주세요"
-          multiline
-          editable={!saving}
-        />
-      </ScrollView>
-
-      {/* 하단 완료 버튼 */}
-      <View style={styles.footerWrapper}>
-        <TouchableOpacity
-          onPress={handleSave}
-          style={styles.footerButton}
-          disabled={saving || !hasImage}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.footerText}>완료</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

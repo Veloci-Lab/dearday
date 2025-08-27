@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -279,81 +280,191 @@ export default function ProfileEditScreen() {
   const canSave =
     !isSaving && nickname.trim().length > 0 && (!changed || dupState === "ok");
 
+  // return (
+  //   <SafeAreaView style={styles.container}>
+  //     <ScrollView contentContainerStyle={styles.content}>
+  //       {/* 아바타 */}
+  //       <View style={styles.avatarBox}>
+  //         <View style={styles.avatarWrap}>
+  //           <Image
+  //             style={styles.avatar}
+  //             source={image ? { uri: image } : LOCAL_FALLBACK}
+  //           />
+  //           <TouchableOpacity style={styles.avatarEdit} onPress={openAvatarSheet}>
+  //             <Feather name="camera" size={16} color="#fff" />
+  //           </TouchableOpacity>
+  //         </View>
+  //       </View>
+
+  //       {/* 닉네임 입력 */}
+  //       <Text style={styles.label}>닉네임</Text>
+  //       <View style={styles.nameRow}>
+  //         <View style={[styles.inputWrap, styles.inputFlex]}>
+  //           <TextInput
+  //             style={styles.input}
+  //             value={nickname}
+  //             onChangeText={(t) => {
+  //               setNickname(t);
+  //               setDupState("idle");
+  //             }}
+  //             onFocus={() => setNickFocused(true)}
+  //             onBlur={() => setNickFocused(false)}
+  //             returnKeyType="done"
+  //           />
+  //           {nickname.trim().length === 0 && (
+  //             <View pointerEvents="none" style={styles.placeholderWrap}>
+  //               <Text style={styles.placeholderText}>닉네임을 입력해주세요</Text>
+  //             </View>
+  //           )}
+  //         </View>
+
+  //         <TouchableOpacity
+  //           style={[
+  //             styles.dupBtn,
+  //             (nickname.trim().length === 0 || dupState === "checking") && { opacity: 0.5 },
+  //           ]}
+  //           onPress={checkNickname}
+  //           disabled={nickname.trim().length === 0 || dupState === "checking"}
+  //         >
+  //           {dupState === "checking" ? (
+  //             <ActivityIndicator size="small" color="#5B8DEF" />
+  //           ) : (
+  //             <Text style={styles.dupBtnText}>중복확인</Text>
+  //           )}
+  //         </TouchableOpacity>
+  //       </View>
+  //       {dupState === "ok" && (
+  //         <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>
+  //           사용 가능한 닉네임입니다.
+  //         </Text>
+  //       )}
+  //       {dupState === "taken" && (
+  //         <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>
+  //           이미 사용 중인 닉네임입니다.
+  //         </Text>
+  //       )}
+  //     </ScrollView>
+
+  //     {/* 하단 저장 버튼 */}
+  //     <View style={styles.footer}>
+  //       <TouchableOpacity
+  //         style={[styles.saveButton, isSaving && { opacity: 0.7 }]}
+  //         onPress={handleSave}
+  //         disabled={!canSave}
+  //       >
+  //         <Text style={styles.saveButtonText}>저장하기</Text>
+  //       </TouchableOpacity>
+  //     </View>
+
+  //     {/* ANDROID 등: 커스텀 바텀 액션시트 */}
+  //     <Modal
+  //       transparent
+  //       animationType="slide"
+  //       visible={sheetVisible && Platform.OS !== "ios"}
+  //       onRequestClose={() => setSheetVisible(false)}
+  //     >
+  //       <TouchableWithoutFeedback onPress={() => setSheetVisible(false)}>
+  //         <View style={styles.sheetBackdrop} />
+  //       </TouchableWithoutFeedback>
+
+  //       <View style={styles.sheetContainer}>
+  //         <View style={styles.sheetHandle} />
+  //         <TouchableOpacity style={styles.sheetItem} onPress={pickImage}>
+  //           <Text style={styles.sheetItemText}>앨범에서 선택</Text>
+  //         </TouchableOpacity>
+  //         <TouchableOpacity style={styles.sheetItem} onPress={deleteAvatarLocal}>
+  //           <Text style={[styles.sheetItemText, { color: "#D32F2F" }]}>프로필 사진 삭제</Text>
+  //         </TouchableOpacity>
+  //         <TouchableOpacity
+  //           style={[styles.sheetItem, styles.sheetCancel]}
+  //           onPress={() => setSheetVisible(false)}
+  //         >
+  //           <Text style={styles.sheetItemText}>취소</Text>
+  //         </TouchableOpacity>
+  //       </View>
+  //     </Modal>
+  //   </SafeAreaView>
+  // );
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* 아바타 */}
-        <View style={styles.avatarBox}>
-          <View style={styles.avatarWrap}>
-            <Image
-              style={styles.avatar}
-              source={image ? { uri: image } : LOCAL_FALLBACK}
-            />
-            <TouchableOpacity style={styles.avatarEdit} onPress={openAvatarSheet}>
-              <Feather name="camera" size={16} color="#fff" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* 아바타 */}
+          <View style={styles.avatarBox}>
+            <View style={styles.avatarWrap}>
+              <Image
+                style={styles.avatar}
+                source={image ? { uri: image } : LOCAL_FALLBACK}
+              />
+              <TouchableOpacity style={styles.avatarEdit} onPress={openAvatarSheet}>
+                <Feather name="camera" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 닉네임 입력 */}
+          <Text style={styles.label}>닉네임</Text>
+          <View style={styles.nameRow}>
+            <View style={[styles.inputWrap, styles.inputFlex]}>
+              <TextInput
+                style={styles.input}
+                value={nickname}
+                onChangeText={(t) => {
+                  setNickname(t);
+                  setDupState("idle");
+                }}
+                onFocus={() => setNickFocused(true)}
+                onBlur={() => setNickFocused(false)}
+                returnKeyType="done"
+              />
+              {nickname.trim().length === 0 && (
+                <View pointerEvents="none" style={styles.placeholderWrap}>
+                  <Text style={styles.placeholderText}>닉네임을 입력해주세요</Text>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.dupBtn,
+                (nickname.trim().length === 0 || dupState === "checking") && { opacity: 0.5 },
+              ]}
+              onPress={checkNickname}
+              disabled={nickname.trim().length === 0 || dupState === "checking"}
+            >
+              {dupState === "checking" ? (
+                <ActivityIndicator size="small" color="#5B8DEF" />
+              ) : (
+                <Text style={styles.dupBtnText}>중복확인</Text>
+              )}
             </TouchableOpacity>
           </View>
-        </View>
+          {dupState === "ok" && (
+            <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>
+              사용 가능한 닉네임입니다.
+            </Text>
+          )}
+          {dupState === "taken" && (
+            <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>
+              이미 사용 중인 닉네임입니다.
+            </Text>
+          )}
+        </ScrollView>
 
-        {/* 닉네임 입력 */}
-        <Text style={styles.label}>닉네임</Text>
-        <View style={styles.nameRow}>
-          <View style={[styles.inputWrap, styles.inputFlex]}>
-            <TextInput
-              style={styles.input}
-              value={nickname}
-              onChangeText={(t) => {
-                setNickname(t);
-                setDupState("idle");
-              }}
-              onFocus={() => setNickFocused(true)}
-              onBlur={() => setNickFocused(false)}
-              returnKeyType="done"
-            />
-            {nickname.trim().length === 0 && (
-              <View pointerEvents="none" style={styles.placeholderWrap}>
-                <Text style={styles.placeholderText}>닉네임을 입력해주세요</Text>
-              </View>
-            )}
-          </View>
-
+        {/* 하단 저장 버튼 */}
+        <View style={styles.footer}>
           <TouchableOpacity
-            style={[
-              styles.dupBtn,
-              (nickname.trim().length === 0 || dupState === "checking") && { opacity: 0.5 },
-            ]}
-            onPress={checkNickname}
-            disabled={nickname.trim().length === 0 || dupState === "checking"}
+            style={[styles.saveButton, isSaving && { opacity: 0.7 }]}
+            onPress={handleSave}
+            disabled={!canSave}
           >
-            {dupState === "checking" ? (
-              <ActivityIndicator size="small" color="#5B8DEF" />
-            ) : (
-              <Text style={styles.dupBtnText}>중복확인</Text>
-            )}
+            <Text style={styles.saveButtonText}>저장하기</Text>
           </TouchableOpacity>
         </View>
-        {dupState === "ok" && (
-          <Text style={{ marginTop: 6, color: "#2E7D32", fontSize: 12 }}>
-            사용 가능한 닉네임입니다.
-          </Text>
-        )}
-        {dupState === "taken" && (
-          <Text style={{ marginTop: 6, color: "#D32F2F", fontSize: 12 }}>
-            이미 사용 중인 닉네임입니다.
-          </Text>
-        )}
-      </ScrollView>
-
-      {/* 하단 저장 버튼 */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.saveButton, isSaving && { opacity: 0.7 }]}
-          onPress={handleSave}
-          disabled={!canSave}
-        >
-          <Text style={styles.saveButtonText}>저장하기</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
 
       {/* ANDROID 등: 커스텀 바텀 액션시트 */}
       <Modal
