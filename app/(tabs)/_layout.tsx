@@ -364,6 +364,7 @@ export default function TabsLayout() {
         options={{
           headerTitle: "",
           headerTitleAlign: "left",
+          headerStyle: { height: 80 },
           headerLeft: () => (
             <Image
               source={require("@/assets/images/textmark_blue.png")}
@@ -380,6 +381,7 @@ export default function TabsLayout() {
         name="calendar"
         options={{
           headerTitleAlign: "center",
+          headerStyle: { height: 80 },
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
               <Text style={ styles.Title }>Dear Month</Text>
@@ -397,6 +399,7 @@ export default function TabsLayout() {
         name="mypage"
         options={{
           headerTitleAlign: "center",
+          headerStyle: { height: 80 },
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
               <Text style={ styles.Title }>My Dearday</Text>

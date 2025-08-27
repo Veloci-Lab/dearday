@@ -886,7 +886,7 @@ const styles = {
   },
   bodyText: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 13,
+    fontSize: 15,
     lineHeight: 20,
     color: "#0D0D0D",
   },
