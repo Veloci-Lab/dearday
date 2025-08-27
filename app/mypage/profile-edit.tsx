@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12,
     color: "#929292",
-    marginTop: 2,
+    marginTop: -1,
   },
   placeholder: {
     fontFamily: "Pretendard-Regular",

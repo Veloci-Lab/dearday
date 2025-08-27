@@ -777,7 +777,6 @@ export default function IncompleteMemoriesScreen() {
   );
 }
 
-// ... (MemoryCard, weekdayLabel, styles는 이전과 동일)
 function MemoryCard({ item }: { item: Card }) {
   const dateLabel = item.date.replaceAll('-', '.');
   const weekday = `(${item.weekday.slice(0, 1)})`;
@@ -921,5 +920,5 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 }
+    marginTop: -1 }
 });

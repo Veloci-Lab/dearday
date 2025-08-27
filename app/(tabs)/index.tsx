@@ -1073,7 +1073,7 @@ export default function IndexScreen() {
               {totalImages > 0 ? (
                 <Image
                   source={require("@/assets/images/edit.png")}
-                  style={{ width: 24, height: 24 }} // 아이콘 크기에 맞게 조절해주세요
+                  style={{ width: 30, height: 30 }} // 아이콘 크기에 맞게 조절해주세요
                 />
               ) : (
                 <Feather name="arrow-right" size={24} color="#5B8DEF" />
@@ -1176,16 +1176,18 @@ const styles = StyleSheet.create({
   },
   statBox: {
     alignItems: "center",
-    marginLeft: 12,
+    marginLeft: 13,
+    marginRight: 5
   },
   statLabel: {
     fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#C3C3C3",
+    marginTop: -5
   },
   statValue: {
     fontFamily: "Pretendard-Medium",
-    fontSize: 30,
+    fontSize: 35,
     color: "#5B8DEF",
   },
 
@@ -1194,33 +1196,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     marginHorizontal: 16,
-    marginBottom: 16,
   },
   left: { marginRight: 12, alignItems: 'center' },
   todayText: {
     fontFamily: "Pretendard-Regular",
     fontSize: 15,
-    color: "#C3C3C3"
+    color: "#C3C3C3",
+    marginTop: -5,
+    marginLeft: 3,
+    marginRight: 4
   },
   count: {
     fontFamily: "Pretendard-Medium",
-    fontSize: 30,
+    fontSize: 35,
     color: "#5B8DEF",
-    textAlign: "center"
+    textAlign: "center",
+    marginLeft: 5
   },
   center: {
     flex: 1,
     flexDirection: "row",
-    gap: 8,
+    gap: 3,
   },
   arrowBtn: {
-    width: 72,
-    height: 72,
+    width: 76,
+    height: 76,
     borderRadius: 7,
     backgroundColor: "#EFF3FF",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 8,
+    marginLeft: 4,
   },
   emptyWrap: {
     alignItems: "center",
@@ -1243,12 +1248,12 @@ const styles = StyleSheet.create({
   },
   nickname: {
     fontFamily: "Pretendard-Bold",
-    fontSize: 20,
+    fontSize: 17,
     color: '#0F172A',
   },
   sinceText: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 12,
+    fontSize: 13,
     color: "#929292",
   },
   thumbContainer: {

@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Application from 'expo-application';
 import { router, useNavigation } from "expo-router";
 import { useEffect } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, View, Image } from "react-native";
+import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function VersionScreen() {
   const navigation = useNavigation();
@@ -75,5 +75,5 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 }
+    marginTop: -1 }
 });

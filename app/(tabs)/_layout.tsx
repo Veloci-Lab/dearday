@@ -355,6 +355,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: true,                 // 네이티브 헤더 사용
         tabBarStyle: { display: "none" },  // 네이티브 탭은 숨김 (커스텀 탭 사용)
+        headerShadowVisible: false,
       }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
@@ -364,7 +365,11 @@ export default function TabsLayout() {
         options={{
           headerTitle: "",
           headerTitleAlign: "left",
-          headerStyle: { height: 80 },
+          headerStyle: { 
+            height: 80,
+            borderBottomWidth: 2,
+            borderBottomColor: '#F2F2F2' 
+          },
           headerLeft: () => (
             <Image
               source={require("@/assets/images/textmark_blue.png")}
@@ -381,7 +386,11 @@ export default function TabsLayout() {
         name="calendar"
         options={{
           headerTitleAlign: "center",
-          headerStyle: { height: 80 },
+          headerStyle: { 
+            height: 80,
+            borderBottomWidth: 2,
+            borderBottomColor: '#F2F2F2' 
+          },
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
               <Text style={ styles.Title }>Dear Month</Text>
@@ -399,7 +408,11 @@ export default function TabsLayout() {
         name="mypage"
         options={{
           headerTitleAlign: "center",
-          headerStyle: { height: 80 },
+          headerStyle: { 
+            height: 80,
+            borderBottomWidth: 2,
+            borderBottomColor: '#F2F2F2' 
+          },
           headerTitle: () => (
             <View style={{ alignItems: "center" }}>
               <Text style={ styles.Title }>My Dearday</Text>
@@ -443,6 +456,6 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 
+    marginTop: -1 
   }
 });

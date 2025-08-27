@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
-import { ActivityIndicator, Linking, Pressable, SafeAreaView, StyleSheet, View, Text } from "react-native";
-import { useNavigation, router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { router, useNavigation } from "expo-router";
+import React, { useEffect } from "react";
+import { ActivityIndicator, Linking, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 const URL = "https://blog.naver.com/wearedearday/223971885263";
@@ -66,5 +66,5 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 12, 
     color: "#929292", 
-    marginTop: 2 }
+    marginTop: -1 }
 });

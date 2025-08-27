@@ -882,7 +882,7 @@ const styles = {
     fontFamily: "Pretendard-Regular",
     fontSize: 12,
     color: "#929292",
-    marginTop: 2,
+    marginTop: -1,
   },
   bodyText: {
     fontFamily: "Pretendard-Regular",
