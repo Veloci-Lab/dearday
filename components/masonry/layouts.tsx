@@ -69,12 +69,16 @@ export function Tile({
       }}
       pointerEvents="none"
     >
-      {!!it.dateISO && <Text style={{ color: "#FEFEFE", fontSize: 20 }}>{it.dateISO}</Text>}
+      {!!it.dateISO && <Text style={{ 
+        fontFamily: "Pretendard-Bold", 
+        color: "#FEFEFE", 
+        fontSize: 20 
+        }}>{it.dateISO}</Text>}
       {!!it.place && (
-        <Text numberOfLines={1} style={{ color: "#F2F2F2", fontSize: 15 }}>
-          {it.place}
-        </Text>
-      )}
+        <Text numberOfLines={1} style={{ 
+          fontFamily: "Pretendard-Regular", 
+          color: "#F2F2F2", 
+          fontSize: 15 }}>{it.place}</Text>)}
     </View>
   ) : null;
 

@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   },
   todayIcon: {
     width: 70,
-    height: 28,
+    height: 30,
     resizeMode: 'contain',
   },
   bgHasPhoto: { backgroundColor: '#00000010' },
