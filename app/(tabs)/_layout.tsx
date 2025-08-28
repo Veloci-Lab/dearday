@@ -193,7 +193,7 @@ function CustomTabBar({ state, navigation }) {
   const FAB_RIGHT = screenWidth * RIGHT_MARGIN_RATIO;
   // --- 비율 계산 끝 ---
 
-  const PILL_HEIGHT = 67;
+  const PILL_HEIGHT = FAB_SIZE;
   const PILL_RADIUS = 100;
   
   const safeBottom = Math.max(insets.bottom, 8);
