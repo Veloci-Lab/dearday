@@ -25,6 +25,7 @@
 // import type { FeedItem } from "@/components/masonry/types";
 // import { useAuthStore } from "@/utils/authStore";
 // import { supabase } from "@/utils/supabase";
+// import { LinearGradient } from "expo-linear-gradient";
 
 // import * as MediaLibrary from "expo-media-library";
 // import ViewShot from "react-native-view-shot";
@@ -354,6 +355,19 @@
 //                 style={{ width: "100%", height: width * 0.75, borderRadius: 16 }}
 //                 contentFit="cover"
 //               />
+//                <LinearGradient
+//                    pointerEvents="none"
+//                    colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)']}
+//                    locations={[0, 0.4, 1]}
+//                    style={{
+//                        position: 'absolute',
+//                        left: 0,
+//                        right: 0,
+//                        bottom: 0,
+//                        height: '50%',
+//                        borderRadius: 16,
+//                    }}
+//                />
 //               <BottomLeftBadge time={it.dateISO} place={it.place} />
 //             </View>
 //           ) : null}
@@ -370,11 +384,11 @@
 
 // function BottomLeftBadge({ time, place }: { time?: string; place?: string }) {
 //   return (
-//     <View style={{ position: "absolute", left: 10, bottom: 10 }}>
+//     <View style={{ position: "absolute", left: 12, bottom: 10 }}>
 //       {!!time && (
 //         <Text
 //           style={{
-//             fontFamily: "Pretendard-Bold",
+//             fontFamily: "RedHat-Bold",
 //             color: "white",
 //             textShadowColor: "rgba(0,0,0,0.6)",
 //             textShadowRadius: 4,
@@ -472,6 +486,8 @@
 //   },
 // };
 
+
+
 // app/day/[memory_id].tsx
 
 // ================================
@@ -547,10 +563,19 @@ export default function DayByMemory() {
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
   const W = Dimensions.get("window").width;
+  const H = Dimensions.get("window").height;
   const viewerTz = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     []
   );
+
+  // // 버튼 너비를 화면 너비의 175/390 비율로 설정
+  // const buttonWidth = W * (175 / 390);
+  // const buttonHeight = buttonWidth * (50 / 200); // 원본 이미지 비율 유지
+
+  const buttonHeight = H * (40 / 844);
+  const downloadbuttonWidth = buttonHeight * (175 / 40);
+  const donesavebuttonWidth = buttonHeight * (212 / 40);
 
   useEffect(() => {
     navigation.setOptions({
@@ -733,7 +758,7 @@ export default function DayByMemory() {
               quality: 0.9,
             }}
           >
-            {/* 캡처용 헤더 */}
+            {/* 캡처용 헤더 - 간격 조정 */}
             <View style={styles.captureHeader}>
               <Image
                 source={require("@/assets/images/textmark_blue.png")}
@@ -772,6 +797,16 @@ export default function DayByMemory() {
   // 일반 상태일 때 기존 레이아웃
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F3F5F7" }}>
+      {/* 저장 완료 스낵바 - 상단에 표시 */}
+      {showSaveConfirmation && (
+        <View style={styles.snackbarContainer}>
+          <Image
+            source={require("@/assets/images/done_save.png")}
+            style={{ width: donesavebuttonWidth, height: buttonHeight, contentFit: "contain" }}
+          />
+        </View>
+      )}
+
       {mode === "grid" ? (
         <View style={{ flex: 1 }}>
           <MasonryGrid
@@ -786,19 +821,12 @@ export default function DayByMemory() {
             }}
             footer={
               <View style={{ height: 100, alignItems: "center", paddingTop: 40 }}>
-                {showSaveConfirmation ? (
+                <TouchableOpacity onPress={handleSaveImage}>
                   <Image
-                    source={require("@/assets/images/done_save.png")}
-                    style={styles.bottomImageStyle}
+                    source={require("@/assets/images/download.png")}
+                    style={{ width: downloadbuttonWidth, height: buttonHeight, contentFit: "contain" }}
                   />
-                ) : (
-                  <TouchableOpacity onPress={handleSaveImage}>
-                    <Image
-                      source={require("@/assets/images/download.png")}
-                      style={styles.bottomImageStyle}
-                    />
-                  </TouchableOpacity>
-                )}
+                </TouchableOpacity>
               </View>
             }
           />
@@ -921,8 +949,9 @@ const styles = {
   },
   captureHeader: {
     backgroundColor: "#FFFFFF",
-    paddingVertical: 20,
+    paddingVertical: 16, // 20에서 16으로 줄임
     paddingHorizontal: 24,
+    marginBottom: -15, // 음수 마진으로 간격 더 좁힘
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -933,14 +962,9 @@ const styles = {
     contentFit: "contain",
   },
   captureDateText: {
-    fontFamily: "Pretendard-SemiBold",
+    fontFamily: "RedHat-Regular",
     fontSize: 16,
-    color: "#333",
-  },
-  bottomImageStyle: {
-    width: 200,
-    height: 50,
-    contentFit: "contain",
+    color: "#929292",
   },
   captureLoadingContainer: {
     position: "absolute",
@@ -957,5 +981,13 @@ const styles = {
     fontSize: 14,
     color: "#5B8DEF",
     fontFamily: "Pretendard-Regular",
+  },
+  snackbarContainer: {
+    position: "absolute",
+    top: 30, // 상단에서 50px 떨어진 위치
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 1000,
   },
 };
