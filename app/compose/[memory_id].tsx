@@ -3,7 +3,8 @@
 // import { supabase } from "@/utils/supabase";
 // import { Feather } from "@expo/vector-icons";
 // import { router, useLocalSearchParams, useNavigation } from "expo-router";
-// import { useEffect, useState } from "react";
+// // ✅ 수정: useRef 훅을 import 합니다.
+// import { useEffect, useRef, useState } from "react";
 // import {
 //   ActivityIndicator,
 //   Alert,
@@ -44,6 +45,10 @@
 //   const [viewerVisible, setViewerVisible] = useState(false);
 //   const [viewerUri, setViewerUri] = useState<string | null>(null);
 
+//   // ✅ 수정: ScrollView와 TextInput을 제어하기 위한 ref를 생성합니다.
+//   const scrollViewRef = useRef<ScrollView>(null);
+//   const contentInputRef = useRef<TextInput>(null);
+
 //   useEffect(() => {
 //     navigation.setOptions({
 //       headerShadowVisible: false,
@@ -60,370 +65,141 @@
 //         </Pressable>
 //       ),
 //       headerTitle: "",
-//       headerShadowVisible: false,
 //     });
 //   }, [navigation]);
 
+//   // (데이터 로딩 관련 코드는 변경 없음)
 //   useEffect(() => {
 //     if (!profileId || !memory_id) return;
-
 //     const fetchData = async () => {
 //       setLoading(true);
-
-//       const { data: memoryData, error: memoryError } = await supabase
-//         .from("memories")
-//         .select("memory_id, is_completed, thumbnail_entry_id")
-//         .eq("profile_id", profileId)
-//         .eq("memory_id", memory_id)
-//         .maybeSingle();
-
-//       if (memoryError || !memoryData) {
-//         Alert.alert("에러", "메모리 정보를 불러오지 못했습니다.");
-//         return;
-//       }
-
-//       const { data: entriesData, error: entriesError } = await supabase
-//         .from("memory_entries")
-//         .select("memory_entry_id, image_url, image_thumb_url, content, location")
-//         .eq("memory_id", memory_id)
-//         .eq("is_selected", true)
-//         .order("entry_index", { ascending: true });
-
-//       if (entriesError || !entriesData) {
-//         Alert.alert("에러", "메모리 항목을 불러오지 못했습니다.");
-//         return;
-//       }
-
-//       const mapped = entriesData.map((entry) => ({
-//         ...entry,
-//         locationInput: entry.location ?? "",
-//         contentInput: entry.content ?? "",
-//       }));
+//       const { data: memoryData } = await supabase.from("memories").select("memory_id, is_completed, thumbnail_entry_id").eq("profile_id", profileId).eq("memory_id", memory_id).maybeSingle();
+//       const { data: entriesData } = await supabase.from("memory_entries").select("memory_entry_id, image_url, image_thumb_url, content, location").eq("memory_id", memory_id).eq("is_selected", true).order("entry_index", { ascending: true });
+//       const mapped = (entriesData ?? []).map((entry) => ({ ...entry, locationInput: entry.location ?? "", contentInput: entry.content ?? "" }));
 //       setEntries(mapped);
-
-//       let serverThumbId = memoryData.thumbnail_entry_id ?? null;
-//       const thumbExistsInEntries = mapped.some(
-//         (e) => e.memory_entry_id === serverThumbId
-//       );
+//       let serverThumbId = memoryData?.thumbnail_entry_id ?? null;
+//       const thumbExistsInEntries = mapped.some((e) => e.memory_entry_id === serverThumbId);
 //       if (serverThumbId != null && thumbExistsInEntries) {
 //         setThumbnailId(serverThumbId);
 //       } else {
 //         const firstWithImage = mapped.find((e) => !!e.image_url);
 //         setThumbnailId(firstWithImage ? firstWithImage.memory_entry_id : null);
 //       }
-
 //       setLoading(false);
 //     };
-
 //     fetchData();
 //   }, [profileId, memory_id]);
 
 //   const handleUpdate = async () => {
-//     if (!memory_id) return;
-
-//     if (!thumbnailId) {
+//     if (!memory_id || !thumbnailId) {
 //       Alert.alert("대표 사진 선택", "대표 사진을 하나 선택해주세요.");
 //       return;
 //     }
-
-//     try {
-//       setLoading(true);
-
-//       const updates = entries.map((entry) =>
-//         supabase
-//           .from("memory_entries")
-//           .update({
-//             location: entry.locationInput.trim() || null,
-//             content: entry.contentInput.trim() || null,
-//           })
-//           .eq("memory_entry_id", entry.memory_entry_id)
-//       );
-//       await Promise.all(updates);
-
-//       await supabase
-//         .from("memories")
-//         .update({
-//           is_completed: true,
-//           thumbnail_entry_id: thumbnailId,
-//         })
-//         .eq("memory_id", memory_id);
-
-//       router.push("/");
-//     } catch (err) {
-//       Alert.alert("에러", "저장 중 문제가 발생했습니다.");
-//     } finally {
-//       setLoading(false);
-//     }
+//     setLoading(true);
+//     const updates = entries.map((entry) => supabase.from("memory_entries").update({ location: entry.locationInput.trim() || null, content: entry.contentInput.trim() || null }).eq("memory_entry_id", entry.memory_entry_id));
+//     await Promise.all(updates);
+//     await supabase.from("memories").update({ is_completed: true, thumbnail_entry_id: thumbnailId }).eq("memory_id", memory_id);
+//     router.push("/");
+//     setLoading(false);
 //   };
 
 //   if (!profileId || loading) {
-//     return (
-//       <View style={styles.centered}>
-//         <ActivityIndicator size="large" color="#5B8DEF" />
-//       </View>
-//     );
+//     return <View style={styles.centered}><ActivityIndicator size="large" color="#5B8DEF" /></View>;
 //   }
 
-// //   return (
-// //     <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: "#fff" }}>
-// //       <View style={styles.header}>
-// //         <Text style={styles.title}>사진별로 기록해주세요</Text>
-// //         <Text style={styles.subtitle}>빈칸으로 두셔도 좋아요</Text>
-// //       </View>
-
-// //       <ScrollView
-// //         contentContainerStyle={{ paddingBottom: FOOTER_HEIGHT + 16 }}
-// //         automaticallyAdjustContentInsets={false}
-// //         contentInsetAdjustmentBehavior="never"
-// //       >
-// //         <FlatList
-// //           data={entries}
-// //           horizontal
-// //           pagingEnabled
-// //           //snapToInterval={ITEM_WIDTH + (ITEM_MARGIN - (width - ITEM_WIDTH) / 2) * 2}
-// //           snapToInterval={ ITEM_WIDTH + ITEM_TOTAL_MARGIN }
-// //           decelerationRate="fast"
-// //           contentContainerStyle={styles.flatListContent}
-// //           showsHorizontalScrollIndicator={false}
-// //           keyExtractor={(item) => String(item.memory_entry_id)}
-// //           renderItem={({ item, index }) => {
-// //             const isThumbnail = item.memory_entry_id === thumbnailId;
-// //             const isCurrent = index === currentIndex;
-// //             return (
-// //               <View style={[styles.itemContainer, isCurrent && styles.activeItem]}>
-// //                 <Pressable
-// //                   onPress={() => {
-// //                     setViewerUri(item.image_url);
-// //                     setViewerVisible(true);
-// //                   }}
-// //                 >
-// //                   <Image source={{ uri: item.image_thumb_url || item.image_url }} style={styles.image} />
-// //                 </Pressable>
-
-// //                 <TouchableOpacity
-// //                   style={styles.pinButton}
-// //                   onPress={() => setThumbnailId(item.memory_entry_id)}
-// //                   hitSlop={8}
-// //                 >
-// //                   <Image
-// //                     source={
-// //                       isThumbnail
-// //                         ? require('@/assets/images/select_on.png')
-// //                         : require('@/assets/images/select_off.png')
-// //                     }
-// //                     style={styles.pinIcon}
-// //                   />
-// //                 </TouchableOpacity>
-// //               </View>
-// //             );
-// //           }}
-// //           onMomentumScrollEnd={(e) => {
-// //             const contentOffset = e.nativeEvent.contentOffset.x;
-// //             const newIndex = Math.round(contentOffset / (ITEM_WIDTH + ITEM_TOTAL_MARGIN ));
-// //             if (newIndex !== currentIndex) setCurrentIndex(newIndex);
-// //           }}
-// //         />
-
-// //         <View style={styles.pagination}>
-// //           {entries.map((_, index) => (
-// //             <View
-// //               key={index}
-// //               style={[
-// //                 styles.dot,
-// //                 index === currentIndex ? styles.dotActive : styles.dotInactive,
-// //               ]}
-// //             />
-// //           ))}
-// //         </View>
-
-// //         <View style={styles.inputSection}>
-// //           <Text style={styles.label}>내가 있는 곳</Text>
-// //           <View style={styles.inputContainer}>
-// //             <TextInput
-// //               style={styles.input}
-// //               placeholder="장소를 입력해주세요"
-// //               placeholderTextColor="#C3C3C3"
-// //               value={entries[currentIndex]?.locationInput}
-// //               onChangeText={(text) => {
-// //                 const updated = [...entries];
-// //                 updated[currentIndex].locationInput = text;
-// //                 setEntries(updated);
-// //               }}
-// //             />
-// //             {!!entries[currentIndex]?.locationInput && (
-// //               <TouchableOpacity
-// //                 style={styles.clearButton}
-// //                 onPress={() => {
-// //                   const updated = [...entries];
-// //                   updated[currentIndex].locationInput = "";
-// //                   setEntries(updated);
-// //                 }}
-// //               >
-// //                 <Feather name="x-circle" size={18} color="#C2C2C2" />
-// //               </TouchableOpacity>
-// //             )}
-// //           </View>
-
-// //           <Text style={styles.label}>순간의 기록</Text>
-// //           <View style={[styles.inputContainer, styles.multilineContainer]}>
-// //             <TextInput
-// //               style={[styles.input, styles.multiline]}
-// //               placeholder="내용을 입력해주세요"
-// //               placeholderTextColor="#C3C3C3"
-// //               multiline
-// //               value={entries[currentIndex]?.contentInput}
-// //               onChangeText={(text) => {
-// //                 const updated = [...entries];
-// //                 updated[currentIndex].contentInput = text;
-// //                 setEntries(updated);
-// //               }}
-// //             />
-// //           </View>
-// //         </View>
-// //       </ScrollView>
-
-// //       <View style={styles.footerWrapper}>
-// //         <TouchableOpacity onPress={handleUpdate} style={styles.footerButton}>
-// //           <Text style={styles.footerText}>완료</Text>
-// //         </TouchableOpacity>
-// //       </View>
-
-// //       <Modal visible={viewerVisible} transparent statusBarTranslucent onRequestClose={() => setViewerVisible(false)}>
-// //         <View style={styles.viewerBackdrop}>
-// //           <View style={styles.viewerPanel}>
-// //             <View style={styles.viewerImageWrap}>
-// //               {viewerUri && <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" />}
-// //             </View>
-// //             <TouchableOpacity style={styles.viewerCloseBelow} onPress={() => setViewerVisible(false)}>
-// //               <Feather name="x" size={22} color="#fff" />
-// //             </TouchableOpacity>
-// //           </View>
-// //         </View>
-// //       </Modal>
-// //     </SafeAreaView>
-// //   );
-// // }
 //   return (
 //     <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: "#fff" }}>
-//       <KeyboardAvoidingView
-//         behavior={Platform.OS === "ios" ? "padding" : "height"}
-//         style={{ flex: 1 }}
-//       >
-//         <View style={styles.header}>
-//           <Text style={styles.title}>사진별로 기록해주세요</Text>
-//           <Text style={styles.subtitle}>빈칸으로 두셔도 좋아요</Text>
-//         </View>
+//       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+//         <View style={{ flex: 1 }}>          
+//           {/* ✅ 수정: ScrollView에 ref를 연결합니다. */}
+//           <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 16 }} automaticallyAdjustContentInsets={false} contentInsetAdjustmentBehavior="never">
+//             <View style={styles.header}>
+//               <Text style={styles.title}>사진별로 기록해주세요</Text>
+//               <Text style={styles.subtitle}>빈칸으로 두셔도 좋아요</Text>
+//             </View>
+//             <FlatList
+//               data={entries}
+//               horizontal
+//               pagingEnabled
+//               snapToInterval={ITEM_WIDTH + ITEM_TOTAL_MARGIN}
+//               decelerationRate="fast"
+//               contentContainerStyle={styles.flatListContent}
+//               showsHorizontalScrollIndicator={false}
+//               keyExtractor={(item) => String(item.memory_entry_id)}
+//               renderItem={({ item, index }) => {
+//                 const isThumbnail = item.memory_entry_id === thumbnailId;
+//                 const isCurrent = index === currentIndex;
+//                 return (
+//                   <View style={[styles.itemContainer, isCurrent && styles.activeItem]}>
+//                     <Pressable onPress={() => { setViewerUri(item.image_url); setViewerVisible(true); }}>
+//                       <Image source={{ uri: item.image_thumb_url || item.image_url }} style={styles.image} />
+//                     </Pressable>
+//                     <TouchableOpacity style={styles.pinButton} onPress={() => setThumbnailId(item.memory_entry_id)} hitSlop={8}>
+//                       <Image source={isThumbnail ? require('@/assets/images/select_on.png') : require('@/assets/images/select_off.png')} style={styles.pinIcon} />
+//                     </TouchableOpacity>
+//                   </View>
+//                 );
+//               }}
+//               onMomentumScrollEnd={(e) => {
+//                 const contentOffset = e.nativeEvent.contentOffset.x;
+//                 const newIndex = Math.round(contentOffset / (ITEM_WIDTH + ITEM_TOTAL_MARGIN));
+//                 if (newIndex !== currentIndex) setCurrentIndex(newIndex);
+//               }}
+//             />
 
-//         <ScrollView
-//           contentContainerStyle={{ paddingBottom: FOOTER_HEIGHT + 16 }}
-//           automaticallyAdjustContentInsets={false}
-//           contentInsetAdjustmentBehavior="never"
-//         >
-//           <FlatList
-//             data={entries}
-//             horizontal
-//             pagingEnabled
-//             //snapToInterval={ITEM_WIDTH + (ITEM_MARGIN - (width - ITEM_WIDTH) / 2) * 2}
-//             snapToInterval={ ITEM_WIDTH + ITEM_TOTAL_MARGIN }
-//             decelerationRate="fast"
-//             contentContainerStyle={styles.flatListContent}
-//             showsHorizontalScrollIndicator={false}
-//             keyExtractor={(item) => String(item.memory_entry_id)}
-//             renderItem={({ item, index }) => {
-//               const isThumbnail = item.memory_entry_id === thumbnailId;
-//               const isCurrent = index === currentIndex;
-//               return (
-//                 <View style={[styles.itemContainer, isCurrent && styles.activeItem]}>
-//                   <Pressable
-//                     onPress={() => {
-//                       setViewerUri(item.image_url);
-//                       setViewerVisible(true);
-//                     }}
-//                   >
-//                     <Image source={{ uri: item.image_thumb_url || item.image_url }} style={styles.image} />
-//                   </Pressable>
+//             <View style={styles.pagination}>
+//               {entries.map((_, index) => <View key={index} style={[styles.dot, index === currentIndex ? styles.dotActive : styles.dotInactive]} />)}
+//             </View>
 
-//                   <TouchableOpacity
-//                     style={styles.pinButton}
-//                     onPress={() => setThumbnailId(item.memory_entry_id)}
-//                     hitSlop={8}
-//                   >
-//                     <Image
-//                       source={
-//                         isThumbnail
-//                           ? require('@/assets/images/select_on.png')
-//                           : require('@/assets/images/select_off.png')
-//                       }
-//                       style={styles.pinIcon}
-//                     />
-//                   </TouchableOpacity>
-//                 </View>
-//               );
-//             }}
-//             onMomentumScrollEnd={(e) => {
-//               const contentOffset = e.nativeEvent.contentOffset.x;
-//               const newIndex = Math.round(contentOffset / (ITEM_WIDTH + ITEM_TOTAL_MARGIN ));
-//               if (newIndex !== currentIndex) setCurrentIndex(newIndex);
-//             }}
-//           />
-
-//           <View style={styles.pagination}>
-//             {entries.map((_, index) => (
-//               <View
-//                 key={index}
-//                 style={[
-//                   styles.dot,
-//                   index === currentIndex ? styles.dotActive : styles.dotInactive,
-//                 ]}
-//               />
-//             ))}
-//           </View>
-
-//           <View style={styles.inputSection}>
-//             <Text style={styles.label}>내가 있는 곳</Text>
-//             <View style={styles.inputContainer}>
-//               <TextInput
-//                 style={styles.input}
-//                 placeholder="장소를 입력해주세요"
-//                 placeholderTextColor="#C3C3C3"
-//                 value={entries[currentIndex]?.locationInput}
-//                 onChangeText={(text) => {
-//                   const updated = [...entries];
-//                   updated[currentIndex].locationInput = text;
-//                   setEntries(updated);
-//                 }}
-//               />
-//               {!!entries[currentIndex]?.locationInput && (
-//                 <TouchableOpacity
-//                   style={styles.clearButton}
-//                   onPress={() => {
+//             <View style={styles.inputSection}>
+//               <Text style={styles.label}>내가 있는 곳</Text>
+//               <View style={styles.inputContainer}>
+//                 <TextInput
+//                   style={styles.input}
+//                   placeholder="장소를 입력해주세요"
+//                   placeholderTextColor="#C3C3C3"
+//                   value={entries[currentIndex]?.locationInput}
+//                   onChangeText={(text) => {
 //                     const updated = [...entries];
-//                     updated[currentIndex].locationInput = "";
+//                     updated[currentIndex].locationInput = text;
 //                     setEntries(updated);
 //                   }}
-//                 >
-//                   <Feather name="x-circle" size={18} color="#C2C2C2" />
-//                 </TouchableOpacity>
-//               )}
-//             </View>
+//                 />
+//                 {!!entries[currentIndex]?.locationInput && (
+//                   <TouchableOpacity style={styles.clearButton} onPress={() => { const updated = [...entries]; updated[currentIndex].locationInput = ""; setEntries(updated); }}>
+//                     <Feather name="x-circle" size={18} color="#C2C2C2" />
+//                   </TouchableOpacity>
+//                 )}
+//               </View>
 
-//             <Text style={styles.label}>순간의 기록</Text>
-//             <View style={[styles.inputContainer, styles.multilineContainer]}>
-//               <TextInput
-//                 style={[styles.input, styles.multiline]}
-//                 placeholder="내용을 입력해주세요"
-//                 placeholderTextColor="#C3C3C3"
-//                 multiline
-//                 value={entries[currentIndex]?.contentInput}
-//                 onChangeText={(text) => {
-//                   const updated = [...entries];
-//                   updated[currentIndex].contentInput = text;
-//                   setEntries(updated);
-//                 }}
-//               />
+//               <Text style={styles.label}>순간의 기록</Text>
+//               <View style={[styles.inputContainer, styles.multilineContainer]}>
+//                 {/* ✅ 수정: '순간의 기록' TextInput에 ref를 연결하고 onFocus 핸들러를 추가합니다. */}
+//                 <TextInput
+//                   ref={contentInputRef}
+//                   style={[styles.input, styles.multiline]}
+//                   placeholder="내용을 입력해주세요"
+//                   placeholderTextColor="#C3C3C3"
+//                   multiline
+//                   value={entries[currentIndex]?.contentInput}
+//                   onChangeText={(text) => {
+//                     const updated = [...entries];
+//                     updated[currentIndex].contentInput = text;
+//                     setEntries(updated);
+//                   }}
+//                   onFocus={() => {
+//                     // 키보드가 올라온 후 잠시 뒤에 실행하여 정확한 위치로 스크롤
+//                     setTimeout(() => {
+//                       contentInputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+//                         scrollViewRef.current?.scrollTo({ y: pageY - 100, animated: true }); // 100은 적절한 오프셋
+//                       });
+//                     }, 200);
+//                   }}
+//                 />
+//               </View>
 //             </View>
-//           </View>
-//         </ScrollView>
+//           </ScrollView>
+//         </View>
 
 //         <View style={styles.footerWrapper}>
 //           <TouchableOpacity onPress={handleUpdate} style={styles.footerButton}>
@@ -448,6 +224,7 @@
 //   );
 // }
 
+
 // const styles = StyleSheet.create({
 //   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 //   header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, backgroundColor: "#fff" },
@@ -465,13 +242,11 @@
 //     marginBottom: 25,
 //   },
 //   flatListContent: {
-//     // paddingHorizontal: (width - ITEM_WIDTH) / 2
 //     paddingHorizontal: FLATLIST_PADDING,
 //   },
 //   itemContainer: {
 //     width: ITEM_WIDTH,
 //     height: ITEM_WIDTH,
-//     //marginHorizontal: (ITEM_MARGIN - (width - ITEM_WIDTH) / 2),
 //     marginHorizontal: ITEM_HORIZONTAL_MARGIN,
 //     borderRadius: 20,
 //     overflow: "hidden",
@@ -486,7 +261,6 @@
 //   image: {
 //     width: "100%",
 //     height: "100%",
-//     // ✅ 이미지 자체에 borderRadius를 주어 테두리 안쪽으로 완벽하게 맞도록 수정
 //     borderRadius: 17,
 //   },
 //   pinButton: {
@@ -585,12 +359,12 @@
 //   },
 // });
 
+
 // app/compose/[memory_id].tsx
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-// ✅ 수정: useRef 훅을 import 합니다.
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -632,9 +406,9 @@ export default function ComposeScreen() {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerUri, setViewerUri] = useState<string | null>(null);
 
-  // ✅ 수정: ScrollView와 TextInput을 제어하기 위한 ref를 생성합니다.
   const scrollViewRef = useRef<ScrollView>(null);
   const contentInputRef = useRef<TextInput>(null);
+  const locationInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     navigation.setOptions({
@@ -655,15 +429,31 @@ export default function ComposeScreen() {
     });
   }, [navigation]);
 
-  // (데이터 로딩 관련 코드는 변경 없음)
   useEffect(() => {
     if (!profileId || !memory_id) return;
     const fetchData = async () => {
       setLoading(true);
-      const { data: memoryData } = await supabase.from("memories").select("memory_id, is_completed, thumbnail_entry_id").eq("profile_id", profileId).eq("memory_id", memory_id).maybeSingle();
-      const { data: entriesData } = await supabase.from("memory_entries").select("memory_entry_id, image_url, image_thumb_url, content, location").eq("memory_id", memory_id).eq("is_selected", true).order("entry_index", { ascending: true });
-      const mapped = (entriesData ?? []).map((entry) => ({ ...entry, locationInput: entry.location ?? "", contentInput: entry.content ?? "" }));
+      const { data: memoryData } = await supabase
+        .from("memories")
+        .select("memory_id, is_completed, thumbnail_entry_id")
+        .eq("profile_id", profileId)
+        .eq("memory_id", memory_id)
+        .maybeSingle();
+      
+      const { data: entriesData } = await supabase
+        .from("memory_entries")
+        .select("memory_entry_id, image_url, image_thumb_url, content, location")
+        .eq("memory_id", memory_id)
+        .eq("is_selected", true)
+        .order("entry_index", { ascending: true });
+      
+      const mapped = (entriesData ?? []).map((entry) => ({
+        ...entry,
+        locationInput: entry.location ?? "",
+        contentInput: entry.content ?? ""
+      }));
       setEntries(mapped);
+      
       let serverThumbId = memoryData?.thumbnail_entry_id ?? null;
       const thumbExistsInEntries = mapped.some((e) => e.memory_entry_id === serverThumbId);
       if (serverThumbId != null && thumbExistsInEntries) {
@@ -683,28 +473,56 @@ export default function ComposeScreen() {
       return;
     }
     setLoading(true);
-    const updates = entries.map((entry) => supabase.from("memory_entries").update({ location: entry.locationInput.trim() || null, content: entry.contentInput.trim() || null }).eq("memory_entry_id", entry.memory_entry_id));
+    const updates = entries.map((entry) =>
+      supabase
+        .from("memory_entries")
+        .update({
+          location: entry.locationInput.trim() || null,
+          content: entry.contentInput.trim() || null
+        })
+        .eq("memory_entry_id", entry.memory_entry_id)
+    );
     await Promise.all(updates);
-    await supabase.from("memories").update({ is_completed: true, thumbnail_entry_id: thumbnailId }).eq("memory_id", memory_id);
+    await supabase
+      .from("memories")
+      .update({
+        is_completed: true,
+        thumbnail_entry_id: thumbnailId
+      })
+      .eq("memory_id", memory_id);
     router.push("/");
     setLoading(false);
   };
 
   if (!profileId || loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#5B8DEF" /></View>;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#5B8DEF" />
+      </View>
+    );
   }
 
   return (
     <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: "#fff" }}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
         <View style={{ flex: 1 }}>
-          <View style={styles.header}>
-            <Text style={styles.title}>사진별로 기록해주세요</Text>
-            <Text style={styles.subtitle}>빈칸으로 두셔도 좋아요</Text>
-          </View>
-          
-          {/* ✅ 수정: ScrollView에 ref를 연결합니다. */}
-          <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 16 }} automaticallyAdjustContentInsets={false} contentInsetAdjustmentBehavior="never">
+          {/* ScrollView가 전체 콘텐츠를 감싸도록 수정 */}
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* 헤더를 ScrollView 안으로 이동 */}
+            <View style={styles.header}>
+              <Text style={styles.title}>사진별로 기록해주세요</Text>
+              <Text style={styles.subtitle}>빈칸으로 두셔도 좋아요</Text>
+            </View>
+
             <FlatList
               data={entries}
               horizontal
@@ -719,11 +537,30 @@ export default function ComposeScreen() {
                 const isCurrent = index === currentIndex;
                 return (
                   <View style={[styles.itemContainer, isCurrent && styles.activeItem]}>
-                    <Pressable onPress={() => { setViewerUri(item.image_url); setViewerVisible(true); }}>
-                      <Image source={{ uri: item.image_thumb_url || item.image_url }} style={styles.image} />
+                    <Pressable
+                      onPress={() => {
+                        setViewerUri(item.image_url);
+                        setViewerVisible(true);
+                      }}
+                    >
+                      <Image
+                        source={{ uri: item.image_thumb_url || item.image_url }}
+                        style={styles.image}
+                      />
                     </Pressable>
-                    <TouchableOpacity style={styles.pinButton} onPress={() => setThumbnailId(item.memory_entry_id)} hitSlop={8}>
-                      <Image source={isThumbnail ? require('@/assets/images/select_on.png') : require('@/assets/images/select_off.png')} style={styles.pinIcon} />
+                    <TouchableOpacity
+                      style={styles.pinButton}
+                      onPress={() => setThumbnailId(item.memory_entry_id)}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={
+                          isThumbnail
+                            ? require('@/assets/images/select_on.png')
+                            : require('@/assets/images/select_off.png')
+                        }
+                        style={styles.pinIcon}
+                      />
                     </TouchableOpacity>
                   </View>
                 );
@@ -736,13 +573,22 @@ export default function ComposeScreen() {
             />
 
             <View style={styles.pagination}>
-              {entries.map((_, index) => <View key={index} style={[styles.dot, index === currentIndex ? styles.dotActive : styles.dotInactive]} />)}
+              {entries.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.dot,
+                    index === currentIndex ? styles.dotActive : styles.dotInactive
+                  ]}
+                />
+              ))}
             </View>
 
             <View style={styles.inputSection}>
               <Text style={styles.label}>내가 있는 곳</Text>
               <View style={styles.inputContainer}>
                 <TextInput
+                  ref={locationInputRef}
                   style={styles.input}
                   placeholder="장소를 입력해주세요"
                   placeholderTextColor="#C3C3C3"
@@ -752,9 +598,25 @@ export default function ComposeScreen() {
                     updated[currentIndex].locationInput = text;
                     setEntries(updated);
                   }}
+                  onFocus={() => {
+                    // "내가 있는 곳" 입력 시에도 스크롤 처리
+                    setTimeout(() => {
+                      locationInputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                        // 헤더가 스크롤에 포함되므로 더 적은 오프셋 사용
+                        scrollViewRef.current?.scrollTo({ y: pageY - 150, animated: true });
+                      });
+                    }, 200);
+                  }}
                 />
                 {!!entries[currentIndex]?.locationInput && (
-                  <TouchableOpacity style={styles.clearButton} onPress={() => { const updated = [...entries]; updated[currentIndex].locationInput = ""; setEntries(updated); }}>
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => {
+                      const updated = [...entries];
+                      updated[currentIndex].locationInput = "";
+                      setEntries(updated);
+                    }}
+                  >
                     <Feather name="x-circle" size={18} color="#C2C2C2" />
                   </TouchableOpacity>
                 )}
@@ -762,7 +624,6 @@ export default function ComposeScreen() {
 
               <Text style={styles.label}>순간의 기록</Text>
               <View style={[styles.inputContainer, styles.multilineContainer]}>
-                {/* ✅ 수정: '순간의 기록' TextInput에 ref를 연결하고 onFocus 핸들러를 추가합니다. */}
                 <TextInput
                   ref={contentInputRef}
                   style={[styles.input, styles.multiline]}
@@ -776,10 +637,10 @@ export default function ComposeScreen() {
                     setEntries(updated);
                   }}
                   onFocus={() => {
-                    // 키보드가 올라온 후 잠시 뒤에 실행하여 정확한 위치로 스크롤
                     setTimeout(() => {
                       contentInputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-                        scrollViewRef.current?.scrollTo({ y: pageY - 100, animated: true }); // 100은 적절한 오프셋
+                        // 헤더가 스크롤에 포함되므로 더 적은 오프셋 사용
+                        scrollViewRef.current?.scrollTo({ y: pageY - 150, animated: true });
                       });
                     }, 200);
                   }}
@@ -796,13 +657,27 @@ export default function ComposeScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <Modal visible={viewerVisible} transparent statusBarTranslucent onRequestClose={() => setViewerVisible(false)}>
+      <Modal
+        visible={viewerVisible}
+        transparent
+        statusBarTranslucent
+        onRequestClose={() => setViewerVisible(false)}
+      >
         <View style={styles.viewerBackdrop}>
           <View style={styles.viewerPanel}>
             <View style={styles.viewerImageWrap}>
-              {viewerUri && <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" />}
+              {viewerUri && (
+                <Image
+                  source={{ uri: viewerUri }}
+                  style={styles.viewerImage}
+                  resizeMode="contain"
+                />
+              )}
             </View>
-            <TouchableOpacity style={styles.viewerCloseBelow} onPress={() => setViewerVisible(false)}>
+            <TouchableOpacity
+              style={styles.viewerCloseBelow}
+              onPress={() => setViewerVisible(false)}
+            >
               <Feather name="x" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -812,10 +687,18 @@ export default function ComposeScreen() {
   );
 }
 
-
 const styles = StyleSheet.create({
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, backgroundColor: "#fff" },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: "#fff"
+  },
   title: {
     fontFamily: "Pretendard-Bold",
     fontSize: 20,
@@ -880,9 +763,12 @@ const styles = StyleSheet.create({
   dotInactive: {
     backgroundColor: '#E2E8F0',
   },
-  inputSection: { paddingHorizontal: 20, paddingTop: 12 },
+  inputSection: {
+    paddingHorizontal: 20,
+    paddingTop: 12
+  },
   label: {
-    fontFamily: "Pretendard-SemiBold",
+    fontFamily: "Pretendard-Medium",
     color: '#0F172A',
     marginTop: 16,
     marginBottom: 8
@@ -901,6 +787,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 14,
     height: 48,
+    color: "#333333"
   },
   clearButton: {
     padding: 8,
@@ -916,7 +803,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
   },
-  footerWrapper: { padding: 16, backgroundColor: "#fff" },
+  footerWrapper: {
+    padding: 16,
+    backgroundColor: "#fff",
+  },
   footerButton: {
     backgroundColor: "#5B8DEF",
     borderRadius: 12,
@@ -929,10 +819,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
   },
-  viewerBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.9)", justifyContent: "center", alignItems: "center" },
-  viewerPanel: { width: Math.min(width * 0.9, 420), height: Math.min(height * 0.85, 720), padding: 16, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.6)" },
-  viewerImageWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
-  viewerImage: { width: "100%", height: "100%" },
+  viewerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  viewerPanel: {
+    width: Math.min(width * 0.9, 420),
+    height: Math.min(height * 0.85, 720),
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.6)"
+  },
+  viewerImageWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  viewerImage: {
+    width: "100%",
+    height: "100%"
+  },
   viewerCloseBelow: {
     alignSelf: "center",
     marginTop: 12,
