@@ -183,7 +183,65 @@ export default function OnboardingSecondScreen() {
     }, [sleepTime, profileId, setFooter, setHasCompletedOnboarding])
   );
 
-  return (
+  // return (
+  //   <View style={s.container}>
+  //     {/* 진행률 바 */}
+  //     <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+  //       <View style={s.progressBarOuter}>
+  //         <View
+  //           style={[s.progressBarInner, { width: '100%' }]} // 100% 채움
+  //         />
+  //       </View>
+  //     </View>
+
+  //     {/* 콘텐츠 영역 */}
+  //     <View style={{ paddingHorizontal: 20 }}>
+  //       {/* 헤더 텍스트 */}
+  //       <View style={{ marginBottom: 36 }}>
+  //         <Text style={s.h1}>오늘 하루를 기록할 시간을 알려주세요</Text>
+  //         <Text style={s.sub}>이 시간에 맞추어 하루를 기록할 수 있도록 알람을 보내드릴게요.</Text>
+  //         <Text style={s.sub}>이 시간이 아니어도 아무때나 기록할 수 있어요.</Text>
+  //       </View>
+
+  //       {/* 라벨 */}
+  //       <Text style={s.label}>하루 기록 시간</Text>
+
+  //       {/* 시간 선택 버튼 */}
+  //       <Pressable
+  //         onPress={() => setShowPicker(true)}
+  //         style={[
+  //           s.input,
+  //           { justifyContent: "center" },
+  //           sleepTime && { borderColor: "#5B8DEF" }
+  //         ]}
+  //       >
+  //         <Text style={{ fontFamily: 'Pretendard-Regular', color: sleepTime ? "#0F172A" : "#B4BCC6" }}>
+  //           {formatTime(sleepTime)}
+  //         </Text>
+  //       </Pressable>
+  //     </View>
+
+  //     {showPicker && (
+  //         <DatePicker
+  //           modal
+  //           open={showPicker}
+  //           date={sleepTime ?? new Date()}
+  //           mode="time"
+  //           onConfirm={(date) => {
+  //             setShowPicker(false);
+  //             setSleepTime(date);
+  //           }}
+  //           onCancel={() => {
+  //             setShowPicker(false);
+  //           }}
+  //           title="시간 선택"
+  //           confirmText="확인"
+  //           cancelText="취소"
+  //         />
+  //     )}
+  //   </View>
+  // );
+    return (
     <View style={s.container}>
       {/* 진행률 바 */}
       <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
@@ -280,7 +338,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 44,
+    height: 50,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E2E8F0",

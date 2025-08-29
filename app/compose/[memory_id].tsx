@@ -1455,7 +1455,7 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     paddingHorizontal: 16,
     fontSize: 14,
-    height: 48,
+    height: 50,
     color: "#333333"
   },
   clearButton: {
