@@ -263,7 +263,7 @@
 //             automaticallyAdjustContentInsets={false}
 //             contentInsetAdjustmentBehavior="never"
 //           >
-//             <View style={styles.imageWrap}>
+//             <View style={[styles.imageWrap, { marginTop: insets.top }]}>
 //               {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
 //               <LinearGradient
 //                 pointerEvents="none"
@@ -293,13 +293,23 @@
 //             </View>
 
 //             <Text style={styles.label}>내가 있는 곳</Text>
-//             <TextInput
-//               style={styles.input}
-//               value={placeName}
-//               onChangeText={setPlaceName}
-//               placeholder="장소를 입력하세요"
-//               editable={!saving}
-//             />
+//             <View style={styles.inputContainer}>
+//               <TextInput
+//                 style={styles.input}
+//                 value={placeName}
+//                 onChangeText={setPlaceName}
+//                 placeholder="장소를 입력하세요"
+//                 editable={!saving}
+//               />
+//               {!!placeName && (
+//                 <TouchableOpacity
+//                   style={styles.clearButton}
+//                   onPress={() => setPlaceName("")}
+//                 >
+//                   <Feather name="x-circle" size={18} color="#C2C2C2" />
+//                 </TouchableOpacity>
+//               )}
+//             </View>
 
 //             <Text style={styles.label}>순간의 기록</Text>
 //             <TextInput
@@ -389,26 +399,35 @@
 //     color: "#929292",
 //   },
 //   label: {
-//     fontFamily: "Pretendard-Regular",
+//     fontFamily: "Pretendard-Medium",
 //     fontSize: 14,
 //     marginBottom: 8,
 //     color: "#0D0D0D",
 //   },
-//   input: {
-//     fontFamily: "Pretendard-Regular",
+//   inputContainer: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
 //     borderWidth: 1,
-//     borderColor: "#ddd",
+//     borderColor: "#f2f2f2",
 //     borderRadius: 8,
+//     marginBottom: 16,
+//   },
+//   input: {
+//     flex: 1,
+//     fontFamily: "Pretendard-Regular",
 //     paddingHorizontal: 12,
 //     paddingVertical: 10,
 //     fontSize: 14,
-//     marginBottom: 16,
 //     color: "#333333"
+//   },
+//   clearButton: {
+//     padding: 8,
+//     marginRight: 4,
 //   },
 //   textarea: {
 //     fontFamily: "Pretendard-Regular",
 //     borderWidth: 1,
-//     borderColor: "#ddd",
+//     borderColor: "#f2f2f2",
 //     borderRadius: 8,
 //     paddingHorizontal: 12,
 //     paddingVertical: 10,
@@ -419,14 +438,21 @@
 //   footerWrapper: { 
 //     padding: 16, 
 //     backgroundColor: "#fff",
-//     borderTopWidth: 1,
-//     borderTopColor: "#ddd",
+//     // borderTopWidth: 1,
+//     // borderTopColor: "#ddd",
 //   },
+//   // footerButton: {
+//   //   backgroundColor: "#5B8DEF",
+//   //   borderRadius: 8,
+//   //   paddingVertical: 14,
+//   //   alignItems: "center",
+//   // },
 //   footerButton: {
 //     backgroundColor: "#5B8DEF",
-//     borderRadius: 8,
-//     paddingVertical: 14,
+//     borderRadius: 12,
+//     height: 52,
 //     alignItems: "center",
+//     justifyContent: 'center',
 //   },
 //   footerText: {
 //     fontFamily: "Pretendard-Bold",
@@ -434,6 +460,7 @@
 //     fontSize: 16,
 //   },
 // });
+
 
 
 import { useAuthStore } from "@/utils/authStore";
@@ -701,7 +728,7 @@ export default function QuickMemoScreen() {
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
           >
-            <View style={styles.imageWrap}>
+            <View style={[styles.imageWrap, { marginTop: insets.top }]}>
               {hasImage && <Image source={{ uri: previewUri! }} style={styles.image} />}
               <LinearGradient
                 pointerEvents="none"
