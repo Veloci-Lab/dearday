@@ -30,13 +30,6 @@ export default function VersionScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoRow}>
-          {/* <Image
-            source={require("@/assets/images/logo_blue.png")}
-            style={styles.logoImg}
-            accessible
-            accessibilityLabel="Dearday 로고"
-          /> 
-          <Text style={styles.logoLabel}>Dearday</Text> */}
           <Image
             source={require("@/assets/images/textmark_blue.png")}
             style={styles.logoImg}
@@ -61,12 +54,10 @@ const styles = StyleSheet.create({
   }, 
   content: { padding: 30, alignItems: 'center' }, 
   logoRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  // logoImg: { width: 30, height: 30, resizeMode: "contain", marginRight: 8 },
   logoImg: { height: 30, resizeMode: "contain" },
   logoLabel: { 
     fontFamily: "Pretendard-Bold",
     fontSize: 26, 
-    //fontWeight: "bold", 
     color: "#5B8DEF" 
   },
   versionText: { 
@@ -83,7 +74,6 @@ const styles = StyleSheet.create({
   Title: { 
     fontFamily: "Pretendard-Bold",
     fontSize: 18, 
-    //fontWeight: "700", 
     color: "#5B8DEF" },
   SubTitle: { 
     fontFamily: "Pretendard-Regular",

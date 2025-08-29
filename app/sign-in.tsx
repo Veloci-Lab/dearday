@@ -178,62 +178,6 @@ export default function SignInScreen() {
   );
 }
 
-// const s = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#FFF",
-//   },
-//   logoContainer: {
-//   flex: 1,
-//   alignItems: "center",
-//   justifyContent: "center",
-//   // 원하는 비율만큼 위로 이동 (여기선 10%)
-//   marginTop: -(height * 0.05),
-// },
-//   footer: {
-//     position: "absolute", // ✅ 하단 고정
-//     bottom: 0,
-//     left: 0,
-//     right: 0,
-//     paddingHorizontal: 24,
-//     alignItems: "center",
-//     width: "100%",
-//   },
-
-//   // 공통 소셜 버튼
-//   socialBtn: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     borderRadius: 12,
-//     height: 54,
-//     minWidth: 280,
-//     paddingHorizontal: 14,
-//     elevation: 4,
-//     width: "100%",
-//     maxWidth: 420,
-//   },
-//   socialIcon: { width: 20, height: 20, marginRight: 8 },
-//   socialText: {
-//     flex: 1,
-//     textAlign: "center",
-//     fontSize: 15,
-//     fontWeight: "700",
-//     color: "#111",
-//   },
-//   rightArea: { width: 24, alignItems: "center", justifyContent: "center" },
-
-//   googleBtn: {
-//     backgroundColor: "#F2F2F2",
-//   },
-//   googleText: { color: "#1F1F1F" },
-//   appleBtn: {
-//     backgroundColor: "#000000",
-//   },
-//   appleText: {
-//     color: "#FFFFFF",
-//   },
-// });
-
 const s = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/utils/authStore";
 import { useOnboardingFooter } from "@/utils/onboardingFooterStore";
 import { supabase } from "@/utils/supabase";
-import { useFocusEffect, useRouter } from "expo-router"; // Stack 임포트 제거
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,7 +16,6 @@ import {
 } from "react-native";
 
 export default function OnboardingV1IndexScreen() {
-  // ... (다른 모든 코드는 그대로 유지)
   const { profileId } = useAuthStore();
   const router = useRouter();
   const setFooter = useOnboardingFooter((s) => s.setFooter);
@@ -73,89 +72,21 @@ export default function OnboardingV1IndexScreen() {
   const isCheckDisabled =
     !nickname.trim() || status === "checking";
 
-//   return (
-//     <View style={s.container}>
-//       {/* 진행률 바 */}
-//       <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-//         <View style={s.progressBarOuter}>
-//           <View
-//             style={[s.progressBarInner, { width: `${0.5 * 100}%` }]}
-//           />
-//         </View>
-//       </View>
-      
-//       {/* 콘텐츠 영역 */}
-//       <View style={{ paddingHorizontal: 20 }}>
-//         <View style={{ marginBottom: 36 }}>
-//           <Text style={s.h1}>디어데이에 오신 걸 환영해요.{`\n`}사용할 닉네임을 입력해주세요!</Text>
-//           <Text style={s.sub}>나중에 다시 바꿀 수 있어요.</Text>
-//         </View>
-
-//         <Text style={s.label}>닉네임</Text>
-        
-//         <View style={s.inputRow}>
-//           <TextInput
-//             style={[
-//               s.input,
-//               status === "available" && { borderColor: "#5B8DEF" },
-//               status === "unavailable" && { borderColor: "#FF5A5A" },
-//             ]}
-//             value={nickname}
-//             onChangeText={(t) => {
-//               setNickname(t);
-//               setStatus("idle");
-//             }}
-//             placeholder="닉네임을 입력해주세요"
-//             placeholderTextColor="#C3C3C3"
-//             autoCapitalize="none"
-//             autoCorrect={false}
-//             returnKeyType="done"
-//           />
-//           <TouchableOpacity
-//             onPress={handleCheckNickname}
-//             disabled={isCheckDisabled}
-//             style={[
-//               s.checkBtn,
-//               isCheckDisabled ? s.checkBtnDisabled : s.checkBtnEnabled,
-//             ]}
-//             activeOpacity={0.8}
-//           >
-//             {status === "checking" ? (
-//               <ActivityIndicator size="small" color="#fff" />
-//             ) : (
-//               <Text
-//                 style={[
-//                   s.checkBtnText,
-//                   isCheckDisabled ? { color: "#FEFEFE" } : { color: "#fff" },
-//                 ]}
-//               >
-//                 중복확인
-//               </Text>
-//             )}
-//           </TouchableOpacity>
-//         </View>
-
-//         {status === "available" && <Text style={s.helperSuccess}>사용 가능한 닉네임이에요!</Text>}
-//         {status === "unavailable" && <Text style={s.helperError}>이미 사용 중인 닉네임이에요.</Text>}
-//       </View>
-//     </View>
-//   );
-// }
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={s.container}
-    >
-      <View style={s.container}>
-        {/* 진행률 바 */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-          <View style={s.progressBarOuter}>
-            <View
-              style={[s.progressBarInner, { width: `${0.5 * 100}%` }]}
-            />
-          </View>
+    <View style={s.container}>
+      {/* 진행률 바 */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+        <View style={s.progressBarOuter}>
+          <View
+            style={[s.progressBarInner, { width: `${0.5 * 100}%` }]}
+          />
         </View>
-        
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
         {/* 콘텐츠 영역 */}
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ marginBottom: 36 }}>
@@ -198,7 +129,7 @@ export default function OnboardingV1IndexScreen() {
                 <Text
                   style={[
                     s.checkBtnText,
-                    isCheckDisabled ? { color: "#FEFEFE" } : { color: "#fff" },
+                    isCheckDisabled ? { color: "#A3AAB8" } : { color: "#5B8DEF" },
                   ]}
                 >
                   중복확인
@@ -210,8 +141,8 @@ export default function OnboardingV1IndexScreen() {
           {status === "available" && <Text style={s.helperSuccess}>사용 가능한 닉네임이에요!</Text>}
           {status === "unavailable" && <Text style={s.helperError}>이미 사용 중인 닉네임이에요.</Text>}
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -258,40 +189,30 @@ const s = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontWeight: 'normal',
     flex: 1,
-    height: 44,
+    height: 50,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     paddingHorizontal: 12,
     backgroundColor: "#fff",
+    fontSize: 16,
   },
-  // checkBtn: {
-  //   height: 44,
-  //   paddingHorizontal: 14,
-  //   borderRadius: 10,
-  //   alignItems: "center",
-  //   justifyContent: "center",
-  //   borderWidth: 1,
-  //   minWidth: 80,
-  // },
   checkBtn: {
-    backgroundColor: "#5B8DEF",
-    borderRadius: 12,
-    height: 52,
+    height: 50,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: 'center',
   },
   checkBtnEnabled: {
-    backgroundColor: "#5B8DEF",
-    borderColor: "#5B8DEF",
+    backgroundColor: "#EFF3FF",
   },
   checkBtnDisabled: {
-    backgroundColor: "#F2F2F2",
-    borderColor: "#F2F2F2",
+    backgroundColor: "#F7F7F7",
   },
   checkBtnText: {
-    fontFamily: "Pretendard-Bold",
-    fontSize: 14,
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 16,
   },
   helperSuccess: {
     fontFamily: "Pretendard-Regular",
