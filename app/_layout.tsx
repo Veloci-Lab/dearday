@@ -86,25 +86,6 @@ export default function RootLayout() {
 
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerLeft: () => (
-                  <Image
-                    source={require("@/assets/images/logo_blue.png")}
-                    style={{ width: 28, height: 28, resizeMode: "contain" }}
-                  />
-                ),
-                headerTitle: "",
-                headerRight: () => (
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacity onPress={() => router.push("/pending")}>
-                      <Feather name="inbox" size={20} color="#000" style={{ marginHorizontal: 8 }} />
-                    </TouchableOpacity>
-                  </View>
-                ),
-              }}
-            /> */}
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>
