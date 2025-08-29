@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 24,
   },
-  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8, color: "#0d0d0d" },
   modalDesc: { fontSize: 16, color: "#000000ff", textAlign: "left", marginBottom: 24 },
   confirmButton: {
     backgroundColor: "#5B8DEF",

@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff", // 기본 배경색
-    borderTopWidth: 1,
+    borderTopWidth: 2,
     borderTopColor: '#f2f2f2',
   },
   center: { 

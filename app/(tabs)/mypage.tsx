@@ -203,7 +203,7 @@ export default function MypageScreen() {
 
 // 스타일
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3F5F7" },
+  container: { flex: 1, backgroundColor: "#FEFEFE" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   /* 카드 공통 */
   card: {
@@ -212,11 +212,13 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     position: "relative",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 10,
-    elevation: 1,
+    // shadowColor: "#000",
+    // shadowOpacity: 0.04,
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowRadius: 10,
+    // elevation: 1,
+    borderWidth: 1,
+    borderColor: "#F2F2F2",
   },
 
   card2: {
@@ -226,11 +228,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginBottom: 12,
     position: "relative",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 10,
-    elevation: 1,
+    // shadowColor: "#000",
+    // shadowOpacity: 0.04,
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowRadius: 10,
+    // elevation: 1,
+    borderWidth: 1,
+    borderColor: "#F2F2F2",
   },
 
   /* 프로필 카드 */
@@ -256,8 +260,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F2",
+    // borderBottomWidth: 1,
+    // borderBottomColor: "#F2F2F2",
   },
   rowLeft: { flexDirection: "row", alignItems: "center" },
 
