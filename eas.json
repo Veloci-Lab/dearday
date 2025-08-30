@@ -9,25 +9,36 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "development"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview"
     },
     "production": {
-      "autoIncrement": true,           
+      "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
       },
       "ios": {
-        "simulator": false 
-      }
+        "simulator": false
+      },
+      "channel": "production"
     }
   },
   "submit": {
-    "production": {
+    "preview": {
       "android": {
         "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6751143672"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "production"
       },
       "ios": {
         "ascAppId": "6751143672"

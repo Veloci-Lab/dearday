@@ -135,6 +135,7 @@ export default function QuickMemoScreen() {
 
   function pickNicePlace(geo?: Location.LocationGeocodedAddress | null) {
     if (!geo) return "";
+
     const parts = [geo.city ?? geo.subregion, geo.district].filter(Boolean);
     return parts.join(" ");
   }
