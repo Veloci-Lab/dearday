@@ -27,15 +27,15 @@ import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function GridOverlay() {
-  const lineStyle = { position: "absolute", backgroundColor: "rgba(255,255,255,0.6)" };
+  const lineStyle = { position: "absolute", backgroundColor: "#C3C3C3" };
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {/* 세로선 */}
-      <View style={[lineStyle, { left: "33.33%", top: 0, bottom: 0, width: 1 }]} />
-      <View style={[lineStyle, { left: "66.66%", top: 0, bottom: 0, width: 1 }]} />
+      <View style={[lineStyle, { left: "33.33%", top: 0, bottom: 0, width: 0.5 }]} />
+      <View style={[lineStyle, { left: "66.66%", top: 0, bottom: 0, width: 0.5 }]} />
       {/* 가로선 */}
-      <View style={[lineStyle, { top: "33.33%", left: 0, right: 0, height: 1 }]} />
-      <View style={[lineStyle, { top: "66.66%", left: 0, right: 0, height: 1 }]} />
+      <View style={[lineStyle, { top: "33.33%", left: 0, right: 0, height: 0.5 }]} />
+      <View style={[lineStyle, { top: "66.66%", left: 0, right: 0, height: 0.5 }]} />
     </View>
   );
 }
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   bottomWrap: { position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center", paddingHorizontal: 16, gap: 20 },
   zoomHud: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: "#D9D9D966" },
   zoomHudText: { fontSize: 15, color: "#FEFEFE" },
-  shutterBtn: { backgroundColor: "transparent", borderWidth: 10, borderColor: "#5B8DEF", width: 86, height: 86, borderRadius: 86, alignItems: "center", justifyContent: "center" },
+  shutterBtn: { backgroundColor: "transparent", borderWidth: 0.50, borderColor: "#5B8DEF", width: 86, height: 86, borderRadius: 86, alignItems: "center", justifyContent: "center" },
   shutterBtnInner: { width: 74, height: 74, borderRadius: 74, backgroundColor: "white" },
 
   controlRow: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
