@@ -2,7 +2,7 @@
   "expo": {
     "name": "dearday",
     "slug": "dearday",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dearday",
@@ -31,7 +31,6 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
@@ -75,7 +74,9 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
-      ["expo-apple-authentication"],
+      [
+        "expo-apple-authentication"
+      ],
       [
         "expo-image-picker"
       ]
@@ -89,6 +90,12 @@
         "projectId": "ad8392b2-46a3-4856-ae38-28e46bb436b6"
       }
     },
-    "owner": "dearday"
+    "owner": "dearday",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ad8392b2-46a3-4856-ae38-28e46bb436b6"
+    }
   }
 }
