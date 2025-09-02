@@ -25,7 +25,7 @@
 // import type { FeedItem } from "@/components/masonry/types";
 // import { useAuthStore } from "@/utils/authStore";
 // import { supabase } from "@/utils/supabase";
-// import { LinearGradient } from "expo-linear-gradient";
+// import { LinearGradient } from "expo-linear-gradient"; // ✅ 그라데이션 import
 
 // import * as MediaLibrary from "expo-media-library";
 // import ViewShot from "react-native-view-shot";
@@ -43,7 +43,7 @@
 // };
 
 // type ViewMode = "grid" | "story";
-// type FeedItemEx = FeedItem & { content?: string };
+// type FeedItemEx = FeedItem & { content?: string; aspectRatio: number };
 // type MemoryRow = { memory_id: number; date: string };
 
 // // ================================
@@ -62,7 +62,7 @@
 
 //   const { profileId } = useAuthStore();
 //   const { memory_id } = useLocalSearchParams();
-//   const [mode, setMode] = useState<ViewMode>("grid");
+//   const [mode, setMode] = useState<ViewMode>("story");
 //   const [entries, setEntries] = useState<Entry[]>([]);
 //   const [memoryDate, setMemoryDate] = useState<string | null>(null);
 //   const [loading, setLoading] = useState(true);
@@ -118,9 +118,9 @@
 //           >
 //             <Image
 //               source={require("@/assets/images/edit_record.png")}
-//               style={{ 
-//                 width: 30, 
-//                 height: 30, 
+//               style={{
+//                 width: 30,
+//                 height: 30,
 //                 marginHorizontal: -3,
 //                 opacity: memory_id ? 1 : 0.3
 //               }}
@@ -173,15 +173,18 @@
 
 //   const feedItems: FeedItemEx[] = useMemo(
 //     () =>
-//       entries.map((e) => ({
-//         id: String(e.memory_entry_id),
-//         imageUrl: e.image_url ?? "",
-//         dateISO: DateTime.fromISO(e.created_at, { zone: "utc" })
-//           .setZone(e.timezone ?? viewerTz)
-//           .toFormat("h:mm a"),
-//         place: e.location ?? "",
-//         content: e.content ?? "",
-//       })),
+//       entries.map((e) => {
+//         return {
+//           id: String(e.memory_entry_id),
+//           imageUrl: e.image_url ?? "",
+//           dateISO: DateTime.fromISO(e.created_at, { zone: "utc" })
+//             .setZone(e.timezone ?? viewerTz)
+//             .toFormat("h:mm a"),
+//           place: e.location ?? "",
+//           content: e.content ?? "",
+//           aspectRatio: 1,
+//         };
+//       }),
 //     [entries, viewerTz]
 //   );
 
@@ -197,21 +200,18 @@
 //         return;
 //       }
 
-//       // 캡처 준비 상태 설정
 //       setPreparingCapture(true);
 
-//       // 스크롤을 최상단으로 이동
 //       if (scrollViewRef.current) {
 //         scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: false });
 //       }
 
-//       // 모든 이미지 로딩을 위한 대기
 //       setTimeout(async () => {
 //         try {
 //           if (captureRef.current) {
 //             const localUri = await captureRef.current.capture();
 //             await MediaLibrary.createAssetAsync(localUri);
-            
+
 //             setPreparingCapture(false);
 //             setShowSaveConfirmation(true);
 //             setTimeout(() => setShowSaveConfirmation(false), 2000);
@@ -221,7 +221,7 @@
 //           setPreparingCapture(false);
 //           Alert.alert("오류", "이미지를 저장하는 데 실패했습니다.");
 //         }
-//       }, 1000); // 이미지 로딩을 위한 충분한 시간
+//       }, 1000);
 
 //     } catch (e) {
 //       console.error("권한 요청 실패:", e);
@@ -246,14 +246,13 @@
 //     );
 //   }
 
-//   // 캡처 준비 중일 때 전체 콘텐츠를 ScrollView로 렌더링
 //   if (preparingCapture) {
 //     return (
 //       <SafeAreaView style={{ flex: 1, backgroundColor: "#F3F5F7" }}>
 //         <ScrollView
 //           ref={scrollViewRef}
 //           style={{ flex: 1 }}
-//           scrollEnabled={false} // 캡처 중에는 스크롤 비활성화
+//           scrollEnabled={false}
 //         >
 //           <ViewShot
 //             ref={captureRef}
@@ -264,7 +263,6 @@
 //               quality: 0.9,
 //             }}
 //           >
-//             {/* 캡처용 헤더 - 간격 조정 */}
 //             <View style={styles.captureHeader}>
 //               <Image
 //                 source={require("@/assets/images/textmark_blue.png")}
@@ -275,7 +273,6 @@
 //               </Text>
 //             </View>
 
-//             {/* 전체 콘텐츠를 ScrollView 없이 렌더링 */}
 //             <MasonryGrid
 //               items={feedItems}
 //               gap={6}
@@ -286,12 +283,11 @@
 //                 noConsecutive: true,
 //                 allowed: ["L1", "L2", "L3", "L4", "L5"],
 //               }}
-//               scrollEnabled={false} // ScrollView 사용하지 않음
+//               scrollEnabled={false}
 //             />
 //           </ViewShot>
 //         </ScrollView>
 
-//         {/* 로딩 표시 */}
 //         <View style={styles.captureLoadingContainer}>
 //           <ActivityIndicator size="large" color="#5B8DEF" />
 //           <Text style={styles.captureLoadingText}>이미지 저장 준비중...</Text>
@@ -300,10 +296,8 @@
 //     );
 //   }
 
-//   // 일반 상태일 때 기존 레이아웃
 //   return (
 //     <SafeAreaView style={{ flex: 1, backgroundColor: "#F3F5F7" }}>
-//       {/* 저장 완료 스낵바 - 상단에 표시 */}
 //       {showSaveConfirmation && (
 //         <View style={styles.snackbarContainer}>
 //           <Image
@@ -338,7 +332,7 @@
 //           />
 //         </View>
 //       ) : (
-//         <StoryView width={W} items={feedItems} />
+//         <StoryView items={feedItems} />
 //       )}
 //     </SafeAreaView>
 //   );
@@ -347,84 +341,81 @@
 // // ================================
 // // Sub Views
 // // ================================
-// function StoryView({ width, items }: { width: number; items: FeedItemEx[] }) {
-//   const PADDING = 16;
-//   const GAP = 24; // 이미지 간 간격 증가
+
+// function StoryCard({ item }: { item: FeedItemEx }) {
+//   const [aspectRatio, setAspectRatio] = useState(item.aspectRatio);
+//   const hasFooterContent = !!item.place || !!item.content;
+
+//   return (
+//     <View style={styles.storyCard}>
+//       <View style={styles.storyHeader}>
+//         <Text style={styles.storyTime}>{item.dateISO}</Text>
+//       </View>
+
+//       {/* ✅ 이미지와 그라데이션을 함께 담을 View 추가 */}
+//       <View>
+//         {item.imageUrl ? (
+//           <>
+//             <Image
+//               source={{ uri: item.imageUrl }}
+//               style={[styles.storyImage, { aspectRatio }]}
+//               contentFit="cover"
+//               onLoad={(e) => {
+//                 const { width, height } = e.source;
+//                 if (height > 0) {
+//                   setAspectRatio(width / height);
+//                 }
+//               }}
+//             />
+//             {/* ✅ 그라데이션 오버레이 추가 */}
+//             <LinearGradient
+//               pointerEvents="none"
+//               colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)']}
+//               locations={[0, 0.6, 1]}
+//               style={styles.gradientOverlay}
+//             />
+//           </>
+//         ) : null}
+//       </View>
+
+//       {hasFooterContent ? (
+//         <View style={styles.storyFooter}>
+//           {!!item.place && (
+//             <View style={styles.storyLocationRow}>
+//               <Feather name="map-pin" size={14} color="#C3C3C3" />
+//               <Text style={styles.storyLocationText}>{item.place}</Text>
+//             </View>
+//           )}
+//           {!!item.content && (
+//             <Text style={[styles.storyContent, !item.place && { marginTop: 0 }]}>
+//               {item.content}
+//             </Text>
+//           )}
+//         </View>
+//       ) : (
+//         <View style={{ height: 12 }} />
+//       )}
+//     </View>
+//   );
+// }
+
+
+// function StoryView({ items }: { items: FeedItemEx[] }) {
 //   return (
 //     <ScrollView
-//       contentContainerStyle={{ padding: PADDING, gap: GAP, backgroundColor: "#fff" }}
+//       contentContainerStyle={{
+//         padding: 16,
+//         gap: 16,
+//         backgroundColor: "#FEFEFE",
+//       }}
 //     >
 //       {items.map((it) => (
-//         <View key={it.id} style={{ backgroundColor: "#fff" }}>
-//           {it.imageUrl ? (
-//             <View>
-//               <Image
-//                 source={{ uri: it.imageUrl }}
-//                 style={{ width: "100%", height: width * 0.75, borderRadius: 16 }}
-//                 contentFit="cover"
-//               />
-//                <LinearGradient
-//                    pointerEvents="none"
-//                    colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)']}
-//                    locations={[0, 0.4, 1]}
-//                    style={{
-//                        position: 'absolute',
-//                        left: 0,
-//                        right: 0,
-//                        bottom: 0,
-//                        height: '50%',
-//                        borderRadius: 16,
-//                    }}
-//                />
-//               <BottomLeftBadge time={it.dateISO} place={it.place} />
-//             </View>
-//           ) : null}
-//           {it.content ? (
-//             <View style={{ paddingHorizontal: 10, paddingTop: 10 }}>
-//               <Text style={styles.bodyText}>{it.content}</Text>
-//             </View>
-//           ) : null}
-//         </View>
+//         <StoryCard key={it.id} item={it} />
 //       ))}
 //     </ScrollView>
 //   );
 // }
 
-// function BottomLeftBadge({ time, place }: { time?: string; place?: string }) {
-//   return (
-//     <View style={{ position: "absolute", left: 12, bottom: 10 }}>
-//       {!!time && (
-//         <Text
-//           style={{
-//             fontFamily: "RedHat-Bold",
-//             color: "white",
-//             textShadowColor: "rgba(0,0,0,0.6)",
-//             textShadowRadius: 4,
-//             textShadowOffset: { width: 0, height: 1 },
-//             fontSize: 20,
-//           }}
-//         >
-//           {time}
-//         </Text>
-//       )}
-//       {!!place && (
-//         <Text
-//           style={{
-//             fontFamily: "Pretendard-SemiBold",
-//             color: "white",
-//             opacity: 0.85,
-//             textShadowColor: "rgba(0,0,0,0.6)",
-//             textShadowRadius: 4,
-//             textShadowOffset: { width: 0, height: 1 },
-//             fontSize: 15,
-//           }}
-//         >
-//           {place}
-//         </Text>
-//       )}
-//     </View>
-//   );
-// }
 
 // // ================================
 // // Styles
@@ -447,17 +438,11 @@
 //     color: "#929292",
 //     marginTop: -1,
 //   },
-//   bodyText: {
-//     fontFamily: "Pretendard-Regular",
-//     fontSize: 15,
-//     lineHeight: 20,
-//     color: "#0D0D0D",
-//   },
 //   captureHeader: {
 //     backgroundColor: "#FFFFFF",
-//     paddingVertical: 16, // 20에서 16으로 줄임
+//     paddingVertical: 16,
 //     paddingHorizontal: 24,
-//     marginBottom: -15, // 음수 마진으로 간격 더 좁힘
+//     marginBottom: -15,
 //     flexDirection: "row",
 //     justifyContent: "space-between",
 //     alignItems: "center",
@@ -490,11 +475,61 @@
 //   },
 //   snackbarContainer: {
 //     position: "absolute",
-//     top: 30, // 상단에서 50px 떨어진 위치
+//     top: 30,
 //     left: 0,
 //     right: 0,
 //     alignItems: "center",
 //     zIndex: 1000,
+//   },
+//   storyCard: {
+//     backgroundColor: "#FEFEFE",
+//     borderRadius: 20,
+//     overflow: "hidden",
+//     borderWidth: 2,
+//     borderColor: "#F2F2F2",
+//   },
+//   storyHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 12,
+//   },
+//   storyTime: {
+//     fontFamily: "RedHat-SemiBold",
+//     fontSize: 20,
+//     color: "#333",
+//   },
+//   storyImage: {
+//     width: "100%",
+//     backgroundColor: "#eee",
+//   },
+//   // ✅ 그라데이션 스타일 추가
+//   gradientOverlay: {
+//     position: 'absolute',
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     height: '50%',
+//   },
+//   storyFooter: {
+//     paddingTop: 10,
+//     paddingBottom: 10,
+//     paddingHorizontal: 16,
+//   },
+//   storyLocationRow: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 6,
+//     marginBottom: 10,
+//   },
+//   storyLocationText: {
+//     fontFamily: "Pretendard-Normal",
+//     fontSize: 13,
+//     color: "#929292",
+//   },
+//   storyContent: {
+//     fontFamily: "Pretendard-Normal",
+//     fontSize: 15,
+//     lineHeight: 22,
+//     color: "#0d0d0d",
 //   },
 // };
 
@@ -526,7 +561,7 @@ import { dailyUserSeed } from "@/components/masonry/seed";
 import type { FeedItem } from "@/components/masonry/types";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
-import { LinearGradient } from "expo-linear-gradient"; // ✅ 그라데이션 import
+import { LinearGradient } from "expo-linear-gradient";
 
 import * as MediaLibrary from "expo-media-library";
 import ViewShot from "react-native-view-shot";
@@ -563,7 +598,7 @@ export default function DayByMemory() {
 
   const { profileId } = useAuthStore();
   const { memory_id } = useLocalSearchParams();
-  const [mode, setMode] = useState<ViewMode>("grid");
+  const [mode, setMode] = useState<ViewMode>("story"); // ✅ 기본값을 "story"로 변경
   const [entries, setEntries] = useState<Entry[]>([]);
   const [memoryDate, setMemoryDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -749,7 +784,7 @@ export default function DayByMemory() {
 
   if (preparingCapture) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#F3F5F7" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: mode === "story" ? "#FEFEFE" : "#F3F5F7" }}>
         <ScrollView
           ref={scrollViewRef}
           style={{ flex: 1 }}
@@ -757,7 +792,7 @@ export default function DayByMemory() {
         >
           <ViewShot
             ref={captureRef}
-            style={{ backgroundColor: "#F3F5F7" }}
+            style={{ backgroundColor: mode === "story" ? "#FEFEFE" : "#F3F5F7" }}
             options={{
               fileName: `dearday-${memoryDate}-${Date.now()}`,
               format: "jpg",
@@ -774,18 +809,27 @@ export default function DayByMemory() {
               </Text>
             </View>
 
-            <MasonryGrid
-              items={feedItems}
-              gap={6}
-              padding={16}
-              options={{
-                seed: dailyUserSeed(profileId ?? "anon"),
-                initialOrder: ["L1"],
-                noConsecutive: true,
-                allowed: ["L1", "L2", "L3", "L4", "L5"],
-              }}
-              scrollEnabled={false}
-            />
+            {/* ✅ 현재 모드에 따라 다른 컴포넌트 렌더링 */}
+            {mode === "story" ? (
+              <View style={{ padding: 16, gap: 16, backgroundColor: "#FEFEFE" }}>
+                {feedItems.map((it) => (
+                  <StoryCard key={it.id} item={it} />
+                ))}
+              </View>
+            ) : (
+              <MasonryGrid
+                items={feedItems}
+                gap={6}
+                padding={16}
+                options={{
+                  seed: dailyUserSeed(profileId ?? "anon"),
+                  initialOrder: ["L1"],
+                  noConsecutive: true,
+                  allowed: ["L1", "L2", "L3", "L4", "L5"],
+                }}
+                scrollEnabled={false}
+              />
+            )}
           </ViewShot>
         </ScrollView>
 
@@ -808,7 +852,15 @@ export default function DayByMemory() {
         </View>
       )}
 
-      {mode === "grid" ? (
+      {/* ✅ 조건문 순서 변경: story가 먼저, grid가 나중에 */}
+      {mode === "story" ? (
+        <StoryView 
+          items={feedItems} 
+          onSaveImage={handleSaveImage}
+          buttonWidth={downloadbuttonWidth}
+          buttonHeight={buttonHeight}
+        />
+      ) : (
         <View style={{ flex: 1 }}>
           <MasonryGrid
             items={feedItems}
@@ -832,8 +884,6 @@ export default function DayByMemory() {
             }
           />
         </View>
-      ) : (
-        <StoryView items={feedItems} />
       )}
     </SafeAreaView>
   );
@@ -853,7 +903,6 @@ function StoryCard({ item }: { item: FeedItemEx }) {
         <Text style={styles.storyTime}>{item.dateISO}</Text>
       </View>
 
-      {/* ✅ 이미지와 그라데이션을 함께 담을 View 추가 */}
       <View>
         {item.imageUrl ? (
           <>
@@ -868,7 +917,6 @@ function StoryCard({ item }: { item: FeedItemEx }) {
                 }
               }}
             />
-            {/* ✅ 그라데이션 오버레이 추가 */}
             <LinearGradient
               pointerEvents="none"
               colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)']}
@@ -900,8 +948,12 @@ function StoryCard({ item }: { item: FeedItemEx }) {
   );
 }
 
-
-function StoryView({ items }: { items: FeedItemEx[] }) {
+function StoryView({ items, onSaveImage, buttonWidth, buttonHeight }: { 
+  items: FeedItemEx[];
+  onSaveImage: () => void;
+  buttonWidth: number;
+  buttonHeight: number;
+}) {
   return (
     <ScrollView
       contentContainerStyle={{
@@ -913,10 +965,19 @@ function StoryView({ items }: { items: FeedItemEx[] }) {
       {items.map((it) => (
         <StoryCard key={it.id} item={it} />
       ))}
+      
+      {/* ✅ StoryView에도 저장 버튼 추가 */}
+      <View style={{ height: 100, alignItems: "center", paddingTop: 40 }}>
+        <TouchableOpacity onPress={onSaveImage}>
+          <Image
+            source={require("@/assets/images/download.png")}
+            style={{ width: buttonWidth, height: buttonHeight, contentFit: "contain" }}
+          />
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
-
 
 // ================================
 // Styles
@@ -1002,7 +1063,6 @@ const styles = {
     width: "100%",
     backgroundColor: "#eee",
   },
-  // ✅ 그라데이션 스타일 추가
   gradientOverlay: {
     position: 'absolute',
     left: 0,

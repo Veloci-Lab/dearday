@@ -5,7 +5,7 @@ import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+// import { Text, TextInput } from 'react-native';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
