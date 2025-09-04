@@ -46,8 +46,7 @@ export default function OnboardingSecondScreen() {
           }
           await AsyncStorage.setItem("onboarding.completed", "1");
           setHasCompletedOnboarding(true);
-          //router.replace("/(tabs)");
-          router.replace('/tutorial');
+          router.replace("/(tabs)");
         },
       });
     }, [sleepTime, profileId, setFooter, setHasCompletedOnboarding])
