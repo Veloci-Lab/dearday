@@ -68,7 +68,7 @@
 //   }, [fontsLoaded, authLoading]);
 
 //   if (!fontsLoaded || authLoading) {
-//     return null; // ¾ÆÁ÷ ÁØºñ ¾ÈµÆÀ¸¸é SplashScreen À¯Áö
+//     return null; // ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½ ï¿½Èµï¿½ï¿½ï¿½ï¿½ï¿½ SplashScreen ï¿½ï¿½ï¿½ï¿½
 //   }
 
 //     return (
@@ -154,7 +154,7 @@ export default function RootLayout() {
     if (isLoggedIn && pendingRedirectUrl) {
       const tmp = pendingRedirectUrl;
       clearPendingRedirectUrl();
-      router.replace(tmp);
+      router.push(tmp);
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
@@ -165,7 +165,7 @@ export default function RootLayout() {
   }, [fontsLoaded, authLoading]);
 
   if (!fontsLoaded || authLoading) {
-    return null; // ¾ÆÁ÷ ÁØºñ ¾ÈµÆÀ¸¸é SplashScreen À¯Áö
+    return null; // ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½ ï¿½Èµï¿½ï¿½ï¿½ï¿½ï¿½ SplashScreen ï¿½ï¿½ï¿½ï¿½
   }
 
     return (
@@ -173,20 +173,20 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <Stack>
-          {/* 1. ·Î±×ÀÎ ¾È µÈ »ç¿ëÀÚ¸¦ À§ÇÑ È­¸é */}
+          {/* 1. ï¿½Î±ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ È­ï¿½ï¿½ */}
           <Stack.Protected guard={!isLoggedIn}>
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
           </Stack.Protected>
 
-          {/* 2. ·Î±×ÀÎÇßÁö¸¸ ¿Âº¸µù ¾È ÇÑ »ç¿ëÀÚ¸¦ À§ÇÑ È­¸é */}
+          {/* 2. ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Âºï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ È­ï¿½ï¿½ */}
           <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack.Protected>
 
-          {/* 3. ·Î±×ÀÎ°ú ¿Âº¸µùÀ» ¸ðµÎ ¸¶Ä£ »ç¿ëÀÚ¸¦ À§ÇÑ È­¸é */}
+          {/* 3. ï¿½Î±ï¿½ï¿½Î°ï¿½ ï¿½Âºï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½Ä£ ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ È­ï¿½ï¿½ */}
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* --- tutorial È­¸éÀ» ÀÌ ±×·ìÀ¸·Î ÀÌµ¿ --- */}
+            {/* --- tutorial È­ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½×·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ --- */}
             <Stack.Screen name="tutorial" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>

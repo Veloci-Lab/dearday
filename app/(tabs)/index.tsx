@@ -1085,21 +1085,15 @@ export default function IndexScreen() {
         <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
           {memoriesLoading ? (
             <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
-          ) : feedItems.length === 0 && todayImages.length === 0 ? (
+          ) : feedItems.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Image
                 source={require("@/assets/images/empty_logo.png")}
                 style={{ width: 60, height: 45, resizeMode: "contain" }}
               />
-              <Text style={styles.emptyText}>아직 아무 기록도 없어요</Text>
+              <Text style={styles.emptyText}>아직 정리된 기록이 없어요</Text>
               <Text style={styles.emptysubtext}>작은 기록이 쌓여 큰 이야기가 됩니다.</Text>
               <Text style={styles.emptysubtext}>지금 바로 시작해보세요!</Text>
-
-              <TouchableOpacity onPress={cameraButtonPress} style={styles.firstButton}>
-                <Text style={styles.firstButtonText}>
-                  📸 첫 기록 남기기
-                </Text>
-              </TouchableOpacity>
 
             </View>
           ) : (
