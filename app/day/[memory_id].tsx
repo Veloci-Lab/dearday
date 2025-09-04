@@ -519,7 +519,7 @@ const styles = {
     paddingVertical: 12,
   },
   storyTime: {
-    fontFamily: "RedHat-SemiBold",
+    fontFamily: "RedHat-Bold",
     fontSize: 20,
     color: "#333",
   },
