@@ -154,7 +154,7 @@ export default function TutorialScreen() {
             </View>
             
             <View style={styles.imageContainer}>
-              <Image source={item.image} style={styles.image} resizeMode="contain" />
+              <Image source={item.image} style={styles.image} resizeMode="cover" />
             </View>
 
             <View /> 
