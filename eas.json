@@ -13,7 +13,7 @@
       "channel": "development"
     },
     "preview": {
-      "distribution": "internal",
+      "extends": "production",
       "channel": "preview"
     },
     "production": {
