@@ -127,10 +127,10 @@ export default function IncompleteMemoriesScreen() {
       {loading ? ( <View style={styles.center}><Text>불러오는 중…</Text></View> )
       : cards.length === 0 ? ( <View style={styles.emptyWrap}>
           <Image 
-            source={require('@/assets/images/logo_center.png')} 
-            style={{ width: 35, height: 26, resizeMode: 'contain' }} 
+            source={require('@/assets/images/empty_logo.png')} 
+            style={{ width: 60, height: 45, resizeMode: 'contain' }} 
           />
-          <Text style={styles.emptyText}>아무것도 없어요!</Text>
+          <Text style={styles.emptyText}>기록되지 않은 사진이 없어요!</Text>
         </View> )
       : (
         <FlatList
