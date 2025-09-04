@@ -86,6 +86,7 @@ export default function MypageScreen() {
     mail: require("@/assets/images/icons/mail.png"),
     info: require("@/assets/images/icons/info.png"),
     moon: require("@/assets/images/icons/moon.png"),
+    replay: require("@/assets/images/icons/replay.png"),
   };
 
   const EditCornerButton = ({ onPress }: { onPress: () => void }) => (
@@ -176,6 +177,11 @@ export default function MypageScreen() {
             iconImg={ICONS.bell}
             label="알림 설정"
             onPress={() => router.push("/mypage/notifications")}
+          />
+          <SettingRow
+            iconImg={ICONS.replay}
+            label="튜토리얼 다시 보기"
+            onPress={() => router.push("/tutorial")}
           />
           <SettingRow
             iconImg={ICONS.lock}

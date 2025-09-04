@@ -227,13 +227,14 @@ export default function ComposeScreen() {
               }}
             />
 
+            {/* Updated pagination style to match tutorial.tsx */}
             <View style={styles.pagination}>
               {entries.map((_, index) => (
                 <View
                   key={index}
                   style={[
                     styles.dot,
-                    index === currentIndex ? styles.dotActive : styles.dotInactive
+                    index === currentIndex ? styles.activeDot : styles.inactiveDot
                   ]}
                 />
               ))}
@@ -407,24 +408,27 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  
+  // Updated pagination styles to match tutorial.tsx
   pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 24,
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 8,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    marginHorizontal: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  dotActive: {
-    backgroundColor: '#5B8DEF',
+  activeDot: {
+    backgroundColor: "#5B8DEF",
+    width: 24,
   },
-  dotInactive: {
-    backgroundColor: '#E2E8F0',
+  inactiveDot: {
+    backgroundColor: "#E2E8F0",
   },
+  
   inputSection: {
     paddingHorizontal: 20,
     paddingTop: 12
