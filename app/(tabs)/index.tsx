@@ -9,9 +9,9 @@
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { Camera } from "expo-camera";
 // import { Image as ExpoImage } from "expo-image";
-// import { router, useFocusEffect } from "expo-router";
+// import { router, useFocusEffect, useNavigation } from "expo-router";
 // import { DateTime } from "luxon";
-// import React, { useCallback, useEffect, useMemo, useState } from "react";
+// import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // import {
 //   ActivityIndicator,
 //   Image,
@@ -81,6 +81,10 @@
 // export default function IndexScreen() {
 //   const { profileId } = useAuthStore();
 //   const insets = useSafeAreaInsets();
+//   const navigation = useNavigation();
+  
+//   // ScrollView ref 추가
+//   const scrollViewRef = useRef<ScrollView>(null);
 
 //   const [visible, setVisible] = useState(false);
 //   const [memoriesLoading, setMemoriesLoading] = useState(true);
@@ -98,7 +102,7 @@
 //   // TODAY
 //   const [todayImages, setTodayImages] = useState<string[]>([]);
 //   const [showToday, setShowToday] = useState(false);
-//   const [todayCompleted, setTodayCompleted] = useState(false); // ✅ 추가
+//   const [todayCompleted, setTodayCompleted] = useState(false);
 
 //   // Masonry
 //   const feedItems: FeedItem[] = useMemo(
@@ -113,6 +117,19 @@
 //         })),
 //     [rows]
 //   );
+
+//   // 홈 탭이 다시 눌렸을 때 스크롤을 맨 위로 올리는 리스너
+//   useEffect(() => {
+//     const unsubscribe = navigation.addListener('tabPress' as any, (e: any) => {
+//       // 현재 화면이 홈이고, 이미 홈에 있는 상태에서 홈 탭을 눌렀을 때
+//       const currentRoute = navigation.getState()?.routes[navigation.getState()?.index ?? 0];
+//       if (currentRoute?.name === 'index') {
+//         scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+//       }
+//     });
+
+//     return unsubscribe;
+//   }, [navigation]);
 
 //   /* -------------------------
 //    * Loaders 
@@ -192,18 +209,18 @@
 
 //       const { data: mem, error: memErr } = await supabase
 //         .from("memories")
-//         .select("memory_id, is_completed") // ✅ is_completed 추가
+//         .select("memory_id, is_completed")
 //         .eq("profile_id", profileId)
 //         .eq("date", today)
 //         .single();
 
 //       if (memErr || !mem) {
 //         setTodayImages([]);
-//         setTodayCompleted(false); // ✅ 기록 없음
+//         setTodayCompleted(false);
 //         return;
 //       }
 
-//       setTodayCompleted(mem.is_completed || false); // ✅ 완료 상태 저장
+//       setTodayCompleted(mem.is_completed || false);
 
 //       const { data: entries, error: entErr } = await supabase
 //         .from("memory_entries")
@@ -224,7 +241,7 @@
 //       });
 //     } catch (e) {
 //       console.error("❌ today images fetch error:", (e as Error).message);
-//       setTodayCompleted(false); // ✅ 에러 시에도 false
+//       setTodayCompleted(false);
 //     }
 //   }, [profileId]);
 
@@ -337,7 +354,10 @@
 
 //   return (
 //     <SafeAreaView style={styles.container}>
-//       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
+//       <ScrollView 
+//         ref={scrollViewRef}
+//         contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+//       >
 //         <View style={styles.dashboardContainer}>
 //           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
 //             <ExpoImage
@@ -420,10 +440,12 @@
 //           ) : feedItems.length === 0 && todayImages.length === 0 ? (
 //             <View style={styles.emptyWrap}>
 //               <Image
-//                 source={require("@/assets/images/logo_center.png")}
-//                 style={{ width: 35, height: 26, resizeMode: "contain" }}
+//                 source={require("@/assets/images/empty_logo.png")}
+//                 style={{ width: 60, height: 45, resizeMode: "contain" }}
 //               />
-//               <Text style={styles.emptyText}>아무것도 없어요!</Text>
+//               <Text style={styles.emptyText}>아직 아무 기록도 없어요</Text>
+//               <Text style={styles.emptysubtext}>작은 기록이 쌓여 큰 이야기가 됩니다.</Text>
+//               <Text style={styles.emptysubtext}>지금 바로 시작해보세요!</Text>
 //             </View>
 //           ) : (
 //             <MasonryGrid
@@ -521,12 +543,6 @@
 //     color: "#5B8DEF",
 //   },
 
-//   // todayContainer: {
-//   //   flexDirection: "row",
-//   //   alignItems: "center",
-//   //   backgroundColor: "#fff",
-//   //   marginHorizontal: 16,
-//   // },
 //   left: { marginRight: 12, alignItems: 'center' },
 //   todayText: {
 //     fontFamily: "Pretendard-Regular",
@@ -534,7 +550,6 @@
 //     color: "#C3C3C3",
 //     marginTop: -5,
 //     marginLeft: -3,
-//     // marginRight: 4
 //   },
 //   count: {
 //     fontFamily: "Pretendard-Medium",
@@ -551,13 +566,20 @@
 //   emptyWrap: {
 //     alignItems: "center",
 //     justifyContent: "center",
-//     paddingVertical: 250,
+//     paddingVertical: 200,
 //   },
 //   emptyText: {
 //     marginTop: 13,
 //     fontFamily: "Pretendard-Regular",
 //     fontSize: 15,
 //     color: "#0D0D0D",
+//     marginBottom: 5
+//   },
+//   emptysubtext:{
+//     marginTop: 0,
+//     fontFamily: "Pretendard-Regular",
+//     fontSize: 11,
+//     color: "#929292",
 //   },
 //   nickname: {
 //     fontFamily: "Pretendard-Bold",
@@ -591,23 +613,20 @@
 //     fontFamily: 'Pretendard-Bold',
 //     fontSize: 16,
 //   },
-//   // ✅ 수정: todayContainer 스타일 변경
 //   todayContainer: {
 //     flexDirection: "row",
 //     alignItems: "center",
 //     paddingHorizontal: 16,
-//     gap: 5, // 5개 아이템 사이의 간격
+//     gap: 5,
 //   },
-//   // ✅ 추가: 5개 아이템에 공통으로 적용될 스타일
 //   todayItem: {
-//     flex: 1, // 공간을 1/5씩 나눠가짐
-//     aspectRatio: 1, // 정사각형 비율 유지
+//     flex: 1,
+//     aspectRatio: 1,
 //     borderRadius: 7,
 //     position: 'relative',
 //     justifyContent: 'center',
 //     alignItems: 'center',
 //   },
-//   // ✅ 추가: TODAY 텍스트 박스 전용 스타일
 //   todayTextBox: {
 //     // 필요시 배경색 등 추가
 //     // backgroundColor: '#f0f0f0',
@@ -742,6 +761,10 @@ export default function IndexScreen() {
         })),
     [rows]
   );
+
+    const cameraButtonPress = () => {
+    router.replace("/camera");
+  };
 
   // 홈 탭이 다시 눌렸을 때 스크롤을 맨 위로 올리는 리스너
   useEffect(() => {
@@ -1065,10 +1088,19 @@ export default function IndexScreen() {
           ) : feedItems.length === 0 && todayImages.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Image
-                source={require("@/assets/images/logo_center.png")}
-                style={{ width: 35, height: 26, resizeMode: "contain" }}
+                source={require("@/assets/images/empty_logo.png")}
+                style={{ width: 60, height: 45, resizeMode: "contain" }}
               />
-              <Text style={styles.emptyText}>아무것도 없어요!</Text>
+              <Text style={styles.emptyText}>아직 아무 기록도 없어요</Text>
+              <Text style={styles.emptysubtext}>작은 기록이 쌓여 큰 이야기가 됩니다.</Text>
+              <Text style={styles.emptysubtext}>지금 바로 시작해보세요!</Text>
+
+              <TouchableOpacity onPress={cameraButtonPress} style={styles.firstButton}>
+                <Text style={styles.firstButtonText}>
+                  📸 첫 기록 남기기
+                </Text>
+              </TouchableOpacity>
+
             </View>
           ) : (
             <MasonryGrid
@@ -1189,13 +1221,20 @@ const styles = StyleSheet.create({
   emptyWrap: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 250,
+    paddingVertical: 150,
   },
   emptyText: {
     marginTop: 13,
     fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#0D0D0D",
+    marginBottom: 5
+  },
+  emptysubtext:{
+    marginTop: 0,
+    fontFamily: "Pretendard-Regular",
+    fontSize: 11,
+    color: "#929292",
   },
   nickname: {
     fontFamily: "Pretendard-Bold",
@@ -1254,5 +1293,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 7,
+  },
+  firstButton: {
+    backgroundColor: "#f2f2f2",
+    borderRadius: 10,
+    height: 48,
+    width: 193,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20
+  },
+  firstButtonText: {
+    fontFamily: "Pretendard-Normal",
+    fontSize: 17,
+    color: "#000",
   },
 });
