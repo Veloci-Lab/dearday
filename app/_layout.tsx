@@ -27,7 +27,6 @@ export default function RootLayout() {
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
     'RedHat-Bold': require('@/assets/fonts/RedHatDisplay-Bold.ttf'),
-    'RedHat-SemiBold': require('@/assets/fonts/RedHatDisplay-SemiBold.ttf'),
     'RedHat-Regular': require('@/assets/fonts/RedHatDisplay-Regular.ttf')
   });
 
