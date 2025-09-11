@@ -2,7 +2,7 @@
   "expo": {
     "name": "dearday",
     "slug": "dearday",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dearday",
@@ -91,9 +91,7 @@
       }
     },
     "owner": "dearday",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.2",
     "updates": {
       "url": "https://u.expo.dev/ad8392b2-46a3-4856-ae38-28e46bb436b6"
     }
