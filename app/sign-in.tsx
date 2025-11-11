@@ -1,6 +1,7 @@
 // app/sign-in.tsx
+import { commonStyles } from "@/styles/common";
+import { signInWithApple, signInWithGoogle } from "@/utils/api/auth";
 import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
@@ -46,7 +47,7 @@ export default function SignInScreen() {
     if (pendingRedirectUrl) {
       const url = pendingRedirectUrl;
       clearPendingRedirectUrl();
-      router.replace(url);
+      router.replace(url as any);
     } else {
       router.replace("/");
     }
@@ -63,12 +64,7 @@ export default function SignInScreen() {
       const idToken = (userInfo as any)?.data?.idToken ?? (userInfo as any)?.idToken;
       if (!idToken) throw new Error("No Google ID token");
 
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: "google",
-        token: idToken,
-      });
-      if (error) throw error;
-
+      await signInWithGoogle(idToken);
       await afterLoginRoute();
     } catch (error: any) {
       if (
@@ -96,12 +92,7 @@ export default function SignInScreen() {
 
       if (!credential.identityToken) throw new Error("No Apple identityToken");
 
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: "apple",
-        token: credential.identityToken,
-      });
-      if (error) throw error;
-
+      await signInWithApple(credential.identityToken);
       await afterLoginRoute();
     } catch (e: any) {
       if (e?.code !== "ERR_REQUEST_CANCELED") {
@@ -113,7 +104,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={commonStyles.container}>
       <StatusBar style="light" />
 
       {/* 중앙 로고 */}
@@ -179,10 +170,6 @@ export default function SignInScreen() {
 }
 
 const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF",
-  },
   logoContainer: {
     flex: 1,
     alignItems: "center",

@@ -5,7 +5,6 @@ import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-// import { Text, TextInput } from 'react-native';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -42,7 +41,7 @@ export default function RootLayout() {
     const subscription = Notifications.addNotificationResponseReceivedListener(res => {
       const url = res?.notification?.request?.content?.data?.url as string | undefined;
       if (!url) return;
-      if (isLoggedIn) router.push(url);
+      if (isLoggedIn) router.push(url as any);
       else setPendingRedirectUrl(url);
     });
 
@@ -58,7 +57,7 @@ export default function RootLayout() {
     if (isLoggedIn && pendingRedirectUrl) {
       const tmp = pendingRedirectUrl;
       clearPendingRedirectUrl();
-      router.push(tmp);
+      router.push(tmp as any);
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
@@ -69,29 +68,27 @@ export default function RootLayout() {
   }, [fontsLoaded, authLoading]);
 
   if (!fontsLoaded || authLoading) {
-    return null; // ���� �غ� �ȵ����� SplashScreen ����
+    return null;
   }
 
-    return (
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <Stack>
-          {/* 1. �α��� �� �� ����ڸ� ���� ȭ�� */}
+          {/* 1. 로그인 안 된 유저만 접근 */}
           <Stack.Protected guard={!isLoggedIn}>
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
           </Stack.Protected>
 
-          {/* 2. �α��������� �º��� �� �� ����ڸ� ���� ȭ�� */}
+          {/* 2. 로그인됐지만 온보딩 안 한 유저만 접근 */}
           <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack.Protected>
 
-          {/* 3. �α��ΰ� �º����� ��� ��ģ ����ڸ� ���� ȭ�� */}
+          {/* 3. 로그인&온보딩 완료한 유저만 접근 */}
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* --- tutorial ȭ���� �� �׷����� �̵� --- */}
-            <Stack.Screen name="tutorial" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>

@@ -1,6 +1,4 @@
 // app/mypage/profile-edit.tsx
-import { BackButton } from "@/components/BackButton";
-import { commonHeaderOptions } from "@/styles/common";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
@@ -17,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -62,9 +61,19 @@ export default function ProfileEditScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      ...commonHeaderOptions,
-      headerTitle: "프로필 편집",
-      headerLeft: () => <BackButton />,
+      headerShadowVisible: false,
+      headerTitleAlign: "center",
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={styles.Title}>My Dearday</Text>
+          <Text style={styles.SubTitle}>프로필 편집</Text>
+        </View>
+      ),
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Feather name="chevron-left" size={24} color="#000" />
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
@@ -443,6 +452,17 @@ const styles = StyleSheet.create({
   dupBtnText: {
     fontFamily: "Pretendard-SemiBold",
     color: "#5B8DEF",
+  },
+  Title: {
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18,
+    color: "#5B8DEF",
+  },
+  SubTitle: {
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12,
+    color: "#929292",
+    marginTop: -1,
   },
   placeholder: {
     fontFamily: "Pretendard-Regular",

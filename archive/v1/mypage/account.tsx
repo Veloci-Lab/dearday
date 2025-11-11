@@ -1,16 +1,14 @@
 // app/mypage/account.tsx
 
-import { BackButton } from "@/components/BackButton";
-import { commonHeaderOptions } from "@/styles/common";
-import { deleteUserAccount, getCurrentUser, signOut } from "@/utils/api/auth";
-import { deleteProfile } from "@/utils/api/profiles";
 import { useAuthStore } from "@/utils/authStore";
+import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -24,24 +22,30 @@ export default function AccountScreen() {
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  // 헤더 설정
+  // 헤더 (제목 + 부제)
   useEffect(() => {
     navigation.setOptions({
-      ...commonHeaderOptions,
-      headerTitle: "내 계정 관리",
-      headerLeft: () => <BackButton />,
+      headerShadowVisible: false,
+      headerTitleAlign: "center",
+      headerTitle: () => (
+        <View style={{ alignItems: "center" }}>
+          <Text style={ styles.Title }>My Dearday</Text>
+          <Text style={ styles.SubTitle }>내 계정 관리</Text>
+        </View>
+      ),
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Feather name="chevron-left" size={24} color="#000" />
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
   // 이메일 로드
   useEffect(() => {
     (async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user?.email) setEmail(user.email);
-      } catch (error) {
-        console.error("사용자 정보 조회 실패:", error);
-      }
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user?.email) setEmail(data.user.email);
       setLoading(false);
     })();
   }, []);
@@ -53,7 +57,7 @@ export default function AccountScreen() {
         text: "로그아웃",
         style: "destructive",
         onPress: async () => {
-          await signOut();
+          await supabase.auth.signOut();
           logOut();
           router.replace("/sign-in");
         },
@@ -74,23 +78,38 @@ export default function AccountScreen() {
             try {
               // 1) 현재 로그인 사용자 uid
               console.log("[delete] profileId from store =", profileId);
-              const me = await getCurrentUser();
-              if (!me) {
+              const { data: me, error: meErr } = await supabase.auth.getUser();
+              if (meErr || !me?.user) {
                 Alert.alert("오류", "사용자 정보를 불러오지 못했습니다.");
                 return;
               }
-              const uid = me.id;
+              const uid = me.user.id;
               console.log("[delete] auth uid =", uid);
 
               // 2) profiles 소프트 삭제 (profileId가 있으면 우선 사용)
               const target = profileId ?? uid;
-              await deleteProfile(target);
+              const { error: updateErr } = await supabase
+                .from("profiles")
+                .update({ is_deleted: true, nickname: null }) // is_deleted 플래그와 nickname 초기화
+                .eq("profile_id", target); // 스키마에 맞춰 필요 시 컬럼명 변경
+                
+              if (updateErr) {
+                console.error("[delete] profiles.update error:", updateErr);
+                Alert.alert("오류", "프로필 삭제 중 문제가 발생했습니다.\n" + updateErr.message);
+                return;
+              }
 
               // 3) Edge Function 호출 → 실제 Auth 계정 삭제
-              await deleteUserAccount();
+              const { error: fnErr } = await supabase.functions.invoke("delete-user", {
+                method: "POST",
+              });
+              if (fnErr) {
+                Alert.alert("오류", "계정 삭제 중 문제가 발생했습니다.");
+                return;
+              }
 
               // 4) 로그아웃 및 이동
-              await signOut();
+              await supabase.auth.signOut();
               logOut();
               router.replace("/sign-in");
             } catch (e: any) {
@@ -160,9 +179,19 @@ const styles = StyleSheet.create({
     fontSize: 15, 
     color: "#111",
   },
-  rowValue: {
+  rowValue: { 
     fontFamily: "Pretendard-Regular",
-    fontSize: 14,
-    color: "#8E8E93"
+    fontSize: 14, 
+    color: "#8E8E93" 
   },
+  Title: { 
+    fontFamily: "Pretendard-Bold",
+    fontSize: 18,
+    color: "#5B8DEF" },
+  SubTitle: { 
+    fontFamily: "Pretendard-Regular",
+    fontSize: 12, 
+    color: "#929292", 
+    marginTop: -1 
+  }
 });
