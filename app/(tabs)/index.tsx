@@ -54,10 +54,10 @@ export default function HomeScreen() {
         <Text style={commonStyles.title}>홈</Text>
         <Text style={commonStyles.subtitle}>v2.0.0</Text>
 
-        <Link href="/photo-organize-1">사진 정리하기 1</Link>
-        <Link href="/photo-organize-2">사진 정리하기 2</Link>
-        <Link href="/photo-organize-3">사진 정리하기 3</Link>
-        <Link href="/photo-organize-4">사진 정리하기 4</Link>
+        <Link href="/photo-organize-1">사진 정리하기 (소언)</Link>
+        <Link href="/photo-organize-2">사진 정리하기 (하연)</Link>
+        <Link href="/photo-organize-3">사진 정리하기 (서윤)</Link>
+        <Link href="/photo-organize-4">사진 정리하기 (민재)</Link>
       </View>
 
       <Modal visible={visible} transparent animationType="slide">
