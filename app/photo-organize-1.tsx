@@ -6,7 +6,9 @@ import {
   Animated,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -161,80 +163,90 @@ export default function PhotoOrganize1Screen() {
   // 사진 선택 전
   if (photos.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.emptyContent}>
-          <Feather name="image" size={64} color="#8E8E93" />
-          <Text style={styles.emptyTitle}>사진을 선택해주세요</Text>
-          <Text style={styles.emptySubtitle}>갤러리에서 정리할 사진들을 가져옵니다</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.emptyContent}>
+            <Feather name="image" size={64} color="#8E8E93" />
+            <Text style={styles.emptyTitle}>사진을 선택해주세요</Text>
+            <Text style={styles.emptySubtitle}>갤러리에서 정리할 사진들을 가져옵니다</Text>
 
-          <Pressable style={styles.emptyButton} onPress={pickImages}>
-            <Feather name="folder" size={20} color="#fff" />
-            <Text style={styles.emptyButtonText}>갤러리에서 선택</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+            <Pressable style={styles.emptyButton} onPress={pickImages}>
+              <Feather name="folder" size={20} color="#fff" />
+              <Text style={styles.emptyButtonText}>갤러리에서 선택</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* 상단 헤더 */}
-      <View style={styles.headerContainer}>
-        <View style={styles.header}>
-          {/* 카테고리 페이지 변경 버튼 */}
-          <View style={styles.categoryPageButtons}>
-            {ALL_CATEGORIES.length > 6 && (
-              <>
-                <Pressable
-                  onPress={() => setCategoryPage(categoryPage - 1)}
-                  disabled={!canGoPrev}
-                  style={[styles.pageButton, !canGoPrev && styles.pageButtonDisabled]}
-                >
-                  <Feather name="chevron-left" size={20} color={canGoPrev ? "#fff" : "#4A4A4C"} />
-                </Pressable>
-                <Pressable
-                  onPress={() => setCategoryPage(categoryPage + 1)}
-                  disabled={!canGoNext}
-                  style={[styles.pageButton, !canGoNext && styles.pageButtonDisabled]}
-                >
-                  <Feather name="chevron-right" size={20} color={canGoNext ? "#fff" : "#4A4A4C"} />
-                </Pressable>
-              </>
-            )}
-          </View>
-
-          <Pressable style={styles.addPhotoButton} onPress={pickImages}>
-            <Feather name="upload" size={16} color="#fff" />
-            <Text style={styles.addPhotoText}>사진 추가</Text>
-          </Pressable>
-
-          <Pressable onPress={handleComplete}>
-            <Text style={styles.completeText}>완료</Text>
-          </Pressable>
-        </View>
-
-        {/* 썸네일 리스트 */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.thumbnailScroll}
-          contentContainerStyle={styles.thumbnailContent}
-        >
-          {photos.map((photo, idx) => (
-            <View key={idx} style={styles.thumbnailWrapper}>
-              <Image source={{ uri: photo }} style={styles.thumbnail} />
-              {idx < currentIndex && (
-                <View style={styles.thumbnailCheck}>
-                  <Feather name="check" size={12} color="#fff" />
-                </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <View style={styles.container}>
+        {/* 상단 헤더 */}
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            {/* 카테고리 페이지 변경 버튼 */}
+            <View style={styles.categoryPageButtons}>
+              {ALL_CATEGORIES.length > 6 && (
+                <>
+                  <Pressable
+                    onPress={() => setCategoryPage(categoryPage - 1)}
+                    disabled={!canGoPrev}
+                    style={[styles.pageButton, !canGoPrev && styles.pageButtonDisabled]}
+                  >
+                    <Feather name="chevron-left" size={20} color={canGoPrev ? "#fff" : "#4A4A4C"} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setCategoryPage(categoryPage + 1)}
+                    disabled={!canGoNext}
+                    style={[styles.pageButton, !canGoNext && styles.pageButtonDisabled]}
+                  >
+                    <Feather name="chevron-right" size={20} color={canGoNext ? "#fff" : "#4A4A4C"} />
+                  </Pressable>
+                </>
               )}
             </View>
-          ))}
-        </ScrollView>
-      </View>
 
-      {/* 메인 콘텐츠 */}
-      <View style={styles.mainContent}>
+            <Pressable style={styles.addPhotoButton} onPress={pickImages}>
+              <Feather name="upload" size={16} color="#fff" />
+              <Text style={styles.addPhotoText}>사진 추가</Text>
+            </Pressable>
+
+            <Pressable onPress={handleComplete}>
+              <Text style={styles.completeText}>완료</Text>
+            </Pressable>
+          </View>
+
+          {/* 썸네일 리스트 */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.thumbnailScroll}
+            contentContainerStyle={styles.thumbnailContent}
+          >
+            {photos.map((photo, idx) => (
+              <View key={idx} style={styles.thumbnailWrapper}>
+                <Image source={{ uri: photo }} style={styles.thumbnail} />
+                {idx < currentIndex && (
+                  <View style={styles.thumbnailCheck}>
+                    <Feather name="check" size={12} color="#fff" />
+                  </View>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* 메인 콘텐츠 */}
+        <View style={styles.mainContent}>
         {/* 왼쪽 카테고리 */}
         <View style={styles.leftCategories}>
           {leftCategories.map((cat, idx) => {
@@ -357,13 +369,14 @@ export default function PhotoOrganize1Screen() {
         </View>
       </View>
 
-      {/* 하단 쓰레기통 영역 */}
-      <View style={styles.trashZone}>
-        <View style={styles.trashCircle}>
-          <Feather name="trash-2" size={24} color="#8E8E93" />
+        {/* 하단 쓰레기통 영역 */}
+        <View style={styles.trashZone}>
+          <View style={styles.trashCircle}>
+            <Feather name="trash-2" size={24} color="#8E8E93" />
+          </View>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
