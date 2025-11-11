@@ -1062,13 +1062,16 @@ export default function IndexScreen() {
         <View style={{ flex: 1, alignSelf: "stretch", width: "100%" }}>
           {memoriesLoading ? (
             <ActivityIndicator size="small" color="#5B8DEF" style={{ marginTop: 24 }} />
-          ) : feedItems.length === 0 && todayImages.length === 0 ? (
+          ) : feedItems.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Image
                 source={require("@/assets/images/logo_center.png")}
                 style={{ width: 35, height: 26, resizeMode: "contain" }}
               />
-              <Text style={styles.emptyText}>아무것도 없어요!</Text>
+              <Text style={styles.emptyText}>아직 정리된 기록이 없어요</Text>
+              <Text style={styles.emptysubtext}>작은 기록이 쌓여 큰 이야기가 됩니다.</Text>
+              <Text style={styles.emptysubtext}>지금 바로 시작해보세요!</Text>
+
             </View>
           ) : (
             <MasonryGrid

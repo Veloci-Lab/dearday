@@ -27,6 +27,7 @@ export default function RootLayout() {
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
     'RedHat-Bold': require('@/assets/fonts/RedHatDisplay-Bold.ttf'),
+    'RedHat-Regular': require('@/assets/fonts/RedHatDisplay-Regular.ttf')
   });
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function RootLayout() {
     if (isLoggedIn && pendingRedirectUrl) {
       const tmp = pendingRedirectUrl;
       clearPendingRedirectUrl();
-      router.replace(tmp);
+      router.push(tmp);
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
@@ -68,7 +69,7 @@ export default function RootLayout() {
   }, [fontsLoaded, authLoading]);
 
   if (!fontsLoaded || authLoading) {
-    return null; // ¾ÆÁ÷ ÁØºñ ¾ÈµÆÀ¸¸é SplashScreen À¯Áö
+    return null; // ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½ ï¿½Èµï¿½ï¿½ï¿½ï¿½ï¿½ SplashScreen ï¿½ï¿½ï¿½ï¿½
   }
 
     return (
@@ -76,16 +77,21 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <Stack>
+          {/* 1. ï¿½Î±ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ È­ï¿½ï¿½ */}
           <Stack.Protected guard={!isLoggedIn}>
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
           </Stack.Protected>
 
+          {/* 2. ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Âºï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ È­ï¿½ï¿½ */}
           <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack.Protected>
 
+          {/* 3. ï¿½Î±ï¿½ï¿½Î°ï¿½ ï¿½Âºï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½Ä£ ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ È­ï¿½ï¿½ */}
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* --- tutorial È­ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½×·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ --- */}
+            <Stack.Screen name="tutorial" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>
