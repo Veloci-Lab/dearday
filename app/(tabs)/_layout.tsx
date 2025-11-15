@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 /* ------ 커스텀 탭바 ------- */
 function CustomTabBar({ state, navigation }: any) {
@@ -19,10 +20,10 @@ function CustomTabBar({ state, navigation }: any) {
   const { width: screenWidth } = Dimensions.get("window");
 
   // 비율 계산
-  const LEFT_MARGIN_RATIO = 0.0556;   // 5.56%
-  const PILL_WIDTH_RATIO = 0.6805;    // 68.05%
-  const FAB_WIDTH_RATIO = 0.1667;     // 16.67%
-  const RIGHT_MARGIN_RATIO = 0.0556;  // 5.56%
+  const LEFT_MARGIN_RATIO = 0.0556; // 5.56%
+  const PILL_WIDTH_RATIO = 0.6805; // 68.05%
+  const FAB_WIDTH_RATIO = 0.1667; // 16.67%
+  const RIGHT_MARGIN_RATIO = 0.0556; // 5.56%
 
   const pillWidth = screenWidth * PILL_WIDTH_RATIO;
   const PILL_LEFT = screenWidth * LEFT_MARGIN_RATIO;
@@ -94,11 +95,7 @@ function CustomTabBar({ state, navigation }: any) {
                   style={{ width: 30, height: 30, resizeMode: "contain" }}
                 />
               ) : (
-                <Feather
-                  name={t.icon as any}
-                  size={24}
-                  color={labelColor}
-                />
+                <Feather name={t.icon as any} size={24} color={labelColor} />
               )}
               <Text style={[styles.tabLabel, { color: labelColor }]}>
                 {t.label}
@@ -137,20 +134,22 @@ function CustomTabBar({ state, navigation }: any) {
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: true,
-        tabBarStyle: { display: "none" },
-        headerShadowVisible: false,
-        headerStyle: { borderBottomWidth: 2, borderBottomColor: "#f2f2f2" },
-      }}
-      tabBar={(props) => <CustomTabBar {...props} />}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="organize" />
-      <Tabs.Screen name="record" />
-      <Tabs.Screen name="mypage" />
-    </Tabs>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Tabs
+        screenOptions={{
+          headerShown: true,
+          tabBarStyle: { display: "none" },
+          headerShadowVisible: false,
+          headerStyle: { borderBottomWidth: 2, borderBottomColor: "#f2f2f2" },
+        }}
+        tabBar={(props) => <CustomTabBar {...props} />}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="organize" />
+        <Tabs.Screen name="record" />
+        <Tabs.Screen name="mypage" />
+      </Tabs>
+    </GestureHandlerRootView>
   );
 }
 
