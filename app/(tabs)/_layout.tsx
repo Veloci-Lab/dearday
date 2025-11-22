@@ -2,15 +2,15 @@ import Feather from "@expo/vector-icons/Feather";
 import { Tabs, router } from "expo-router";
 import React from "react";
 import {
-  Dimensions,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    Dimensions,
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /* ------ 커스텀 탭바 ------- */
 function CustomTabBar({ state, navigation }: any) {
@@ -145,7 +145,7 @@ export default function TabsLayout() {
         tabBar={(props) => <CustomTabBar {...props} />}
       >
         <Tabs.Screen name="index" />
-        <Tabs.Screen name="organize" />
+        <Tabs.Screen name="organize" options={{ headerShown: false }} />
         <Tabs.Screen name="record" />
         <Tabs.Screen name="mypage" />
       </Tabs>
