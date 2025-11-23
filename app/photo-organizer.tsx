@@ -61,6 +61,9 @@ export default function PhotoOrganizerScreen() {
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // Image Expansion State
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+
   // Animation Shared Values
   const translationX = useSharedValue(0);
   const translationY = useSharedValue(0);
@@ -260,6 +263,14 @@ export default function PhotoOrganizerScreen() {
     if (currentPage < totalPages - 1) setCurrentPage(prev => prev + 1);
   };
 
+  const openImageModal = () => {
+      setIsImageModalVisible(true);
+  };
+
+  const closeImageModal = () => {
+      setIsImageModalVisible(false);
+  };
+
   const totalPages = Math.ceil(categories.length / CATEGORIES_PER_PAGE);
   const currentCategories = categories.slice(
     currentPage * CATEGORIES_PER_PAGE,
@@ -368,6 +379,15 @@ export default function PhotoOrganizerScreen() {
       }
     });
 
+  const tapGesture = Gesture.Tap()
+    .onEnd(() => {
+        runOnJS(openImageModal)();
+    });
+
+  // Combine gestures: Race allows either Pan or Tap. 
+  // If Pan starts (move), Tap is cancelled. If Tap completes quickly without moving, Pan is cancelled.
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translationX.value },
@@ -428,7 +448,7 @@ export default function PhotoOrganizerScreen() {
 
             if (isTopCard) {
               return (
-                <GestureDetector key={img.uri} gesture={panGesture}>
+                <GestureDetector key={img.uri} gesture={composedGesture}>
                   <Animated.View 
                     style={[
                       styles.stackedCard,
@@ -595,6 +615,28 @@ export default function PhotoOrganizerScreen() {
               </View>
             </View>
           </Modal>
+
+          {/* Image Expansion Modal */}
+          <Modal
+            visible={isImageModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={closeImageModal}
+          >
+              <View style={styles.imageModalOverlay}>
+                  <TouchableOpacity style={styles.closeImageButton} onPress={closeImageModal}>
+                      <Ionicons name="close-circle" size={40} color="white" />
+                  </TouchableOpacity>
+                  {selectedImages.length > 0 && (
+                      <Image 
+                          source={{ uri: selectedImages[0].uri }} 
+                          style={styles.fullScreenImage} 
+                          resizeMode="contain" 
+                      />
+                  )}
+              </View>
+          </Modal>
+
         </SafeAreaView>
         <Toast />
       </View>
@@ -930,5 +972,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontFamily: fonts.medium,
+  },
+  // Image Modal
+  imageModalOverlay: {
+      flex: 1,
+      backgroundColor: 'black',
+      justifyContent: 'center',
+      alignItems: 'center',
+  },
+  fullScreenImage: {
+      width: '100%',
+      height: '100%',
+  },
+  closeImageButton: {
+      position: 'absolute',
+      top: 50,
+      right: 20,
+      zIndex: 10,
   },
 });
