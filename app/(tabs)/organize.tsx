@@ -5,19 +5,19 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import { DraggableGrid } from 'react-native-draggable-grid';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,9 +38,9 @@ const CATEGORY_COLORS = [
 ];
 
 interface GridItem extends Category {
-    key: string;
-    disabledDrag?: boolean;
-    disabledReOrder?: boolean;
+  key: string;
+  disabledDrag?: boolean;
+  disabledReOrder?: boolean;
 }
 
 export default function OrganizeScreen() {
@@ -68,11 +68,24 @@ export default function OrganizeScreen() {
     try {
       setIsLoading(true);
       const data = await categoryService.fetchCategories(profileId);
-      // Assign colors on client side
-      const categoriesWithColors = data.map((cat, index) => ({
+
+      // Sort by created_at to determine color index deterministically and distinctly
+      // This ensures that:
+      // 1. Colors are distinct (up to the number of available colors)
+      // 2. Colors don't change when reordering (display_order changes, but created_at doesn't)
+      const sortedByCreated = [...data].sort((a, b) =>
+        new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+      );
+
+      const colorMap = new Map<string, string>();
+      sortedByCreated.forEach((cat, index) => {
+        colorMap.set(cat.id, CATEGORY_COLORS[index % CATEGORY_COLORS.length]);
+      });
+
+      const categoriesWithColors = data.map((cat) => ({
         ...cat,
         key: cat.id,
-        color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+        color: colorMap.get(cat.id),
       }));
       setCategories(categoriesWithColors);
     } catch (error) {
@@ -88,10 +101,14 @@ export default function OrganizeScreen() {
     try {
       const newCat = await categoryService.addCategory(profileId, newCategoryName);
       if (newCat) {
+        // The new category is the newest, so it gets the next color index
+        // We can just use the current length of categories as the index
+        const colorIndex = categories.length % CATEGORY_COLORS.length;
+
         const categoryWithColor = {
           ...newCat,
           key: newCat.id,
-          color: CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length],
+          color: CATEGORY_COLORS[colorIndex],
         };
         setCategories([...categories, categoryWithColor]);
         setNewCategoryName('');
@@ -106,51 +123,51 @@ export default function OrganizeScreen() {
     if (!selectedCategory || newCategoryName.trim().length === 0) return;
 
     try {
-        const updatedCat = await categoryService.updateCategory(selectedCategory.id, newCategoryName);
-        if (updatedCat) {
-            setCategories(prev => prev.map(cat => cat.id === selectedCategory.id ? { ...cat, name: updatedCat.name } : cat));
-            setNewCategoryName('');
-            setIsModalVisible(false);
-            setIsRenameMode(false);
-            setSelectedCategory(null);
-        }
+      const updatedCat = await categoryService.updateCategory(selectedCategory.id, newCategoryName);
+      if (updatedCat) {
+        setCategories(prev => prev.map(cat => cat.id === selectedCategory.id ? { ...cat, name: updatedCat.name } : cat));
+        setNewCategoryName('');
+        setIsModalVisible(false);
+        setIsRenameMode(false);
+        setSelectedCategory(null);
+      }
     } catch (error) {
-        console.error('Failed to update category', error);
+      console.error('Failed to update category', error);
     }
   };
 
   const handleDeleteCategory = async () => {
-      if (!selectedCategory) return;
+    if (!selectedCategory) return;
 
-      try {
-          await categoryService.deleteCategory(selectedCategory.id);
-          setCategories(prev => prev.filter(cat => cat.id !== selectedCategory.id));
-          setIsDeleteModalVisible(false);
-          setSelectedCategory(null);
-      } catch (error) {
-          console.error('Failed to delete category', error);
-      }
+    try {
+      await categoryService.deleteCategory(selectedCategory.id);
+      setCategories(prev => prev.filter(cat => cat.id !== selectedCategory.id));
+      setIsDeleteModalVisible(false);
+      setSelectedCategory(null);
+    } catch (error) {
+      console.error('Failed to delete category', error);
+    }
   };
 
   const openRenameModal = () => {
-      if (selectedCategory) {
-          setNewCategoryName(selectedCategory.name);
-          setIsRenameMode(true);
-          setIsOptionsModalVisible(false);
-          setIsModalVisible(true);
-      }
+    if (selectedCategory) {
+      setNewCategoryName(selectedCategory.name);
+      setIsRenameMode(true);
+      setIsOptionsModalVisible(false);
+      setIsModalVisible(true);
+    }
   };
 
   const openDeleteModal = () => {
-      setIsOptionsModalVisible(false);
-      setIsDeleteModalVisible(true);
+    setIsOptionsModalVisible(false);
+    setIsDeleteModalVisible(true);
   };
 
   const renderGridItem = (item: GridItem) => {
     if (item.key === 'ADD_BUTTON') {
       return (
         <View style={[styles.gridItem, styles.addItem]}>
-           <Ionicons name="add" size={40} color="#D9D9D9" />
+          <Ionicons name="add" size={40} color="#D9D9D9" />
         </View>
       );
     }
@@ -162,11 +179,11 @@ export default function OrganizeScreen() {
         </View>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName} numberOfLines={1}>{item.name}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.moreButton}
             onPress={() => {
-                setSelectedCategory(item);
-                setIsOptionsModalVisible(true);
+              setSelectedCategory(item);
+              setIsOptionsModalVisible(true);
             }}
           >
             <Ionicons name="ellipsis-horizontal" size={16} color={colors.text} />
@@ -180,46 +197,46 @@ export default function OrganizeScreen() {
   // When in edit mode, we only show categories (no add button)
   // When NOT in edit mode, we show categories + add button (but DraggableGrid requires consistent data structure if we used it for both, 
   // but here we will switch between FlatList (View Mode) and DraggableGrid (Edit Mode) or just use DraggableGrid for Edit Mode)
-  
+
   // Actually, to support "Add Button" at the end which is NOT draggable, we can just use FlatList for normal mode
   // And DraggableGrid for Edit Mode.
 
   const renderNormalItem = ({ item }: { item: GridItem | string }) => {
-      if (item === 'ADD_BUTTON') {
-        return (
-            <TouchableOpacity
-            style={[styles.gridItem, styles.addItem]}
-            onPress={() => {
-                setNewCategoryName('');
-                setIsRenameMode(false);
-                setIsModalVisible(true);
-            }}
-            >
-            <Ionicons name="add" size={40} color="#D9D9D9" />
-            </TouchableOpacity>
-        );
-      }
-      
-      const category = item as GridItem;
+    if (item === 'ADD_BUTTON') {
       return (
-        <View style={styles.gridItemContainer}>
-            <View style={[styles.gridItem, { backgroundColor: category.color || '#EDA6A6' }]}>
-            <View style={styles.categoryShape} />
-            </View>
-            <View style={styles.categoryInfo}>
-            <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
-            <TouchableOpacity 
-                style={styles.moreButton}
-                onPress={() => {
-                    setSelectedCategory(category);
-                    setIsOptionsModalVisible(true);
-                }}
-            >
-                <Ionicons name="ellipsis-horizontal" size={16} color={colors.text} />
-            </TouchableOpacity>
-            </View>
-        </View>
+        <TouchableOpacity
+          style={[styles.gridItem, styles.addItem]}
+          onPress={() => {
+            setNewCategoryName('');
+            setIsRenameMode(false);
+            setIsModalVisible(true);
+          }}
+        >
+          <Ionicons name="add" size={40} color="#D9D9D9" />
+        </TouchableOpacity>
       );
+    }
+
+    const category = item as GridItem;
+    return (
+      <View style={styles.gridItemContainer}>
+        <View style={[styles.gridItem, { backgroundColor: category.color || '#EDA6A6' }]}>
+          <View style={styles.categoryShape} />
+        </View>
+        <View style={styles.categoryInfo}>
+          <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => {
+              setSelectedCategory(category);
+              setIsOptionsModalVisible(true);
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={16} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -242,40 +259,47 @@ export default function OrganizeScreen() {
         </View>
       ) : (
         <View style={{ flex: 1 }}>
-            {isEditMode ? (
-                <DraggableGrid
-                    numColumns={COLUMN_COUNT}
-                    renderItem={renderGridItem}
-                    data={categories}
-                    onDragRelease={(data) => {
-                        setCategories(data as GridItem[]);
-                    }}
-                    itemHeight={ITEM_WIDTH + 40} // Adjust for text height
-                    style={{ paddingHorizontal: 20 }}
-                />
-            ) : (
-                <FlatList
-                    data={[...categories, 'ADD_BUTTON']}
-                    renderItem={renderNormalItem}
-                    keyExtractor={(item) => (typeof item === 'string' ? item : item.id)}
-                    numColumns={COLUMN_COUNT}
-                    contentContainerStyle={styles.gridContent}
-                    columnWrapperStyle={styles.columnWrapper}
-                    showsVerticalScrollIndicator={false}
-                />
-            )}
+          {isEditMode ? (
+            <DraggableGrid
+              numColumns={COLUMN_COUNT}
+              renderItem={renderGridItem}
+              data={categories}
+              onDragRelease={async (data) => {
+                const updatedCategories = data as GridItem[];
+                setCategories(updatedCategories);
+                try {
+                  await categoryService.updateCategoryOrder(updatedCategories);
+                } catch (error) {
+                  console.error('Failed to update category order', error);
+                  // Optionally revert state if update fails, but for now we just log
+                }
+              }}
+              itemHeight={ITEM_WIDTH + 40} // Adjust for text height
+              style={{ paddingHorizontal: 20 }}
+            />
+          ) : (
+            <FlatList
+              data={[...categories, 'ADD_BUTTON']}
+              renderItem={renderNormalItem}
+              keyExtractor={(item) => (typeof item === 'string' ? item : item.id)}
+              numColumns={COLUMN_COUNT}
+              contentContainerStyle={styles.gridContent}
+              columnWrapperStyle={styles.columnWrapper}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
         </View>
       )}
 
       {!isEditMode && (
         <View style={styles.footer}>
-            <TouchableOpacity
+          <TouchableOpacity
             style={styles.organizeButton}
             onPress={() => router.push('/photo-organizer')}
-            >
+          >
             <MaterialCommunityIcons name="pencil-outline" size={20} color="white" style={{ marginRight: 8 }} />
             <Text style={styles.organizeButtonText}>{'\uc0ac\uc9c4 \uc815\ub9ac\ud558\uae30'}</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -294,13 +318,13 @@ export default function OrganizeScreen() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                    {isRenameMode ? '\uc774\ub984 \uc218\uc815\ud558\uae30' : '\uce74\ud14c\uace0\ub9ac \uc774\ub984'}
+                  {isRenameMode ? '\uc774\ub984 \uc218\uc815\ud558\uae30' : '\uce74\ud14c\uace0\ub9ac \uc774\ub984'}
                 </Text>
                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
-              
+
               <TextInput
                 style={styles.input}
                 placeholder={'\uc774\ub984\uc744 \uc785\ub825\ud574\uc8fc\uc138\uc694'}
@@ -324,7 +348,7 @@ export default function OrganizeScreen() {
                   disabled={!newCategoryName.trim()}
                 >
                   <Text style={styles.addButtonText}>
-                      {isRenameMode ? '\uc218\uc815\ud558\uae30' : '\ucd94\uac00\ud558\uae30'}
+                    {isRenameMode ? '\uc218\uc815\ud558\uae30' : '\ucd94\uac00\ud558\uae30'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -340,20 +364,20 @@ export default function OrganizeScreen() {
         animationType="fade"
         onRequestClose={() => setIsOptionsModalVisible(false)}
       >
-          <TouchableWithoutFeedback onPress={() => setIsOptionsModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-                <View style={styles.optionsModalContent}>
-                    <Text style={styles.optionsTitle}>{selectedCategory?.name}</Text>
-                    <TouchableOpacity style={styles.optionButton} onPress={openRenameModal}>
-                        <Text style={styles.optionText}>{'\uc774\ub984 \uc218\uc815\ud558\uae30'}</Text>
-                    </TouchableOpacity>
-                    <View style={styles.divider} />
-                    <TouchableOpacity style={styles.optionButton} onPress={openDeleteModal}>
-                        <Text style={[styles.optionText, { color: '#FF6B6B' }]}>{'\uc0ad\uc81c\ud558\uae30'}</Text>
-                    </TouchableOpacity>
-                </View>
+        <TouchableWithoutFeedback onPress={() => setIsOptionsModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.optionsModalContent}>
+              <Text style={styles.optionsTitle}>{selectedCategory?.name}</Text>
+              <TouchableOpacity style={styles.optionButton} onPress={openRenameModal}>
+                <Text style={styles.optionText}>{'\uc774\ub984 \uc218\uc815\ud558\uae30'}</Text>
+              </TouchableOpacity>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.optionButton} onPress={openDeleteModal}>
+                <Text style={[styles.optionText, { color: '#FF6B6B' }]}>{'\uc0ad\uc81c\ud558\uae30'}</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -363,32 +387,32 @@ export default function OrganizeScreen() {
         animationType="fade"
         onRequestClose={() => setIsDeleteModalVisible(false)}
       >
-          <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                  <View style={styles.modalHeader}>
-                      <Text style={styles.modalTitle}>{'\uc815\ub9d0 \uc0ad\uc81c\ud558\uc2dc\uaca0\uc5b4\uc694?'}</Text>
-                      <TouchableOpacity onPress={() => setIsDeleteModalVisible(false)}>
-                          <Ionicons name="close" size={24} color={colors.textSecondary} />
-                      </TouchableOpacity>
-                  </View>
-                  <Text style={styles.helperText}>{'\uce74\ud14c\uace0\ub9ac\uc5d0 \ub4e4\uc5b4\uc788\ub294 \uc0ac\uc9c4\ub3c4 \ubaa8\ub450 \uc0ad\uc81c\ub3fc\uc694.'}</Text>
-                  
-                  <View style={styles.modalButtons}>
-                      <TouchableOpacity 
-                          style={[styles.modalButton, styles.cancelButton]}
-                          onPress={() => setIsDeleteModalVisible(false)}
-                      >
-                          <Text style={styles.cancelButtonText}>{'\ucde8\uc18c'}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                          style={[styles.modalButton, { backgroundColor: '#FF6B6B' }]}
-                          onPress={handleDeleteCategory}
-                      >
-                          <Text style={styles.addButtonText}>{'\uc0ad\uc81c\ud558\uae30'}</Text>
-                      </TouchableOpacity>
-                  </View>
-              </View>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{'\uc815\ub9d0 \uc0ad\uc81c\ud558\uc2dc\uaca0\uc5b4\uc694?'}</Text>
+              <TouchableOpacity onPress={() => setIsDeleteModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.helperText}>{'\uce74\ud14c\uace0\ub9ac\uc5d0 \ub4e4\uc5b4\uc788\ub294 \uc0ac\uc9c4\ub3c4 \ubaa8\ub450 \uc0ad\uc81c\ub3fc\uc694.'}</Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsDeleteModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>{'\ucde8\uc18c'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: '#FF6B6B' }]}
+                onPress={handleDeleteCategory}
+              >
+                <Text style={styles.addButtonText}>{'\uc0ad\uc81c\ud558\uae30'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+        </View>
       </Modal>
 
     </SafeAreaView>
@@ -413,8 +437,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   activeEditButton: {
-      color: colors.primary,
-      fontFamily: fonts.bold,
+    color: colors.primary,
+    fontFamily: fonts.bold,
   },
   gridContent: {
     padding: 20,
@@ -561,32 +585,32 @@ const styles = StyleSheet.create({
   },
   // Options Modal
   optionsModalContent: {
-      backgroundColor: 'white',
-      borderRadius: 16,
-      paddingVertical: 16,
-      width: '80%',
-      maxWidth: 300,
-      alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    paddingVertical: 16,
+    width: '80%',
+    maxWidth: 300,
+    alignItems: 'center',
   },
   optionsTitle: {
-      fontSize: 16,
-      fontFamily: fonts.bold,
-      color: colors.text,
-      marginBottom: 16,
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    color: colors.text,
+    marginBottom: 16,
   },
   optionButton: {
-      paddingVertical: 12,
-      width: '100%',
-      alignItems: 'center',
+    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
   },
   optionText: {
-      fontSize: 16,
-      fontFamily: fonts.medium,
-      color: colors.text,
+    fontSize: 16,
+    fontFamily: fonts.medium,
+    color: colors.text,
   },
   divider: {
-      height: 1,
-      width: '100%',
-      backgroundColor: '#EEE',
+    height: 1,
+    width: '100%',
+    backgroundColor: '#EEE',
   },
 });
