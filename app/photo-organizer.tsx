@@ -25,11 +25,38 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 const { width, height } = Dimensions.get('window');
 const CATEGORIES_PER_PAGE = 6;
+
+// ============================================================
+// Responsive Layout Constants
+// ============================================================
+const HEADER_HEIGHT = 56;
+const STACK_CONTAINER_HEIGHT = 80;
+const FOOTER_HEIGHT = 120;
+const CATEGORY_COUNT_PER_SIDE = 3;
+const CATEGORY_GAP = 8;
+
+// Base available height (SafeArea insets added in component)
+const BASE_AVAILABLE_HEIGHT = height - HEADER_HEIGHT - STACK_CONTAINER_HEIGHT - FOOTER_HEIGHT;
+
+// Dynamic category item height calculation
+const calculateCategoryItemHeight = (availableHeight: number) => {
+  const verticalPadding = Math.min(40, availableHeight * 0.08);
+  const totalGaps = CATEGORY_GAP * (CATEGORY_COUNT_PER_SIDE - 1);
+  const itemHeight = (availableHeight - verticalPadding * 2 - totalGaps) / CATEGORY_COUNT_PER_SIDE;
+
+  return {
+    itemHeight: Math.max(100, Math.min(160, itemHeight)),  // 100 ~ 160 range
+    verticalPadding: Math.max(20, verticalPadding),
+  };
+};
+
+// Side column width (12% of screen width, minimum 45)
+const SIDE_COLUMN_WIDTH = Math.max(45, width * 0.12);
 
 const CATEGORY_COLORS = [
   '#EDA6A6', '#9CC48D', '#C894D6', '#A8A6ED', '#E8D896', '#8ED6D6'
@@ -37,18 +64,19 @@ const CATEGORY_COLORS = [
 
 // History Item Interface
 interface HistoryItem {
-    type: 'categorize' | 'trash';
-    image: ImagePicker.ImagePickerAsset;
-    categoryId?: string; // Only for categorize
+  type: 'categorize' | 'trash';
+  image: ImagePicker.ImagePickerAsset;
+  categoryId?: string; // Only for categorize
 }
 
 export default function PhotoOrganizerScreen() {
+  const insets = useSafeAreaInsets();
   const { profileId } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isExitModalVisible, setIsExitModalVisible] = useState(false);
   const [selectedImages, setSelectedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
-  
+
   // New State
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
@@ -69,6 +97,13 @@ export default function PhotoOrganizerScreen() {
   const translationY = useSharedValue(0);
   const scale = useSharedValue(1);
 
+  // ============================================================
+  // Responsive layout values (with SafeArea insets)
+  // ============================================================
+  const availableHeight = BASE_AVAILABLE_HEIGHT - insets.top - insets.bottom;
+  const { itemHeight: CATEGORY_ITEM_HEIGHT, verticalPadding: VERTICAL_PADDING } =
+    calculateCategoryItemHeight(availableHeight);
+
   useEffect(() => {
     if (profileId) {
       loadCategories();
@@ -84,7 +119,7 @@ export default function PhotoOrganizerScreen() {
         color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
       }));
       setCategories(categoriesWithColors);
-      
+
       // Initialize counts (mocking 0 for now as we don't fetch from DB yet)
       const initialCounts: Record<string, number> = {};
       data.forEach(cat => initialCounts[cat.id] = 0);
@@ -108,7 +143,7 @@ export default function PhotoOrganizerScreen() {
       setTotalUploadedCount(prev => prev + result.assets.length);
       Toast.show({
         type: 'success',
-        text1: '\uc0ac\uc9c4\uc774 \ucd94\uac00\ub410\uc5b4\uc694', // 사진이 추가됐어요
+        text1: '\uc0ac\uc9c4\uc774 \ucd94\uac00\ub410\uc5b4\uc694',
         visibilityTime: 1000,
         position: 'top',
         topOffset: 100,
@@ -148,22 +183,22 @@ export default function PhotoOrganizerScreen() {
 
     if (actualIndex < categories.length) {
       const category = categories[actualIndex];
-      
+
       // Logic to handle batch or single
       if (isMultiSelectMode && batchSelection.size > 0) {
         // Batch categorize - History not fully supported for batch yet in this simple implementation
         // For now, just process
         const processedImages = selectedImages.filter(img => batchSelection.has(img.uri));
-        
+
         setSelectedImages(prev => prev.filter(img => !batchSelection.has(img.uri)));
         setBatchSelection(new Set());
         setIsMultiSelectMode(false);
-        
+
         // Update counts
         setCategorizedCount(prev => prev + processedImages.length);
         setCategoryCounts(prev => ({
-            ...prev,
-            [category.id]: (prev[category.id] || 0) + processedImages.length
+          ...prev,
+          [category.id]: (prev[category.id] || 0) + processedImages.length
         }));
 
         console.log(`Batch categorized to: ${category.name}`);
@@ -174,85 +209,85 @@ export default function PhotoOrganizerScreen() {
 
         // Push to history
         setHistory(prev => [...prev, {
-            type: 'categorize',
-            image: imageToCategorize,
-            categoryId: category.id
+          type: 'categorize',
+          image: imageToCategorize,
+          categoryId: category.id
         }]);
 
         setSelectedImages(prev => prev.slice(1));
         setCurrentNote(''); // Reset note
-        
+
         // Update counts
         setCategorizedCount(prev => prev + 1);
         setCategoryCounts(prev => ({
-            ...prev,
-            [category.id]: (prev[category.id] || 0) + 1
+          ...prev,
+          [category.id]: (prev[category.id] || 0) + 1
         }));
 
         console.log(`Categorized to: ${category.name}`);
       }
-      
+
       // Reset animation
       translationX.value = 0;
       translationY.value = 0;
       scale.value = 1;
     } else {
-        // Invalid drop
-        translationX.value = withSpring(0);
-        translationY.value = withSpring(0);
-        scale.value = withSpring(1);
+      // Invalid drop
+      translationX.value = withSpring(0);
+      translationY.value = withSpring(0);
+      scale.value = withSpring(1);
     }
   };
 
   const handleTrash = () => {
     // Trash logic
     if (isMultiSelectMode && batchSelection.size > 0) {
-        const processedImages = selectedImages.filter(img => batchSelection.has(img.uri));
-        setSelectedImages(prev => prev.filter(img => !batchSelection.has(img.uri)));
-        setBatchSelection(new Set());
-        setIsMultiSelectMode(false);
-        setCategorizedCount(prev => prev + processedImages.length);
+      const processedImages = selectedImages.filter(img => batchSelection.has(img.uri));
+      setSelectedImages(prev => prev.filter(img => !batchSelection.has(img.uri)));
+      setBatchSelection(new Set());
+      setIsMultiSelectMode(false);
+      setCategorizedCount(prev => prev + processedImages.length);
     } else {
-        const imageToTrash = selectedImages[0];
-        if (!imageToTrash) return;
+      const imageToTrash = selectedImages[0];
+      if (!imageToTrash) return;
 
-        // Push to history
-        setHistory(prev => [...prev, {
-            type: 'trash',
-            image: imageToTrash
-        }]);
+      // Push to history
+      setHistory(prev => [...prev, {
+        type: 'trash',
+        image: imageToTrash
+      }]);
 
-        setSelectedImages(prev => prev.slice(1));
-        setCurrentNote('');
-        setCategorizedCount(prev => prev + 1);
+      setSelectedImages(prev => prev.slice(1));
+      setCurrentNote('');
+      setCategorizedCount(prev => prev + 1);
     }
-    
+
     translationX.value = 0;
     translationY.value = 0;
     scale.value = 1;
   };
 
   const handleUndo = () => {
-      if (history.length === 0) return;
+    if (history.length === 0) return;
 
-      const lastAction = history[history.length - 1];
-      const newHistory = history.slice(0, -1);
+    const lastAction = history[history.length - 1];
+    const newHistory = history.slice(0, -1);
 
-      setHistory(newHistory);
-      
-      // Restore image to the FRONT of the stack
-      setSelectedImages(prev => [lastAction.image, ...prev]);
-      setCategorizedCount(prev => Math.max(0, prev - 1));
+    setHistory(newHistory);
 
-      if (lastAction.type === 'categorize' && lastAction.categoryId) {
-          setCategoryCounts(prev => ({
-              ...prev,
-              [lastAction.categoryId!]: Math.max(0, (prev[lastAction.categoryId!] || 0) - 1)
-          }));
-      }
-      
-      // Reset note? Maybe keep empty or restore? For now reset.
-      setCurrentNote('');
+    // Restore image to the FRONT of the stack
+    setSelectedImages(prev => [lastAction.image, ...prev]);
+    setCategorizedCount(prev => Math.max(0, prev - 1));
+
+    if (lastAction.type === 'categorize' && lastAction.categoryId) {
+      setCategoryCounts(prev => ({
+        ...prev,
+        [lastAction.categoryId!]: Math.max(0, (prev[lastAction.categoryId!] || 0) - 1)
+      }));
+    }
+
+    // Reset note? Maybe keep empty or restore? For now reset.
+    setCurrentNote('');
   };
 
   const handlePrevPage = () => {
@@ -264,11 +299,11 @@ export default function PhotoOrganizerScreen() {
   };
 
   const openImageModal = () => {
-      setIsImageModalVisible(true);
+    setIsImageModalVisible(true);
   };
 
   const closeImageModal = () => {
-      setIsImageModalVisible(false);
+    setIsImageModalVisible(false);
   };
 
   const totalPages = Math.ceil(categories.length / CATEGORIES_PER_PAGE);
@@ -281,14 +316,24 @@ export default function PhotoOrganizerScreen() {
   const rightCategories = currentCategories.slice(3, 6);
 
   const renderCategoryItem = (category: Category, isLeft: boolean) => (
-    <View key={category.id} style={[styles.categoryItem, isLeft ? styles.categoryLeft : styles.categoryRight]}>
+    <View
+      key={category.id}
+      style={[
+        styles.categoryItem,
+        { height: CATEGORY_ITEM_HEIGHT },
+        isLeft ? styles.categoryLeft : styles.categoryRight
+      ]}
+    >
       <View style={[styles.categoryColorBar, { backgroundColor: category.color }]} />
       <View style={styles.categoryContent}>
-        <View style={styles.categoryTextContainer}>
-            <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
-            <Text style={styles.categoryCount}>
-                {categoryCounts[category.id] || 0}/100
-            </Text>
+        <View style={[
+          styles.categoryTextContainer,
+          { width: CATEGORY_ITEM_HEIGHT - 20 }
+        ]}>
+          <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
+          <Text style={styles.categoryCount}>
+            {categoryCounts[category.id] || 0}/100
+          </Text>
         </View>
       </View>
     </View>
@@ -303,29 +348,29 @@ export default function PhotoOrganizerScreen() {
           {selectedImages.map((img, index) => {
             const isSelected = batchSelection.has(img.uri);
             return (
-              <TouchableOpacity 
-                key={index} 
+              <TouchableOpacity
+                key={index}
                 style={[
-                    styles.stackedImageContainer, 
-                    { zIndex: selectedImages.length - index },
-                    isSelected && styles.batchSelectedImage
+                  styles.stackedImageContainer,
+                  { zIndex: selectedImages.length - index },
+                  isSelected && styles.batchSelectedImage
                 ]}
                 onPress={() => {
-                    if (isMultiSelectMode) {
-                        toggleBatchSelection(img.uri);
-                    }
+                  if (isMultiSelectMode) {
+                    toggleBatchSelection(img.uri);
+                  }
                 }}
                 disabled={!isMultiSelectMode}
               >
                 <Image source={{ uri: img.uri }} style={styles.stackedImage} />
                 {isMultiSelectMode && (
-                    <View style={styles.checkboxContainer}>
-                        <Ionicons 
-                            name={isSelected ? "checkmark-circle" : "ellipse-outline"} 
-                            size={20} 
-                            color={isSelected ? "#5B8DEF" : "white"} 
-                        />
-                    </View>
+                  <View style={styles.checkboxContainer}>
+                    <Ionicons
+                      name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                      size={20}
+                      color={isSelected ? "#5B8DEF" : "white"}
+                    />
+                  </View>
                 )}
               </TouchableOpacity>
             );
@@ -349,8 +394,8 @@ export default function PhotoOrganizerScreen() {
 
       // Check Trash
       if (e.translationY > TRASH_THRESHOLD_Y) {
-          runOnJS(handleTrash)();
-          return;
+        runOnJS(handleTrash)();
+        return;
       }
 
       let targetSide: 'left' | 'right' | null = null;
@@ -381,7 +426,7 @@ export default function PhotoOrganizerScreen() {
 
   const tapGesture = Gesture.Tap()
     .onEnd(() => {
-        runOnJS(openImageModal)();
+      runOnJS(openImageModal)();
     });
 
   // Combine gestures: Race allows either Pan or Tap. 
@@ -420,19 +465,19 @@ export default function PhotoOrganizerScreen() {
       <View style={styles.centerStackContainer}>
         {/* Progress Indicators */}
         <View style={styles.progressContainer}>
-            {/* Undo Button */}
-            {history.length > 0 ? (
-                <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
-                    <Ionicons name="arrow-undo" size={20} color="white" />
-                </TouchableOpacity>
-            ) : (
-                <View style={{ width: 30 }} /> // Spacer
-            )}
-            
-            {/* Progress Text */}
-            <Text style={styles.progressText}>
-                {categorizedCount}/{totalUploadedCount}
-            </Text>
+          {/* Undo Button */}
+          {history.length > 0 ? (
+            <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
+              <Ionicons name="arrow-undo" size={20} color="white" />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 30 }} /> // Spacer
+          )}
+
+          {/* Progress Text */}
+          <Text style={styles.progressText}>
+            {categorizedCount}/{totalUploadedCount}
+          </Text>
         </View>
 
         {/* Stacked Photos */}
@@ -440,7 +485,7 @@ export default function PhotoOrganizerScreen() {
           {selectedImages.slice(0, 2).map((img, index) => {
             const isTopCard = index === 0;
             const reverseIndex = index;
-            
+
             // Visual styles
             const scaleVal = 1 - (reverseIndex * 0.05);
             const translateYVal = reverseIndex * 10;
@@ -449,16 +494,16 @@ export default function PhotoOrganizerScreen() {
             if (isTopCard) {
               return (
                 <GestureDetector key={img.uri} gesture={composedGesture}>
-                  <Animated.View 
+                  <Animated.View
                     style={[
                       styles.stackedCard,
                       { zIndex: 100 },
                       animatedStyle
                     ]}
                   >
-                    <Image 
-                      source={{ uri: img.uri }} 
-                      style={styles.cardImage} 
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={styles.cardImage}
                       resizeMode="contain" // Respect aspect ratio
                     />
                   </Animated.View>
@@ -467,8 +512,8 @@ export default function PhotoOrganizerScreen() {
             }
 
             return (
-              <View 
-                key={img.uri} 
+              <View
+                key={img.uri}
                 style={[
                   styles.stackedCard,
                   {
@@ -478,31 +523,42 @@ export default function PhotoOrganizerScreen() {
                   }
                 ]}
               >
-                <Image 
-                  source={{ uri: img.uri }} 
-                  style={styles.cardImage} 
+                <Image
+                  source={{ uri: img.uri }}
+                  style={styles.cardImage}
                   resizeMode="contain"
                   blurRadius={5} // Blur effect
                 />
               </View>
             );
-          }).reverse()} 
+          }).reverse()}
         </View>
 
         {/* Note Input */}
         <View style={styles.noteContainer}>
           <TextInput
-              style={styles.noteInput}
-              placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'}
-              placeholderTextColor="#666"
-              value={currentNote}
-              onChangeText={setCurrentNote}
-              multiline
+            style={styles.noteInput}
+            placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'}
+            placeholderTextColor="#666"
+            value={currentNote}
+            onChangeText={setCurrentNote}
+            multiline
           />
         </View>
       </View>
     );
   };
+
+  // ============================================================
+  // Dynamic styles
+  // ============================================================
+  const dynamicStyles = StyleSheet.create({
+    sideColumn: {
+      width: SIDE_COLUMN_WIDTH,
+      justifyContent: 'space-around',
+      paddingVertical: VERTICAL_PADDING,
+    },
+  });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -514,24 +570,24 @@ export default function PhotoOrganizerScreen() {
             <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
               <Ionicons name="chevron-back" size={28} color="white" />
             </TouchableOpacity>
-            
+
             <View style={styles.headerControls}>
-                {selectedImages.length > 0 && (
-                  <>
-                    <TouchableOpacity 
-                        style={[styles.headerControlBtn, isMultiSelectMode && styles.activeControlBtn]} 
-                        onPress={() => setIsMultiSelectMode(!isMultiSelectMode)}
-                    >
-                        <Text style={styles.headerControlText}>{'\uc5ec\ub7ec\uc7a5 \uc120\ud0dd'}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.headerControlBtn} onPress={handlePickImages}>
-                        <Text style={styles.headerControlText}>{'\uc0ac\uc9c4 \ucd94\uac00'}</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-                <TouchableOpacity onPress={() => router.back()} style={styles.doneButton}>
-                    <Text style={styles.doneButtonText}>{'\uc644\ub8cc'}</Text>
-                </TouchableOpacity>
+              {selectedImages.length > 0 && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.headerControlBtn, isMultiSelectMode && styles.activeControlBtn]}
+                    onPress={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                  >
+                    <Text style={styles.headerControlText}>{'\uc5ec\ub7ec\uc7a5 \uc120\ud0dd'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.headerControlBtn} onPress={handlePickImages}>
+                    <Text style={styles.headerControlText}>{'\uc0ac\uc9c4 \ucd94\uac00'}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              <TouchableOpacity onPress={() => router.back()} style={styles.doneButton}>
+                <Text style={styles.doneButtonText}>{'\uc644\ub8cc'}</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -541,7 +597,7 @@ export default function PhotoOrganizerScreen() {
           {/* Main Content */}
           <View style={styles.content}>
             {/* Left Categories */}
-            <View style={styles.sideColumn}>
+            <View style={[styles.sideColumnBase, dynamicStyles.sideColumn]}>
               {leftCategories.map(cat => renderCategoryItem(cat, true))}
             </View>
 
@@ -555,16 +611,16 @@ export default function PhotoOrganizerScreen() {
                   <TouchableOpacity onPress={handlePrevPage} disabled={currentPage === 0} style={styles.pageButton}>
                     <Ionicons name="chevron-back" size={20} color={currentPage === 0 ? '#444' : 'white'} />
                   </TouchableOpacity>
-                  
+
                   <View style={styles.paginationDots}>
                     {Array.from({ length: totalPages }).map((_, index) => (
-                        <View
+                      <View
                         key={index}
                         style={[
-                            styles.dot,
-                            currentPage === index && styles.activeDot
+                          styles.dot,
+                          currentPage === index && styles.activeDot
                         ]}
-                        />
+                      />
                     ))}
                   </View>
 
@@ -576,7 +632,7 @@ export default function PhotoOrganizerScreen() {
             </View>
 
             {/* Right Categories */}
-            <View style={styles.sideColumn}>
+            <View style={[styles.sideColumnBase, dynamicStyles.sideColumn]}>
               {rightCategories.map(cat => renderCategoryItem(cat, false))}
             </View>
           </View>
@@ -623,18 +679,18 @@ export default function PhotoOrganizerScreen() {
             animationType="fade"
             onRequestClose={closeImageModal}
           >
-              <View style={styles.imageModalOverlay}>
-                  <TouchableOpacity style={styles.closeImageButton} onPress={closeImageModal}>
-                      <Ionicons name="close-circle" size={40} color="white" />
-                  </TouchableOpacity>
-                  {selectedImages.length > 0 && (
-                      <Image 
-                          source={{ uri: selectedImages[0].uri }} 
-                          style={styles.fullScreenImage} 
-                          resizeMode="contain" 
-                      />
-                  )}
-              </View>
+            <View style={styles.imageModalOverlay}>
+              <TouchableOpacity style={styles.closeImageButton} onPress={closeImageModal}>
+                <Ionicons name="close-circle" size={40} color="white" />
+              </TouchableOpacity>
+              {selectedImages.length > 0 && (
+                <Image
+                  source={{ uri: selectedImages[0].uri }}
+                  style={styles.fullScreenImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
           </Modal>
 
         </SafeAreaView>
@@ -658,6 +714,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
+    minHeight: HEADER_HEIGHT,
   },
   headerButton: {
     padding: 8,
@@ -695,7 +752,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   stackContainer: {
-    height: 80,
+    height: STACK_CONTAINER_HEIGHT,
     paddingVertical: 10,
   },
   stackContent: {
@@ -729,10 +786,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 20,
   },
-  sideColumn: {
-    width: 45, // Reduced from 80
+  sideColumnBase: {
     justifyContent: 'space-around',
-    paddingVertical: 40,
   },
   centerArea: {
     flex: 1,
@@ -751,24 +806,25 @@ const styles = StyleSheet.create({
   centerStackContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 400,
+    flex: 1,
+    maxHeight: 400,
   },
   progressContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: 280,
-      marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: 280,
+    marginBottom: 10,
   },
   undoButton: {
-      padding: 8,
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      borderRadius: 20,
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
   },
   progressText: {
-      color: 'white',
-      fontFamily: fonts.medium,
-      fontSize: 14,
+    color: 'white',
+    fontFamily: fonts.medium,
+    fontSize: 14,
   },
   cardStack: {
     width: 280,
@@ -814,10 +870,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   categoryItem: {
-    height: 160, // Increased from 120
+    // height is set dynamically
     backgroundColor: '#2A2A2A',
     borderRadius: 12,
-    marginBottom: 8, // Reduced from 16
+    marginBottom: CATEGORY_GAP,
     overflow: 'hidden',
     marginHorizontal: 4,
   },
@@ -840,7 +896,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   categoryTextContainer: {
-    width: 140, // Increased to match new height
+    // width is set dynamically
     height: 45,
     flexDirection: 'row',
     alignItems: 'center',
@@ -853,7 +909,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fonts.medium,
     textAlign: 'center',
-    maxWidth: 100, // Increased max width
+    maxWidth: 100,
   },
   categoryCount: {
     color: '#888',
@@ -898,7 +954,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   footer: {
-    height: 120,
+    height: FOOTER_HEIGHT,
     justifyContent: 'flex-end',
     alignItems: 'center',
     overflow: 'hidden',
@@ -975,19 +1031,19 @@ const styles = StyleSheet.create({
   },
   // Image Modal
   imageModalOverlay: {
-      flex: 1,
-      backgroundColor: 'black',
-      justifyContent: 'center',
-      alignItems: 'center',
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fullScreenImage: {
-      width: '100%',
-      height: '100%',
+    width: '100%',
+    height: '100%',
   },
   closeImageButton: {
-      position: 'absolute',
-      top: 50,
-      right: 20,
-      zIndex: 10,
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
   },
 });
