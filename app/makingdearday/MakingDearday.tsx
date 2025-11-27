@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "@/utils/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
-  Dimensions,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { supabase } from "@/utils/supabase";
-import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-import PhotoPickerModal from "./Photopickermodal";
+import ConfirmModal from "./modals/ConfirmModal";
+import PhotoPickerModal from "./modals/PhotoPickerModal";
 
 const { width } = Dimensions.get("window");
 const CATEGORY_COLUMN_COUNT = 3;
@@ -43,7 +44,7 @@ const TEST_PROFILE_ID = 102;
 // 메인 스크린 컴포넌트
 // ============================================================
 export default function MakingDeardayScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const isLoadedRef = useRef(false);
 
   // State
@@ -52,11 +53,14 @@ export default function MakingDeardayScreen() {
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 모달 관련 state
+  // 사진 선택 모달
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [categoryPhotos, setCategoryPhotos] = useState<Photo[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
+
+  // 취소 확인 모달
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // ============================================================
   // 데이터 로드 (한 번만 실행)
@@ -115,11 +119,9 @@ export default function MakingDeardayScreen() {
     const photo = categoryPhotos.find((p) => p.id === photoId);
 
     if (selectedPhotoIds.includes(photoId)) {
-      // 선택 해제
       setSelectedPhotoIds((prev) => prev.filter((id) => id !== photoId));
       setSelectedPhotos((prev) => prev.filter((p) => p.id !== photoId));
     } else {
-      // 선택
       setSelectedPhotoIds((prev) => [...prev, photoId]);
       if (photo) {
         setSelectedPhotos((prev) => [...prev, photo]);
@@ -127,7 +129,7 @@ export default function MakingDeardayScreen() {
     }
   };
 
-  const handleCloseModal = () => {
+  const handleClosePhotoModal = () => {
     setIsModalVisible(false);
     setSelectedCategory(null);
     setCategoryPhotos([]);
@@ -138,14 +140,37 @@ export default function MakingDeardayScreen() {
     setSelectedPhotos((prev) => prev.filter((p) => p.id !== photoId));
   };
 
-  const handleNext = () => {
-    if (selectedPhotoIds.length === 0) return;
-    console.log("Selected photos:", selectedPhotoIds);
-    // TODO: 다음 화면으로 이동
+  // 취소 버튼
+  const handleCancel = () => {
+    if (selectedPhotos.length > 0) {
+      setShowCancelModal(true);
+    } else {
+      router.back();
+    }
   };
 
-  const handleCancel = () => {
-    navigation.goBack();
+  // 모달 - "삭제하기" 클릭
+  const handleConfirmCancel = () => {
+    setShowCancelModal(false);
+    router.replace("/(tabs)/record");
+  };
+
+  // 모달 - "취소" 클릭
+  const handleDismissCancelModal = () => {
+    setShowCancelModal(false);
+  };
+
+  // 다음 버튼
+  const handleNext = () => {
+    if (selectedPhotoIds.length === 0) return;
+    
+    router.push({
+      pathname: "/dearday-editor",
+      params: {
+        photoIds: JSON.stringify(selectedPhotoIds),
+        photos: JSON.stringify(selectedPhotos),
+      },
+    });
   };
 
   // ============================================================
@@ -156,7 +181,7 @@ export default function MakingDeardayScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color="#5B8DEF" />
       </View>
     );
   }
@@ -165,7 +190,7 @@ export default function MakingDeardayScreen() {
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleCancel}>
+        <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
           <Text style={styles.cancelText}>취소</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>making dearday</Text>
@@ -239,8 +264,20 @@ export default function MakingDeardayScreen() {
         photos={categoryPhotos}
         selectedPhotoIds={selectedPhotoIds}
         onTogglePhoto={handleTogglePhoto}
-        onClose={handleCloseModal}
+        onClose={handleClosePhotoModal}
         isLoading={isLoadingPhotos}
+      />
+
+      {/* 취소 확인 모달 */}
+      <ConfirmModal
+        visible={showCancelModal}
+        title="정말 돌아가시겠습니까??"
+        message="지금까지 만든 내용이 다 날라가요!"
+        cancelText="취소"
+        confirmText="삭제하기"
+        onCancel={handleDismissCancelModal}
+        onConfirm={handleConfirmCancel}
+        confirmDestructive={true}
       />
     </View>
   );
@@ -266,6 +303,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F2",
+  },
+  headerButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   cancelText: {
     fontSize: 16,
@@ -277,13 +320,13 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   nextButton: {
-    backgroundColor: "#6366F1",
+    backgroundColor: "#5B8DEF",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   nextButtonDisabled: {
-    backgroundColor: "#C7D2FE",
+    backgroundColor: "#B8D4FF",
   },
   nextButtonText: {
     color: "#fff",

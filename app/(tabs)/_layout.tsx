@@ -2,12 +2,12 @@ import Feather from "@expo/vector-icons/Feather";
 import { Tabs, router } from "expo-router";
 import React from "react";
 import {
-    Dimensions,
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -107,7 +107,7 @@ function CustomTabBar({ state, navigation }: any) {
 
       {/* 카메라 버튼(FAB) 부분 */}
       <Pressable
-        onPress={() => router.push("/create-record" as any)}
+        onPress={() => router.push("/making-dearday" as any)}
         style={[
           styles.fab,
           {

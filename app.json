@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "dearday",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "requireFullScreen": true,
       "bundleIdentifier": "com.koreauniv.dearday",

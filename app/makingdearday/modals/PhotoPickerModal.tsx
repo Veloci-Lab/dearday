@@ -1,24 +1,20 @@
-import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   Modal,
-  Dimensions,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 const PHOTO_COLUMN_COUNT = 5;
 const PHOTO_SIZE = (width - 32) / PHOTO_COLUMN_COUNT;
 
-// ============================================================
-// 타입 정의
-// ============================================================
 interface Category {
   id: string;
   name: string;
@@ -41,9 +37,6 @@ export interface PhotoPickerModalProps {
   isLoading?: boolean;
 }
 
-// ============================================================
-// 컴포넌트
-// ============================================================
 export default function PhotoPickerModal({
   visible,
   category,
@@ -53,7 +46,6 @@ export default function PhotoPickerModal({
   onClose,
   isLoading = false,
 }: PhotoPickerModalProps) {
-  // 그리드 채우기용 빈 셀 추가
   const getGridData = (): (Photo | null)[] => {
     const data: (Photo | null)[] = [...photos];
     
@@ -109,7 +101,6 @@ export default function PhotoPickerModal({
     >
       <View style={styles.overlay}>
         <View style={styles.content}>
-          {/* 헤더 */}
           <View style={styles.header}>
             <View style={styles.categoryLabel}>
               <View style={styles.categoryDot} />
@@ -120,10 +111,9 @@ export default function PhotoPickerModal({
             </TouchableOpacity>
           </View>
 
-          {/* 사진 그리드 */}
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color="#5B8DEF" />
             </View>
           ) : (
             <FlatList
@@ -141,9 +131,6 @@ export default function PhotoPickerModal({
   );
 }
 
-// ============================================================
-// 스타일
-// ============================================================
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -183,7 +170,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   doneButton: {
-    backgroundColor: "#6366F1",
+    backgroundColor: "#5B8DEF",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -226,8 +213,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxSelected: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
+    backgroundColor: "#5B8DEF",
+    borderColor: "#5B8DEF",
   },
   emptyCell: {
     width: "100%",
