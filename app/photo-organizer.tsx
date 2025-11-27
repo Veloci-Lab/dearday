@@ -4,20 +4,21 @@ import { useAuthStore } from '@/utils/authStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Dimensions,
   Image,
   Modal,
+  PixelRatio,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -28,20 +29,9 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
-const { width, height } = Dimensions.get('window');
 const CATEGORIES_PER_PAGE = 6;
-
-// ============================================================
-// Responsive Layout Constants
-// ============================================================
-const HEADER_HEIGHT = 56;
-const STACK_CONTAINER_HEIGHT = 80;
-const FOOTER_HEIGHT = 120;
 const CATEGORY_COUNT_PER_SIDE = 3;
 const CATEGORY_GAP = 8;
-
-// Base available height (SafeArea insets added in component)
-const BASE_AVAILABLE_HEIGHT = height - HEADER_HEIGHT - STACK_CONTAINER_HEIGHT - FOOTER_HEIGHT;
 
 // Dynamic category item height calculation
 const calculateCategoryItemHeight = (availableHeight: number) => {
@@ -55,14 +45,10 @@ const calculateCategoryItemHeight = (availableHeight: number) => {
   };
 };
 
-// Side column width (12% of screen width, minimum 45)
-const SIDE_COLUMN_WIDTH = Math.max(45, width * 0.12);
-
 const CATEGORY_COLORS = [
   '#EDA6A6', '#9CC48D', '#C894D6', '#A8A6ED', '#E8D896', '#8ED6D6'
 ];
 
-// History Item Interface
 interface HistoryItem {
   type: 'categorize' | 'trash';
   image: ImagePicker.ImagePickerAsset;
@@ -70,6 +56,7 @@ interface HistoryItem {
 }
 
 export default function PhotoOrganizerScreen() {
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { profileId } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -100,9 +87,22 @@ export default function PhotoOrganizerScreen() {
   // ============================================================
   // Responsive layout values (with SafeArea insets)
   // ============================================================
-  const availableHeight = BASE_AVAILABLE_HEIGHT - insets.top - insets.bottom;
+  const HEADER_HEIGHT = Math.max(56, height * 0.07);
+  const STACK_CONTAINER_HEIGHT = Math.max(80, height * 0.1);
+  const FOOTER_HEIGHT = Math.max(100, height * 0.15);
+  const SIDE_COLUMN_WIDTH = Math.max(45, width * 0.12);
+
+  const CARD_WIDTH = Math.min(320, width * 0.75);
+  const CARD_HEIGHT = CARD_WIDTH * 1.15;
+
+  const availableHeight = height - HEADER_HEIGHT - STACK_CONTAINER_HEIGHT - FOOTER_HEIGHT - insets.top - insets.bottom;
   const { itemHeight: CATEGORY_ITEM_HEIGHT, verticalPadding: VERTICAL_PADDING } =
     calculateCategoryItemHeight(availableHeight);
+
+  const scaleFont = (size: number) => {
+    const scale = width / 375;
+    return Math.round(PixelRatio.roundToNearestPixel(size * scale));
+  };
 
   useEffect(() => {
     if (profileId) {
@@ -328,10 +328,10 @@ export default function PhotoOrganizerScreen() {
       <View style={styles.categoryContent}>
         <View style={[
           styles.categoryTextContainer,
-          { width: CATEGORY_ITEM_HEIGHT - 20 }
+          { width: Math.max(80, CATEGORY_ITEM_HEIGHT - 20) }
         ]}>
-          <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
-          <Text style={styles.categoryCount}>
+          <Text style={[styles.categoryName, { fontSize: scaleFont(12) }]} numberOfLines={1}>{category.name}</Text>
+          <Text style={[styles.categoryCount, { fontSize: scaleFont(10) }]}>
             {categoryCounts[category.id] || 0}/100
           </Text>
         </View>
@@ -343,7 +343,7 @@ export default function PhotoOrganizerScreen() {
     if (selectedImages.length === 0) return null;
 
     return (
-      <View style={styles.stackContainer}>
+      <View style={[styles.stackContainer, { height: STACK_CONTAINER_HEIGHT }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stackContent}>
           {selectedImages.map((img, index) => {
             const isSelected = batchSelection.has(img.uri);
@@ -447,15 +447,15 @@ export default function PhotoOrganizerScreen() {
       if (hasUploaded) {
         return (
           <View style={styles.completeContainer}>
-            <Ionicons name="checkmark-circle-outline" size={64} color="#5B8DEF" />
-            <Text style={styles.completeText}>{'\uc815\ub9ac \uc644\ub8cc!'}</Text>
+            <Ionicons name="checkmark-circle-outline" size={scaleFont(64)} color="#5B8DEF" />
+            <Text style={[styles.completeText, { fontSize: scaleFont(20) }]}>{'\uc815\ub9ac \uc644\ub8cc!'}</Text>
           </View>
         );
       } else {
         return (
           <TouchableOpacity style={styles.uploadButton} onPress={handlePickImages}>
-            <MaterialCommunityIcons name="upload" size={24} color="#A8A6ED" />
-            <Text style={styles.uploadButtonText}>{'\uc0ac\uc9c4 \uc5c5\ub85c\ub4dc'}</Text>
+            <MaterialCommunityIcons name="upload" size={scaleFont(24)} color="#A8A6ED" />
+            <Text style={[styles.uploadButtonText, { fontSize: scaleFont(16) }]}>{'\uc0ac\uc9c4 \uc5c5\ub85c\ub4dc'}</Text>
           </TouchableOpacity>
         );
       }
@@ -464,24 +464,24 @@ export default function PhotoOrganizerScreen() {
     return (
       <View style={styles.centerStackContainer}>
         {/* Progress Indicators */}
-        <View style={styles.progressContainer}>
+        <View style={[styles.progressContainer, { width: CARD_WIDTH }]}>
           {/* Undo Button */}
           {history.length > 0 ? (
             <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
-              <Ionicons name="arrow-undo" size={20} color="white" />
+              <Ionicons name="arrow-undo" size={scaleFont(20)} color="white" />
             </TouchableOpacity>
           ) : (
-            <View style={{ width: 30 }} /> // Spacer
+            <View style={{ width: scaleFont(30) }} /> // Spacer
           )}
 
           {/* Progress Text */}
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, { fontSize: scaleFont(14) }]}>
             {categorizedCount}/{totalUploadedCount}
           </Text>
         </View>
 
         {/* Stacked Photos */}
-        <View style={styles.cardStack}>
+        <View style={[styles.cardStack, { width: CARD_WIDTH, height: CARD_HEIGHT }]}>
           {selectedImages.slice(0, 2).map((img, index) => {
             const isTopCard = index === 0;
             const reverseIndex = index;
@@ -497,7 +497,7 @@ export default function PhotoOrganizerScreen() {
                   <Animated.View
                     style={[
                       styles.stackedCard,
-                      { zIndex: 100 },
+                      { zIndex: 100, width: CARD_WIDTH, height: CARD_HEIGHT },
                       animatedStyle
                     ]}
                   >
@@ -519,7 +519,9 @@ export default function PhotoOrganizerScreen() {
                   {
                     zIndex: 10 - index,
                     transform: [{ scale: scaleVal }, { translateY: translateYVal }],
-                    opacity: opacityVal
+                    opacity: opacityVal,
+                    width: CARD_WIDTH,
+                    height: CARD_HEIGHT
                   }
                 ]}
               >
@@ -535,9 +537,9 @@ export default function PhotoOrganizerScreen() {
         </View>
 
         {/* Note Input */}
-        <View style={styles.noteContainer}>
+        <View style={[styles.noteContainer, { width: CARD_WIDTH }]}>
           <TextInput
-            style={styles.noteInput}
+            style={[styles.noteInput, { fontSize: scaleFont(14) }]}
             placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'}
             placeholderTextColor="#666"
             value={currentNote}
@@ -552,151 +554,155 @@ export default function PhotoOrganizerScreen() {
   // ============================================================
   // Dynamic styles
   // ============================================================
-  const dynamicStyles = StyleSheet.create({
+  const dynamicStyles = useMemo(() => StyleSheet.create({
     sideColumn: {
       width: SIDE_COLUMN_WIDTH,
       justifyContent: 'space-around',
       paddingVertical: VERTICAL_PADDING,
     },
-  });
+    header: {
+      minHeight: HEADER_HEIGHT,
+    },
+    footer: {
+      height: FOOTER_HEIGHT,
+    }
+  }), [SIDE_COLUMN_WIDTH, VERTICAL_PADDING, HEADER_HEIGHT, FOOTER_HEIGHT]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <SafeAreaView style={styles.safeArea}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
-              <Ionicons name="chevron-back" size={28} color="white" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <View style={[styles.header, dynamicStyles.header]}>
+          <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
+            <Ionicons name="chevron-back" size={scaleFont(28)} color="white" />
+          </TouchableOpacity>
+
+          <View style={styles.headerControls}>
+            {selectedImages.length > 0 && (
+              <>
+                <TouchableOpacity
+                  style={[styles.headerControlBtn, isMultiSelectMode && styles.activeControlBtn]}
+                  onPress={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                >
+                  <Text style={[styles.headerControlText, { fontSize: scaleFont(12) }]}>{'\uc5ec\ub7ec\uc7a5 \uc120\ud0dd'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerControlBtn} onPress={handlePickImages}>
+                  <Text style={[styles.headerControlText, { fontSize: scaleFont(12) }]}>{'\uc0ac\uc9c4 \ucd94\uac00'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity onPress={() => router.back()} style={styles.doneButton}>
+              <Text style={[styles.doneButtonText, { fontSize: scaleFont(14) }]}>{'\uc644\ub8cc'}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
 
-            <View style={styles.headerControls}>
-              {selectedImages.length > 0 && (
-                <>
-                  <TouchableOpacity
-                    style={[styles.headerControlBtn, isMultiSelectMode && styles.activeControlBtn]}
-                    onPress={() => setIsMultiSelectMode(!isMultiSelectMode)}
-                  >
-                    <Text style={styles.headerControlText}>{'\uc5ec\ub7ec\uc7a5 \uc120\ud0dd'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.headerControlBtn} onPress={handlePickImages}>
-                    <Text style={styles.headerControlText}>{'\uc0ac\uc9c4 \ucd94\uac00'}</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-              <TouchableOpacity onPress={() => router.back()} style={styles.doneButton}>
-                <Text style={styles.doneButtonText}>{'\uc644\ub8cc'}</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Selected Images Stack (Top) */}
+        {renderSelectedImagesStack()}
+
+        {/* Main Content */}
+        <View style={styles.content}>
+          {/* Left Categories */}
+          <View style={[styles.sideColumnBase, dynamicStyles.sideColumn]}>
+            {leftCategories.map(cat => renderCategoryItem(cat, true))}
           </View>
 
-          {/* Selected Images Stack (Top) */}
-          {renderSelectedImagesStack()}
+          {/* Center Area */}
+          <View style={styles.centerArea}>
+            {renderCenterContent()}
 
-          {/* Main Content */}
-          <View style={styles.content}>
-            {/* Left Categories */}
-            <View style={[styles.sideColumnBase, dynamicStyles.sideColumn]}>
-              {leftCategories.map(cat => renderCategoryItem(cat, true))}
-            </View>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity onPress={handlePrevPage} disabled={currentPage === 0} style={styles.pageButton}>
+                  <Ionicons name="chevron-back" size={20} color={currentPage === 0 ? '#444' : 'white'} />
+                </TouchableOpacity>
 
-            {/* Center Area */}
-            <View style={styles.centerArea}>
-              {renderCenterContent()}
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <View style={styles.paginationContainer}>
-                  <TouchableOpacity onPress={handlePrevPage} disabled={currentPage === 0} style={styles.pageButton}>
-                    <Ionicons name="chevron-back" size={20} color={currentPage === 0 ? '#444' : 'white'} />
-                  </TouchableOpacity>
-
-                  <View style={styles.paginationDots}>
-                    {Array.from({ length: totalPages }).map((_, index) => (
-                      <View
-                        key={index}
-                        style={[
-                          styles.dot,
-                          currentPage === index && styles.activeDot
-                        ]}
-                      />
-                    ))}
-                  </View>
-
-                  <TouchableOpacity onPress={handleNextPage} disabled={currentPage === totalPages - 1} style={styles.pageButton}>
-                    <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages - 1 ? '#444' : 'white'} />
-                  </TouchableOpacity>
+                <View style={styles.paginationDots}>
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        currentPage === index && styles.activeDot
+                      ]}
+                    />
+                  ))}
                 </View>
-              )}
-            </View>
 
-            {/* Right Categories */}
-            <View style={[styles.sideColumnBase, dynamicStyles.sideColumn]}>
-              {rightCategories.map(cat => renderCategoryItem(cat, false))}
-            </View>
+                <TouchableOpacity onPress={handleNextPage} disabled={currentPage === totalPages - 1} style={styles.pageButton}>
+                  <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages - 1 ? '#444' : 'white'} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
-          {/* Footer / Trash */}
-          <View style={styles.footer}>
-            <View style={styles.trashZone}>
-              <Ionicons name="trash-outline" size={32} color="#666" style={{ marginTop: 30 }} />
-            </View>
+          {/* Right Categories */}
+          <View style={[styles.sideColumnBase, dynamicStyles.sideColumn]}>
+            {rightCategories.map(cat => renderCategoryItem(cat, false))}
           </View>
+        </View>
 
-          {/* Exit Modal */}
-          <Modal
-            visible={isExitModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={handleContinue}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{'\ucde8\uc18c\ud558\uace0 \ub098\uac00\uc2dc\uaca0\uc5b4\uc694?'}</Text>
-                  <TouchableOpacity onPress={handleContinue}>
-                    <Ionicons name="close" size={24} color="#666" />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.modalMessage}>{'\uc815\ub9ac\ud558\ub358 \ub0b4\uc6a9\uc774 \uc0ac\ub77c\uc838\uc694!'}</Text>
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                    <Text style={styles.continueButtonText}>{'\uc774\uc5b4\uc11c \ud558\uae30'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
-                    <Text style={styles.exitButtonText}>{'\ub098\uac00\uae30'}</Text>
-                  </TouchableOpacity>
-                </View>
+        {/* Footer / Trash */}
+        <View style={[styles.footer, dynamicStyles.footer]}>
+          <View style={styles.trashZone}>
+            <Ionicons name="trash-outline" size={scaleFont(32)} color="#666" style={{ marginTop: 30 }} />
+          </View>
+        </View>
+
+        {/* Exit Modal */}
+        <Modal
+          visible={isExitModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={handleContinue}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxWidth: Math.min(320, width * 0.9) }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{'\ucde8\uc18c\ud558\uace0 \ub098\uac00\uc2dc\uaca0\uc5b4\uc694?'}</Text>
+                <TouchableOpacity onPress={handleContinue}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.modalMessage}>{'\uc815\ub9ac\ud558\ub358 \ub0b4\uc6a9\uc774 \uc0ac\ub77c\uc838\uc694!'}</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                  <Text style={styles.continueButtonText}>{'\uc774\uc5b4\uc11c \ud558\uae30'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
+                  <Text style={styles.exitButtonText}>{'\ub098\uac00\uae30'}</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </Modal>
+          </View>
+        </Modal>
 
-          {/* Image Expansion Modal */}
-          <Modal
-            visible={isImageModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={closeImageModal}
-          >
-            <View style={styles.imageModalOverlay}>
-              <TouchableOpacity style={styles.closeImageButton} onPress={closeImageModal}>
-                <Ionicons name="close-circle" size={40} color="white" />
-              </TouchableOpacity>
-              {selectedImages.length > 0 && (
-                <Image
-                  source={{ uri: selectedImages[0].uri }}
-                  style={styles.fullScreenImage}
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-          </Modal>
+        {/* Image Expansion Modal */}
+        <Modal
+          visible={isImageModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeImageModal}
+        >
+          <View style={styles.imageModalOverlay}>
+            <TouchableOpacity style={styles.closeImageButton} onPress={closeImageModal}>
+              <Ionicons name="close-circle" size={40} color="white" />
+            </TouchableOpacity>
+            {selectedImages.length > 0 && (
+              <Image
+                source={{ uri: selectedImages[0].uri }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </Modal>
 
-        </SafeAreaView>
-        <Toast />
-      </View>
-    </GestureHandlerRootView>
+      </SafeAreaView>
+      <Toast />
+    </View>
   );
 }
 
@@ -714,7 +720,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    minHeight: HEADER_HEIGHT,
+    // minHeight set dynamically
   },
   headerButton: {
     padding: 8,
@@ -752,7 +758,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   stackContainer: {
-    height: STACK_CONTAINER_HEIGHT,
+    // height set dynamically
     paddingVertical: 10,
   },
   stackContent: {
@@ -813,7 +819,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: 280,
+    // width set dynamically
     marginBottom: 10,
   },
   undoButton: {
@@ -827,16 +833,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cardStack: {
-    width: 280,
-    height: 320,
+    // width/height set dynamically
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   stackedCard: {
     position: 'absolute',
-    width: 280,
-    height: 320,
+    // width/height set dynamically
     borderRadius: 16,
     backgroundColor: '#333', // Card background
     shadowColor: "#000",
@@ -857,7 +861,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000', // Black background for letterboxing
   },
   noteContainer: {
-    width: 280,
+    // width set dynamically
     marginTop: 10,
   },
   noteInput: {
@@ -954,7 +958,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   footer: {
-    height: FOOTER_HEIGHT,
+    // height set dynamically
     justifyContent: 'flex-end',
     alignItems: 'center',
     overflow: 'hidden',
