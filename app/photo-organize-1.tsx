@@ -1,8 +1,10 @@
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -17,32 +19,71 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../utils/supabase';
+import { useAuthStore } from '../utils/authStore';
+import * as FileSystem from 'expo-file-system';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 const CARD_WIDTH = SCREEN_WIDTH * 0.6;
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.45;
 
-// 임시 카테고리 데이터
-const ALL_CATEGORIES = [
-  { name: 'package', icon: '📦', emoji: '📦' },
-  { name: 'daily', icon: '☀️', emoji: '☀️' },
-  { name: 'productivity', icon: '📊', emoji: '📊' },
-  { name: 'food', icon: '🍔', emoji: '🍔' },
-  { name: 'friends', icon: '👥', emoji: '👥' },
-  { name: 'travel', icon: '✈️', emoji: '✈️' },
-  { name: 'Gestalogy', icon: '🎨', emoji: '🎨' },
-  { name: 'test', icon: '🎨', emoji: '🎨' },
-];
+// 업로드 헬퍼 함수
+async function uriToBytes(uri: string): Promise<Uint8Array> {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const binary =
+    typeof atob !== 'undefined'
+      ? atob(base64)
+      : Buffer.from(base64, 'base64').toString('binary');
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function uploadToStorage(
+  bucket: string,
+  objectPath: string,
+  bytes: Uint8Array,
+  contentType: string = 'image/jpeg'
+): Promise<string> {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(objectPath, bytes, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+  return data.publicUrl;
+}
+
+// 최소 분류 영역 높이 (카테고리 + 카드 영역)
+const MIN_CLASSIFICATION_HEIGHT = 500;
+// 하단 영역 높이를 화면 크기에 따라 동적 조정 (더 작게)
+const BOTTOM_HEIGHT = Math.max(150, Math.min(200, SCREEN_HEIGHT - MIN_CLASSIFICATION_HEIGHT - 100));
+const ARCH_WIDTH = SCREEN_WIDTH * 0.7; // 아치 폭을 70%로 축소
+
+type Category = {
+  id: string;
+  name: string;
+  display_order: number;
+  emoji: string;
+};
 
 type ClassifiedPhoto = {
   photo: string;
-  category: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
   note?: string;
 };
 
 export default function PhotoOrganize1Screen() {
   const router = useRouter();
+  const { profileId } = useAuthStore();
   const [photos, setPhotos] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [categoryPage, setCategoryPage] = useState(0);
@@ -50,18 +91,90 @@ export default function PhotoOrganize1Screen() {
   const [note, setNote] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [hoveredCategory, setHoveredCategory] = useState<{ side: 'left' | 'right' | null; index: number } | null>(null);
+  const [enlargedPhoto, setEnlargedPhoto] = useState<string | null>(null);
+  const [isDraggingToTrash, setIsDraggingToTrash] = useState(false);
 
-  // 현재 페이지의 카테고리 (좌 3개, 우 3개)
-  const leftCategories = ALL_CATEGORIES.slice(categoryPage * 6, categoryPage * 6 + 3);
-  const rightCategories = ALL_CATEGORIES.slice(categoryPage * 6 + 3, categoryPage * 6 + 6);
+  // 카테고리 관련 state
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // 카테고리 가져오기
+  useEffect(() => {
+    if (profileId) {
+      fetchCategories();
+    }
+  }, [profileId]);
+
+  const fetchCategories = async () => {
+    if (!profileId) {
+      console.error('프로필 ID가 없습니다.');
+      setIsLoadingCategories(false);
+      return;
+    }
+
+    try {
+      setIsLoadingCategories(true);
+
+      // 필요한 필드만 가져오기 (display_order 순으로 정렬)
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, display_order')
+        .eq('profile_id', profileId)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('카테고리 불러오기 실패:', error);
+      } else if (data) {
+        // 기본 이모지 설정
+        const categoriesWithEmoji = data.map(cat => ({
+          ...cat,
+          emoji: '📁' // 기본 이모지
+        }));
+        setAllCategories(categoriesWithEmoji);
+      }
+    } catch (error) {
+      console.error('카테고리 로드 중 오류:', error);
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
+  // 현재 페이지의 카테고리 (좌우 번갈아가며 배치: 1-2, 3-4, 5-6)
+  const pageStart = categoryPage * 6;
+  const pageCategories = allCategories.slice(pageStart, pageStart + 6);
+  const leftCategories = pageCategories.filter((_, idx) => idx % 2 === 0); // 0, 2, 4 → 1, 3, 5번째
+  const rightCategories = pageCategories.filter((_, idx) => idx % 2 === 1); // 1, 3, 5 → 2, 4, 6번째
 
   // 각 카테고리별 사진 개수
   const getCategoryCount = (categoryName: string) => {
-    return classified.filter((c) => c.category === categoryName).length;
+    return classified.filter((c) => c.categoryName === categoryName).length;
   };
 
-  // 갤러리에서 사진 선택
+  // 뒤로가기 처리
+  const handleBack = () => {
+    if (photos.length > 0) {
+      Alert.alert(
+        "취소하고 나가시겠어요?",
+        "정리한 내용이 사라져요",
+        [
+          { text: "이어서하기", style: "cancel" },
+          { text: "나가기", onPress: () => router.back(), style: "destructive" }
+        ]
+      );
+    } else {
+      router.back();
+    }
+  };
+
+  // 갤러리에서 사진 선택 (최대 20개)
   const pickImages = async () => {
+    // 이미 20개면 막기
+    if (photos.length >= 20) {
+      alert('최대 20장까지 업로드할 수 있습니다.');
+      return;
+    }
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       alert('사진 접근 권한이 필요합니다.');
@@ -76,16 +189,24 @@ export default function PhotoOrganize1Screen() {
 
     if (!result.canceled && result.assets) {
       const uris = result.assets.map((asset) => asset.uri);
-      setPhotos([...photos, ...uris]);
+      const remainingSlots = 20 - photos.length;
+      const newPhotos = uris.slice(0, remainingSlots);
+
+      setPhotos([...photos, ...newPhotos]);
+
+      // 초과된 사진이 있으면 알림
+      if (uris.length > remainingSlots) {
+        alert(`최대 20장까지 업로드할 수 있습니다. ${newPhotos.length}장이 추가되었습니다.`);
+      }
     }
   };
 
   // 분류 완료
-  const handleClassify = (category: string | null) => {
+  const handleClassify = (categoryId: string | null, categoryName: string | null) => {
     if (currentIndex >= photos.length) return;
 
     // 삭제인 경우: photos 배열에서 제거
-    if (category === null) {
+    if (categoryId === null) {
       const newPhotos = photos.filter((_, idx) => idx !== currentIndex);
       setPhotos(newPhotos);
       setFeedbackText('🗑️ 삭제됨');
@@ -98,13 +219,13 @@ export default function PhotoOrganize1Screen() {
     // 카테고리 분류인 경우
     const newClassified = [
       ...classified,
-      { photo: photos[currentIndex], category, note: note.trim() || undefined },
+      { photo: photos[currentIndex], categoryId, categoryName, note: note.trim() || undefined },
     ];
     setClassified(newClassified);
 
     // 피드백 표시
-    const cat = ALL_CATEGORIES.find(c => c.name === category);
-    setFeedbackText(`${cat?.emoji || '📁'} ${category}`);
+    const cat = allCategories.find(c => c.id === categoryId);
+    setFeedbackText(`${cat?.emoji || '📁'} ${categoryName}`);
     setTimeout(() => setFeedbackText(''), 1000);
 
     setCurrentIndex(currentIndex + 1);
@@ -128,58 +249,81 @@ export default function PhotoOrganize1Screen() {
   };
 
   // 완료
-  const handleComplete = () => {
-    console.log('=== 사진 분류 완료 ===');
-    console.log('총 분류된 사진 수:', classified.length);
-    console.log('');
+  const handleComplete = async () => {
+    if (isUploading) return;
+    if (classified.length === 0) {
+      alert('분류된 사진이 없습니다.');
+      return;
+    }
 
-    // 각 사진별로 상세 정보 출력
-    classified.forEach((item, index) => {
-      console.log(`[사진 ${index + 1}]`);
-      console.log('  사진:', item.photo);
-      console.log('  카테고리:', item.category || '없음');
-      console.log('  노트:', item.note || '없음');
-      console.log('');
-    });
+    try {
+      setIsUploading(true);
 
-    // 카테고리별 통계
-    const categoryStats: { [key: string]: number } = {};
-    classified.forEach((item) => {
-      if (item.category) {
-        categoryStats[item.category] = (categoryStats[item.category] || 0) + 1;
+      const BUCKET = 'photos-v2';
+
+      // 모든 사진 업로드 및 DB 저장
+      for (let i = 0; i < classified.length; i++) {
+        const item = classified[i];
+
+        // 1. Storage에 업로드 (original 폴더)
+        const ts = Date.now() + i; // 고유한 타임스탬프
+        const fileName = `photo_${profileId}_${ts}.jpg`;
+        const filePath = `original/${fileName}`;
+
+        const bytes = await uriToBytes(item.photo);
+        const imageUrl = await uploadToStorage(BUCKET, filePath, bytes);
+
+        // 2. DB에 저장
+        const { error: insertError } = await supabase
+          .from('photos')
+          .insert({
+            profile_id: profileId,
+            category_id: item.categoryId,
+            image_url: imageUrl,
+            memo: item.note || null,
+          });
+
+        if (insertError) {
+          console.error('DB 저장 실패:', insertError);
+          throw insertError;
+        }
       }
-    });
-    console.log('카테고리별 통계:', categoryStats);
 
-    alert(`${classified.length}장의 사진을 분류했습니다!`);
-    // router.back();
+      alert(`${classified.length}장의 사진을 분류했습니다!`);
+      router.back();
+    } catch (error) {
+      console.error('사진 저장 실패:', error);
+      alert('사진 저장에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // 카테고리 페이지 변경
-  const totalPages = Math.ceil(ALL_CATEGORIES.length / 6);
+  const totalPages = Math.ceil(allCategories.length / 6);
+  const showPagination = allCategories.length >= 7; // 7개 이상일 때만 페이지네이션 표시
   const canGoPrev = categoryPage > 0;
   const canGoNext = categoryPage < totalPages - 1;
 
-  // 사진 선택 전
-  if (photos.length === 0) {
+  // 로딩 중일 때
+  if (isLoadingCategories) {
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <SafeAreaView style={styles.container}>
-          <View style={styles.emptyContent}>
-            <Feather name="image" size={64} color="#8E8E93" />
-            <Text style={styles.emptyTitle}>사진을 선택해주세요</Text>
-            <Text style={styles.emptySubtitle}>갤러리에서 정리할 사진들을 가져옵니다</Text>
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.loadingText}>카테고리를 불러오는 중...</Text>
+      </View>
+    );
+  }
 
-            <Pressable style={styles.emptyButton} onPress={pickImages}>
-              <Feather name="folder" size={20} color="#fff" />
-              <Text style={styles.emptyButtonText}>갤러리에서 선택</Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </KeyboardAvoidingView>
+  // 카테고리가 없을 때
+  if (allCategories.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.emptyText}>카테고리가 없습니다.</Text>
+        <Text style={styles.emptySubtext}>카테고리를 먼저 추가해주세요.</Text>
+        <Pressable style={styles.backToHomeButton} onPress={() => router.back()}>
+          <Text style={styles.backToHomeText}>돌아가기</Text>
+        </Pressable>
+      </View>
     );
   }
 
@@ -193,63 +337,74 @@ export default function PhotoOrganize1Screen() {
         {/* 상단 헤더 */}
         <View style={styles.headerContainer}>
           <View style={styles.header}>
-            {/* 카테고리 페이지 변경 버튼 */}
-            <View style={styles.categoryPageButtons}>
-              {ALL_CATEGORIES.length > 6 && (
-                <>
-                  <Pressable
-                    onPress={() => setCategoryPage(categoryPage - 1)}
-                    disabled={!canGoPrev}
-                    style={[styles.pageButton, !canGoPrev && styles.pageButtonDisabled]}
-                  >
-                    <Feather name="chevron-left" size={20} color={canGoPrev ? "#fff" : "#4A4A4C"} />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setCategoryPage(categoryPage + 1)}
-                    disabled={!canGoNext}
-                    style={[styles.pageButton, !canGoNext && styles.pageButtonDisabled]}
-                  >
-                    <Feather name="chevron-right" size={20} color={canGoNext ? "#fff" : "#4A4A4C"} />
-                  </Pressable>
-                </>
+            {/* 좌측: 뒤로가기 */}
+            <Pressable onPress={handleBack}>
+              <Feather name="chevron-left" size={24} color="#fff" />
+            </Pressable>
+
+            {/* 우측: 사진 추가 + 완료 */}
+            <View style={styles.rightHeaderSection}>
+              {photos.length > 0 && !isUploading && (
+                <Pressable style={styles.addPhotoButton} onPress={pickImages}>
+                  <Text style={styles.addPhotoText}>사진 추가</Text>
+                </Pressable>
               )}
+              <Pressable
+                style={[
+                  styles.completeButton,
+                  (isUploading || classified.length === 0) && styles.completeButtonDisabled
+                ]}
+                onPress={handleComplete}
+                disabled={isUploading || classified.length === 0}
+              >
+                {isUploading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.completeButtonText}>완료</Text>
+                )}
+              </Pressable>
             </View>
-
-            <Pressable style={styles.addPhotoButton} onPress={pickImages}>
-              <Feather name="upload" size={16} color="#fff" />
-              <Text style={styles.addPhotoText}>사진 추가</Text>
-            </Pressable>
-
-            <Pressable onPress={handleComplete}>
-              <Text style={styles.completeText}>완료</Text>
-            </Pressable>
           </View>
 
-          {/* 썸네일 리스트 */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.thumbnailScroll}
-            contentContainerStyle={styles.thumbnailContent}
-          >
-            {photos.map((photo, idx) => (
-              <View key={idx} style={styles.thumbnailWrapper}>
-                <Image source={{ uri: photo }} style={styles.thumbnail} />
-                {idx < currentIndex && (
-                  <View style={styles.thumbnailCheck}>
-                    <Feather name="check" size={12} color="#fff" />
-                  </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
+          {/* 썸네일 리스트 - 항상 영역 확보 */}
+          <View style={styles.thumbnailScroll}>
+            {photos.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.thumbnailContent}
+              >
+                {photos.map((photo, idx) => (
+                  <Pressable
+                    key={idx}
+                    style={styles.thumbnailWrapper}
+                    onPress={() => setEnlargedPhoto(photo)}
+                  >
+                    <Image source={{ uri: photo }} style={styles.thumbnail} />
+                    {idx < currentIndex && (
+                      <View style={styles.thumbnailCheck}>
+                        <Feather name="check" size={10} color="#fff" />
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.thumbnailPlaceholder} />
+            )}
+          </View>
         </View>
 
         {/* 메인 콘텐츠 */}
         <View style={styles.mainContent}>
         {/* 왼쪽 카테고리 */}
         <View style={styles.leftCategories}>
-          {leftCategories.map((cat, idx) => {
+          {[0, 1, 2].map((idx) => {
+            const cat = leftCategories[idx];
+            if (!cat) {
+              return <View key={`left-empty-${idx}`} style={{ flex: 1 }} />;
+            }
+
             const isHovered = hoveredCategory?.side === 'left' && hoveredCategory?.index === idx;
             return (
               <View
@@ -276,58 +431,81 @@ export default function PhotoOrganize1Screen() {
 
         {/* 중앙 카드 영역 */}
         <View style={styles.cardArea}>
-          {/* 진행도 */}
-          {!(classified.length === photos.length && photos.length > 0) && (
-            <View style={styles.progressBadge}>
-              <Text style={styles.progressText}>
-                {Math.min(currentIndex + 1, photos.length)}/{photos.length}
-              </Text>
-            </View>
-          )}
-
           <View style={styles.cardSection}>
-            {/* 뒤로가기 버튼 (카드 위 왼쪽) */}
-            {classified.length > 0 && (
-              <Pressable style={styles.backButton} onPress={handleUndo}>
-                <Feather name="arrow-left" size={24} color="#fff" />
+            {/* 사진이 없을 때: 업로드 버튼 */}
+            {photos.length === 0 ? (
+              <Pressable style={styles.uploadButton} onPress={pickImages}>
+                <Feather name="upload" size={20} color="#fff" />
+                <Text style={styles.uploadButtonText}>사진 업로드</Text>
               </Pressable>
-            )}
-
-            {/* 모든 사진 분류 완료 */}
-            {classified.length === photos.length && photos.length > 0 ? (
-              <View style={styles.completionCard}>
-                <Feather name="check-circle" size={64} color="#5B8DEF" />
-                <Text style={styles.completionTitle}>정리완료!</Text>
-                <Text style={styles.completionSubtitle}>
-                  {photos.length}장의 사진을 분류했습니다
-                </Text>
-              </View>
             ) : (
               <>
-                {/* 카드 스택 */}
-                <View style={styles.cardContainer}>
-                  {photos.slice(currentIndex, currentIndex + 2).reverse().map((photo, idx, arr) => (
-                    <SwipeCard
-                      key={`${currentIndex + idx}-${photo}`}
-                      photo={photo}
-                      isTop={arr.length === 1 ? idx === 0 : idx === 1}
-                      leftCategories={leftCategories}
-                      rightCategories={rightCategories}
-                      onClassify={handleClassify}
-                      onHoverCategory={setHoveredCategory}
-                    />
-                  ))}
-                </View>
+                <View style={styles.cardGroupContainer}>
+                  {/* 상단 헤더: 뒤로가기 + 진행도 - 항상 표시 */}
+                  <View style={styles.cardHeaderRow}>
+                    {/* 뒤로가기 버튼 (왼쪽) */}
+                    <Pressable
+                      style={[styles.backButton, classified.length === 0 && styles.backButtonDisabled]}
+                      onPress={handleUndo}
+                      disabled={classified.length === 0}
+                    >
+                      <Feather name="arrow-left" size={24} color="#F5978A" />
+                    </Pressable>
 
-                {/* 노트 입력 (카드 바로 아래) */}
-                <View style={styles.noteInputContainer}>
-                  <TextInput
-                    style={styles.noteInput}
-                    placeholder="노트를 입력해주세요"
-                    placeholderTextColor="#8E8E93"
-                    value={note}
-                    onChangeText={setNote}
-                  />
+                    {/* 진행도 (오른쪽) */}
+                    <View style={styles.progressBadge}>
+                      <Text style={styles.progressText}>
+                        {Math.min(currentIndex + 1, photos.length)}/{photos.length}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* 카드 스택 */}
+                  <View style={styles.cardContainer} pointerEvents="box-none">
+                    {/* 정리완료 카드 - 스택에 포함 (백그라운드) */}
+                    {classified.length === photos.length && photos.length > 0 && (
+                      <View style={styles.completionCard}>
+                        <Feather name="check-circle" size={64} color="#5B8DEF" />
+                        <Text style={styles.completionTitle}>정리완료!</Text>
+                        <Text style={styles.completionSubtitle}>
+                          {photos.length}장의 사진을 분류했습니다
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* 사진 카드들 - 스택 효과 */}
+                    {photos.slice(currentIndex, currentIndex + 3).reverse().map((photo, idx, arr) => {
+                      const isTop = idx === arr.length - 1;
+                      const stackIndex = arr.length - 1 - idx; // 0 = top, 1 = middle, 2 = bottom
+                      return (
+                        <SwipeCard
+                          key={`${currentIndex + idx}-${photo}`}
+                          photo={photo}
+                          isTop={isTop}
+                          stackIndex={stackIndex}
+                          leftCategories={leftCategories}
+                          rightCategories={rightCategories}
+                          onClassify={handleClassify}
+                          onHoverCategory={setHoveredCategory}
+                          onTap={() => setEnlargedPhoto(photo)}
+                          onDragToTrash={setIsDraggingToTrash}
+                        />
+                      );
+                    })}
+                  </View>
+
+                  {/* 노트 입력 - 항상 공간 유지 */}
+                  <View style={styles.noteInputContainer}>
+                    <TextInput
+                      style={styles.noteInput}
+                      placeholder="노트를 입력해주세요"
+                      placeholderTextColor="#8E8E93"
+                      value={note}
+                      onChangeText={setNote}
+                      editable={currentIndex < photos.length}
+                      pointerEvents={currentIndex < photos.length ? 'auto' : 'none'}
+                    />
+                  </View>
                 </View>
               </>
             )}
@@ -343,7 +521,12 @@ export default function PhotoOrganize1Screen() {
 
         {/* 오른쪽 카테고리 */}
         <View style={styles.rightCategories}>
-          {rightCategories.map((cat, idx) => {
+          {[0, 1, 2].map((idx) => {
+            const cat = rightCategories[idx];
+            if (!cat) {
+              return <View key={`right-empty-${idx}`} style={{ flex: 1 }} />;
+            }
+
             const isHovered = hoveredCategory?.side === 'right' && hoveredCategory?.index === idx;
             return (
               <View
@@ -369,12 +552,79 @@ export default function PhotoOrganize1Screen() {
         </View>
       </View>
 
-        {/* 하단 쓰레기통 영역 */}
-        <View style={styles.trashZone}>
-          <View style={styles.trashCircle}>
-            <Feather name="trash-2" size={24} color="#8E8E93" />
+        {/* 하단 영역: 대형 아치형 쓰레기통 */}
+        <View style={styles.bottomZone}>
+          {/* 대형 아치형 박스 */}
+          <View style={[
+            styles.trashArchBox,
+            isDraggingToTrash && styles.trashArchBoxActive
+          ]}>
+            {/* 휴지통 아이콘 (아치 상단) */}
+            <View style={[
+              styles.trashCircle,
+              isDraggingToTrash && styles.trashCircleActive
+            ]}>
+              <Feather
+                name="trash-2"
+                size={isDraggingToTrash ? 28 : 24}
+                color={isDraggingToTrash ? "#FF4444" : "#8E8E93"}
+              />
+            </View>
+
+            {/* 페이지 인디케이터 (아치 중앙) - 7개 이상일 때만 표시 */}
+            {showPagination && totalPages > 1 && (
+              <View style={styles.pageIndicator}>
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.pageDot,
+                      idx === categoryPage && styles.pageDotActive
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
           </View>
+
+          {/* 좌우 네비게이션 버튼 - 7개 이상일 때만 표시 */}
+          {showPagination && (
+            <>
+              <Pressable
+                onPress={() => setCategoryPage(Math.max(0, categoryPage - 1))}
+                disabled={!canGoPrev || !!feedbackText}
+                style={[styles.categoryNavButtonLeft, !canGoPrev && styles.categoryNavButtonDisabled]}
+              >
+                <Feather name="chevron-left" size={24} color={canGoPrev ? "#fff" : "#4A4A4C"} />
+              </Pressable>
+
+              <Pressable
+                onPress={() => setCategoryPage(Math.min(totalPages - 1, categoryPage + 1))}
+                disabled={!canGoNext || !!feedbackText}
+                style={[styles.categoryNavButtonRight, !canGoNext && styles.categoryNavButtonDisabled]}
+              >
+                <Feather name="chevron-right" size={24} color={canGoNext ? "#fff" : "#4A4A4C"} />
+              </Pressable>
+            </>
+          )}
         </View>
+
+        {/* 사진 확대 모달 */}
+        {enlargedPhoto && (
+          <Pressable
+            style={styles.enlargedPhotoModal}
+            onPress={() => setEnlargedPhoto(null)}
+          >
+            <Image
+              source={{ uri: enlargedPhoto }}
+              style={styles.enlargedPhotoImage}
+              resizeMode="contain"
+            />
+            <Pressable style={styles.closeEnlargedButton} onPress={() => setEnlargedPhoto(null)}>
+              <Feather name="x" size={24} color="#fff" />
+            </Pressable>
+          </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -384,27 +634,39 @@ export default function PhotoOrganize1Screen() {
 function SwipeCard({
   photo,
   isTop,
+  stackIndex,
   leftCategories,
   rightCategories,
   onClassify,
   onHoverCategory,
+  onTap,
+  onDragToTrash,
 }: {
   photo: string;
   isTop: boolean;
-  leftCategories: Array<{ name: string; icon: string; emoji: string }>;
-  rightCategories: Array<{ name: string; icon: string; emoji: string }>;
-  onClassify: (category: string | null) => void;
+  stackIndex: number;
+  leftCategories: Category[];
+  rightCategories: Category[];
+  onClassify: (categoryId: string | null, categoryName: string | null) => void;
   onHoverCategory: (hover: { side: 'left' | 'right' | null; index: number } | null) => void;
+  onTap?: () => void;
+  onDragToTrash?: (isDragging: boolean) => void;
 }) {
   const pan = useRef(new Animated.ValueXY()).current;
 
-  // 최신 콜백을 참조하기 위한 ref
-  const callbacksRef = useRef({ leftCategories, rightCategories, onClassify, onHoverCategory });
-  callbacksRef.current = { leftCategories, rightCategories, onClassify, onHoverCategory };
+  // 최신 콜백 및 isTop을 참조하기 위한 ref
+  const callbacksRef = useRef({ leftCategories, rightCategories, onClassify, onHoverCategory, onTap, onDragToTrash, isTop });
+  callbacksRef.current = { leftCategories, rightCategories, onClassify, onHoverCategory, onTap, onDragToTrash, isTop };
 
   const rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ['-15deg', '0deg', '15deg'],
+    extrapolate: 'clamp',
+  });
+
+  const opacity = pan.y.interpolate({
+    inputRange: [0, 150],
+    outputRange: [1, 0.6],
     extrapolate: 'clamp',
   });
 
@@ -427,13 +689,21 @@ function SwipeCard({
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTop,
+      onStartShouldSetPanResponder: () => callbacksRef.current.isTop,
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
         useNativeDriver: false,
         listener: (event, gestureState) => {
           const CATEGORY_ZONE_WIDTH = 80;
+          const TRASH_ZONE_THRESHOLD = 100; // 아래로 100px 이상 드래그 시 휴지통 영역
+
           const isInLeftZone = gestureState.moveX < CATEGORY_ZONE_WIDTH;
           const isInRightZone = gestureState.moveX > SCREEN_WIDTH - CATEGORY_ZONE_WIDTH;
+          const isDraggingDown = gestureState.dy > TRASH_ZONE_THRESHOLD;
+
+          // 휴지통으로 드래그 중인지 감지
+          if (callbacksRef.current.onDragToTrash) {
+            callbacksRef.current.onDragToTrash(isDraggingDown);
+          }
 
           if (isInLeftZone) {
             const categoryIndex = getCategoryIndex(callbacksRef.current.leftCategories.length, gestureState.moveY);
@@ -450,13 +720,19 @@ function SwipeCard({
         const CATEGORY_ZONE_WIDTH = 80; // 카테고리 영역 너비
         const MIN_DRAG_DISTANCE = 10; // 최소 드래그 거리 (탭 방지)
 
-        // hover 상태 초기화
+        // hover 상태 및 휴지통 드래그 상태 초기화
         callbacksRef.current.onHoverCategory(null);
+        if (callbacksRef.current.onDragToTrash) {
+          callbacksRef.current.onDragToTrash(false);
+        }
 
-        // 탭인지 드래그인지 확인 (이동 거리가 최소값 이하면 무시)
+        // 탭인지 드래그인지 확인 (이동 거리가 최소값 이하면 탭으로 간주)
         const totalDistance = Math.sqrt(gesture.dx * gesture.dx + gesture.dy * gesture.dy);
         if (totalDistance < MIN_DRAG_DISTANCE) {
-          // 탭으로 간주, 원위치
+          // 탭으로 간주, 사진 확대 콜백 호출
+          if (callbacksRef.current.onTap) {
+            callbacksRef.current.onTap();
+          }
           Animated.spring(pan, {
             toValue: { x: 0, y: 0 },
             friction: 4,
@@ -472,13 +748,13 @@ function SwipeCard({
         // 왼쪽 카테고리 영역에 드롭
         if (isInLeftZone) {
           const categoryIndex = getCategoryIndex(callbacksRef.current.leftCategories.length, gesture.moveY);
+          const category = callbacksRef.current.leftCategories[categoryIndex]; // 미리 캡처
           Animated.spring(pan, {
             toValue: { x: -SCREEN_WIDTH - 100, y: gesture.dy },
             useNativeDriver: true,
           }).start(() => {
-            const category = callbacksRef.current.leftCategories[categoryIndex];
             if (category) {
-              callbacksRef.current.onClassify(category.name);
+              callbacksRef.current.onClassify(category.id, category.name);
             }
             pan.setValue({ x: 0, y: 0 });
           });
@@ -486,13 +762,13 @@ function SwipeCard({
         // 오른쪽 카테고리 영역에 드롭
         else if (isInRightZone) {
           const categoryIndex = getCategoryIndex(callbacksRef.current.rightCategories.length, gesture.moveY);
+          const category = callbacksRef.current.rightCategories[categoryIndex]; // 미리 캡처
           Animated.spring(pan, {
             toValue: { x: SCREEN_WIDTH + 100, y: gesture.dy },
             useNativeDriver: true,
           }).start(() => {
-            const category = callbacksRef.current.rightCategories[categoryIndex];
             if (category) {
-              callbacksRef.current.onClassify(category.name);
+              callbacksRef.current.onClassify(category.id, category.name);
             }
             pan.setValue({ x: 0, y: 0 });
           });
@@ -500,25 +776,25 @@ function SwipeCard({
         // 좌우 스와이프 (빠른 스와이프)
         else if (gesture.dx > SWIPE_THRESHOLD) {
           const categoryIndex = getCategoryIndex(callbacksRef.current.rightCategories.length, gesture.moveY);
+          const category = callbacksRef.current.rightCategories[categoryIndex]; // 미리 캡처
           Animated.spring(pan, {
             toValue: { x: SCREEN_WIDTH + 100, y: gesture.dy },
             useNativeDriver: true,
           }).start(() => {
-            const category = callbacksRef.current.rightCategories[categoryIndex];
             if (category) {
-              callbacksRef.current.onClassify(category.name);
+              callbacksRef.current.onClassify(category.id, category.name);
             }
             pan.setValue({ x: 0, y: 0 });
           });
         } else if (gesture.dx < -SWIPE_THRESHOLD) {
           const categoryIndex = getCategoryIndex(callbacksRef.current.leftCategories.length, gesture.moveY);
+          const category = callbacksRef.current.leftCategories[categoryIndex]; // 미리 캡처
           Animated.spring(pan, {
             toValue: { x: -SCREEN_WIDTH - 100, y: gesture.dy },
             useNativeDriver: true,
           }).start(() => {
-            const category = callbacksRef.current.leftCategories[categoryIndex];
             if (category) {
-              callbacksRef.current.onClassify(category.name);
+              callbacksRef.current.onClassify(category.id, category.name);
             }
             pan.setValue({ x: 0, y: 0 });
           });
@@ -529,7 +805,7 @@ function SwipeCard({
             toValue: { x: gesture.dx, y: SCREEN_HEIGHT + 100 },
             useNativeDriver: true,
           }).start(() => {
-            callbacksRef.current.onClassify(null);
+            callbacksRef.current.onClassify(null, null);
             pan.setValue({ x: 0, y: 0 });
           });
         }
@@ -547,9 +823,16 @@ function SwipeCard({
 
   const cardStyle = isTop
     ? {
+        opacity,
         transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }],
       }
-    : { opacity: 0.5, transform: [{ scale: 0.92 }] };
+    : {
+        opacity: 1 - stackIndex * 0.2,
+        transform: [
+          { scale: 1 - stackIndex * 0.03 },
+          { translateY: -stackIndex * 8 }
+        ],
+      };
 
   return (
     <Animated.View
@@ -566,38 +849,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1C1C1E',
   },
-
-  // Empty state
-  emptyContent: {
-    flex: 1,
+  centerContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    gap: 16,
   },
-  emptyTitle: {
-    fontFamily: 'Pretendard-Bold',
-    fontSize: 24,
-    color: '#fff',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontFamily: 'Pretendard-Regular',
+  loadingText: {
+    fontFamily: 'Pretendard-Medium',
     fontSize: 16,
+    color: '#fff',
+  },
+  emptyText: {
+    fontFamily: 'Pretendard-Bold',
+    fontSize: 18,
+    color: '#fff',
+  },
+  emptySubtext: {
+    fontFamily: 'Pretendard-Regular',
+    fontSize: 14,
     color: '#8E8E93',
-    marginTop: 8,
-    marginBottom: 32,
   },
-  emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  backToHomeButton: {
     backgroundColor: '#5B8DEF',
-    paddingVertical: 14,
     paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 12,
-    marginTop: 12,
+    marginTop: 8,
   },
-  emptyButtonText: {
+  backToHomeText: {
     fontFamily: 'Pretendard-SemiBold',
     fontSize: 16,
     color: '#fff',
@@ -605,42 +884,25 @@ const styles = StyleSheet.create({
 
   // Header
   headerContainer: {
-    paddingTop: 4,
+    paddingTop: 8,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
-  categoryPageButtons: {
+  rightHeaderSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minWidth: 80,
-  },
-  pageButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#2C2C2E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#3C3C3E',
-  },
-  pageButtonDisabled: {
-    opacity: 0.3,
+    gap: 12,
   },
   addPhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     backgroundColor: '#2C2C2E',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#3C3C3E',
   },
@@ -649,15 +911,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
   },
-  completeText: {
+  completeButton: {
+    backgroundColor: '#5B8DEF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#5B8DEF',
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeButtonDisabled: {
+    backgroundColor: '#2C2C2E',
+    borderColor: '#3C3C3E',
+    opacity: 0.5,
+  },
+  completeButtonText: {
     fontFamily: 'Pretendard-SemiBold',
     fontSize: 16,
-    color: '#5B8DEF',
+    color: '#fff',
   },
 
   // Thumbnails
   thumbnailScroll: {
     marginTop: 4,
+    height: 68, // 60 (thumbnail) + 8 (padding)
   },
   thumbnailContent: {
     paddingHorizontal: 16,
@@ -665,7 +944,11 @@ const styles = StyleSheet.create({
   },
   thumbnailWrapper: {
     position: 'relative',
+    width: 60,
+    height: 60,
     marginRight: 8,
+    overflow: 'hidden',
+    borderRadius: 8,
   },
   thumbnail: {
     width: 60,
@@ -675,14 +958,17 @@ const styles = StyleSheet.create({
   },
   thumbnailCheck: {
     position: 'absolute',
-    top: 4,
+    bottom: 4,
     right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#5B8DEF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  thumbnailPlaceholder: {
+    height: 60,
   },
 
   // Main content
@@ -695,41 +981,40 @@ const styles = StyleSheet.create({
   // Categories
   leftCategories: {
     position: 'absolute',
-    left: 0,
+    left: -1,
     top: 8,
-    bottom: 70,
+    bottom: BOTTOM_HEIGHT + 10,
     flexDirection: 'column',
     gap: 8,
-    paddingLeft: 8,
     justifyContent: 'space-evenly',
     zIndex: 1,
   },
   rightCategories: {
     position: 'absolute',
-    right: 0,
+    right: -1,
     top: 8,
-    bottom: 70,
+    bottom: BOTTOM_HEIGHT + 10,
     flexDirection: 'column',
     gap: 8,
-    paddingRight: 8,
     justifyContent: 'space-evenly',
     zIndex: 1,
   },
   categoryStrip: {
-    width: 64,
+    width: 70,
     flex: 1,
     backgroundColor: '#000',
-    paddingVertical: 20,
-    paddingHorizontal: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 100,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#2C2C2E',
   },
   categoryStripHovered: {
     borderColor: '#5B8DEF',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1C1C1E',
+    borderWidth: 2,
   },
   categoryCountVertical: {
     fontFamily: 'Pretendard-Medium',
@@ -748,10 +1033,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryEmojiContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#2C2C2E',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -764,41 +1049,48 @@ const styles = StyleSheet.create({
 
   // Card area
   cardArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  progressBadge: {
     position: 'absolute',
     top: 8,
-    backgroundColor: 'rgba(44, 44, 46, 0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    zIndex: 10,
-  },
-  progressText: {
-    fontFamily: 'Pretendard-SemiBold',
-    fontSize: 14,
-    color: '#fff',
+    bottom: BOTTOM_HEIGHT + 10,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardSection: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
+  cardGroupContainer: {
+    alignItems: 'center',
+  },
+  cardHeaderRow: {
+    width: CARD_WIDTH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   backButton: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(44, 44, 46, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
+  },
+  backButtonDisabled: {
+    opacity: 0.3,
+  },
+  progressBadge: {
+    backgroundColor: 'rgba(44, 44, 46, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  progressText: {
+    fontFamily: 'Pretendard-SemiBold',
+    fontSize: 14,
+    color: '#fff',
   },
 
   // Card
@@ -819,14 +1111,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 16,
     resizeMode: 'cover',
   },
   completionCard: {
+    position: 'absolute',
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     backgroundColor: '#2C2C2E',
@@ -834,6 +1129,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   completionTitle: {
     fontFamily: 'Pretendard-Bold',
@@ -846,10 +1146,29 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
 
+  // Upload button (when no photos)
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#2C2C2E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#3C3C3E',
+  },
+  uploadButtonText: {
+    fontFamily: 'Pretendard-SemiBold',
+    fontSize: 16,
+    color: '#fff',
+  },
+
   // Note input
   noteInputContainer: {
     width: CARD_WIDTH,
     marginTop: 16,
+    zIndex: 10,
   },
   noteInput: {
     fontFamily: 'Pretendard-Regular',
@@ -862,12 +1181,62 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Trash zone
-  trashZone: {
-    height: 70,
+  // Bottom zone
+  bottomZone: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: BOTTOM_HEIGHT,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 5,
+    justifyContent: 'flex-end',
+    zIndex: 10,
+  },
+  categoryNavButtonLeft: {
+    position: 'absolute',
+    left: 30,
+    bottom: BOTTOM_HEIGHT * 0.22,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(44, 44, 46, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#3C3C3E',
+  },
+  categoryNavButtonRight: {
+    position: 'absolute',
+    right: 30,
+    bottom: BOTTOM_HEIGHT * 0.22,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(44, 44, 46, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#3C3C3E',
+  },
+  categoryNavButtonDisabled: {
+    opacity: 0.3,
+  },
+  trashArchBox: {
+    width: ARCH_WIDTH,
+    height: BOTTOM_HEIGHT - 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    borderTopLeftRadius: ARCH_WIDTH * 0.5,
+    borderTopRightRadius: ARCH_WIDTH * 0.5,
+    borderWidth: 2,
+    borderColor: '#2C2C2E',
+    borderBottomWidth: 0,
+    alignItems: 'center',
+    paddingTop: 10,
+  },
+  trashArchBoxActive: {
+    backgroundColor: 'rgba(255, 68, 68, 0.15)',
+    borderColor: '#FF4444',
+    borderWidth: 3,
   },
   trashCircle: {
     width: 60,
@@ -876,6 +1245,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#2C2C2E',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: BOTTOM_HEIGHT * 0.15,
+  },
+  trashCircleActive: {
+    backgroundColor: '#3C2C2C',
+    transform: [{ scale: 1.15 }],
+  },
+  pageIndicator: {
+    flexDirection: 'row',
+    gap: 8,
+    position: 'absolute',
+    bottom: BOTTOM_HEIGHT * 0.22 + 21, // 버튼 중심(25px)과 닷 중심(4px)을 맞춤
+    alignItems: 'center',
+  },
+  pageDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4A4A4C',
+  },
+  pageDotActive: {
+    backgroundColor: '#5B8DEF',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 
   // Feedback
@@ -892,5 +1285,33 @@ const styles = StyleSheet.create({
     fontFamily: 'Pretendard-Bold',
     fontSize: 18,
     color: '#fff',
+  },
+
+  // Enlarged photo modal
+  enlargedPhotoModal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    zIndex: 1000,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  enlargedPhotoImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  closeEnlargedButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(44, 44, 46, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
