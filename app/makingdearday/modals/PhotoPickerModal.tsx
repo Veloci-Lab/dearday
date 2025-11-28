@@ -147,11 +147,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
+    position: "relative",
   },
   categoryLabel: {
     flexDirection: "row",
@@ -171,6 +172,8 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     backgroundColor: "#5B8DEF",
+    position: "absolute",
+    right: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
