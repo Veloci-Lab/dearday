@@ -119,14 +119,15 @@ function CustomTabBar({ state, navigation }: any) {
           },
         ]}
       >
-        <Image
+        {/* <Image
           source={require("@/assets/images/camera.png")}
           style={{
             width: FAB_SIZE * 0.52,
             height: FAB_SIZE * 0.52,
             resizeMode: "contain",
           }}
-        />
+        /> */}
+        <Feather name="plus" size={FAB_SIZE * 0.5} color="#fff" />
       </Pressable>
     </View>
   );

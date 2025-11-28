@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ConfirmModal from "./modals/ConfirmModal";
 import PhotoPickerModal from "./modals/PhotoPickerModal";
 
@@ -163,7 +164,7 @@ export default function MakingDeardayScreen() {
   // 다음 버튼
   const handleNext = () => {
     if (selectedPhotoIds.length === 0) return;
-    
+
     router.push({
       pathname: "/dearday-editor",
       params: {
@@ -180,14 +181,14 @@ export default function MakingDeardayScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
         <ActivityIndicator size="large" color="#5B8DEF" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
@@ -279,7 +280,7 @@ export default function MakingDeardayScreen() {
         onConfirm={handleConfirmCancel}
         confirmDestructive={true}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -301,8 +302,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F2F2F2",
   },
@@ -315,8 +316,8 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     color: "#333",
   },
   nextButton: {
