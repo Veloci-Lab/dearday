@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library";
@@ -31,7 +32,8 @@ const GRID_WIDTH = width - GRID_PADDING * 4; // 화면 패딩 + viewShot 패딩
 const AVAILABLE_HEIGHT = height - SAFE_AREA_TOP - HEADER_HEIGHT - TAB_HEIGHT - BOTTOM_AREA;
 
 // TODO: authStore로 교체
-const TEST_PROFILE_ID = 102;
+// const TEST_PROFILE_ID = 102;
+const profileId = useAuthStore((state) => state.profileId);
 
 interface ContentPhotoData {
   id: string;
