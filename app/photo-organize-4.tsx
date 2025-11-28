@@ -20,7 +20,7 @@ import {
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -159,10 +159,30 @@ export default function PhotoOrganizerScreen() {
       }));
       setCategories(categoriesWithColors);
 
-      // Initialize counts (mocking 0 for now as we don't fetch from DB yet)
-      const initialCounts: Record<string, number> = {};
-      data.forEach(cat => initialCounts[cat.id] = 0);
-      setCategoryCounts(initialCounts);
+      // Fetch actual counts from DB
+      const { data: photos, error } = await supabase
+        .from('photos')
+        .select('category_id')
+        .eq('profile_id', profileId);
+
+      if (error) {
+        console.error('Failed to fetch photo counts:', error);
+        const initialCounts: Record<string, number> = {};
+        data.forEach(cat => initialCounts[cat.id] = 0);
+        setCategoryCounts(initialCounts);
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      data.forEach(cat => counts[cat.id] = 0);
+
+      photos?.forEach(photo => {
+        if (photo.category_id) {
+          counts[photo.category_id] = (counts[photo.category_id] || 0) + 1;
+        }
+      });
+
+      setCategoryCounts(counts);
 
     } catch (error) {
       console.error('Failed to load categories', error);
