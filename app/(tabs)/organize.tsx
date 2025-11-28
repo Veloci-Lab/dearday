@@ -220,9 +220,15 @@ export default function OrganizeScreen() {
     const category = item as GridItem;
     return (
       <View style={styles.gridItemContainer}>
-        <View style={[styles.gridItem, { backgroundColor: category.color || '#EDA6A6' }]}>
+        <TouchableOpacity
+          style={[styles.gridItem, { backgroundColor: category.color || '#EDA6A6' }]}
+          onPress={() => router.push({
+            pathname: '/category/[id]',
+            params: { id: category.id, name: category.name }
+          })}
+        >
           <View style={styles.categoryShape} />
-        </View>
+        </TouchableOpacity>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
           <TouchableOpacity
