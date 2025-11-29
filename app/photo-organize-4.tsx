@@ -1,3 +1,4 @@
+// 사진 정리하기(민재)
 import { Category, categoryService } from '@/services/categoryService';
 import { fonts } from '@/styles/common';
 import { useAuthStore } from '@/utils/authStore';
