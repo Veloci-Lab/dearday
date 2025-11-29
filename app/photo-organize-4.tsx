@@ -1,11 +1,15 @@
 import { Category, categoryService } from '@/services/categoryService';
 import { fonts } from '@/styles/common';
 import { useAuthStore } from '@/utils/authStore';
+import { supabase } from '@/utils/supabase';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Modal,
   PixelRatio,
@@ -16,7 +20,7 @@ import {
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -49,10 +53,44 @@ const CATEGORY_COLORS = [
   '#EDA6A6', '#9CC48D', '#C894D6', '#A8A6ED', '#E8D896', '#8ED6D6'
 ];
 
+// Upload helpers
+async function uriToBytes(uri: string): Promise<Uint8Array> {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const binary =
+    typeof atob !== 'undefined'
+      ? atob(base64)
+      : Buffer.from(base64, 'base64').toString('binary');
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function uploadToStorage(
+  bucket: string,
+  objectPath: string,
+  bytes: Uint8Array,
+  contentType: string = 'image/jpeg'
+): Promise<string> {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(objectPath, bytes, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+  return data.publicUrl;
+}
+
 interface HistoryItem {
   type: 'categorize' | 'trash';
   image: ImagePicker.ImagePickerAsset;
   categoryId?: string; // Only for categorize
+  note?: string;
 }
 
 export default function PhotoOrganizerScreen() {
@@ -69,6 +107,7 @@ export default function PhotoOrganizerScreen() {
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
   const [currentNote, setCurrentNote] = useState('');
   const [hasUploaded, setHasUploaded] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Progress & History State
   const [totalUploadedCount, setTotalUploadedCount] = useState(0);
@@ -120,10 +159,30 @@ export default function PhotoOrganizerScreen() {
       }));
       setCategories(categoriesWithColors);
 
-      // Initialize counts (mocking 0 for now as we don't fetch from DB yet)
-      const initialCounts: Record<string, number> = {};
-      data.forEach(cat => initialCounts[cat.id] = 0);
-      setCategoryCounts(initialCounts);
+      // Fetch actual counts from DB
+      const { data: photos, error } = await supabase
+        .from('photos')
+        .select('category_id')
+        .eq('profile_id', profileId);
+
+      if (error) {
+        console.error('Failed to fetch photo counts:', error);
+        const initialCounts: Record<string, number> = {};
+        data.forEach(cat => initialCounts[cat.id] = 0);
+        setCategoryCounts(initialCounts);
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      data.forEach(cat => counts[cat.id] = 0);
+
+      photos?.forEach(photo => {
+        if (photo.category_id) {
+          counts[photo.category_id] = (counts[photo.category_id] || 0) + 1;
+        }
+      });
+
+      setCategoryCounts(counts);
 
     } catch (error) {
       console.error('Failed to load categories', error);
@@ -143,7 +202,7 @@ export default function PhotoOrganizerScreen() {
       setTotalUploadedCount(prev => prev + result.assets.length);
       Toast.show({
         type: 'success',
-        text1: '\uc0ac\uc9c4\uc774 \ucd94\uac00\ub410\uc5b4\uc694',
+        text1: '\uc0ac\uc9c4\uc774 \ucd94\uac00\ub410\uc5b4\uc694', // 사진이 추가되었어요
         visibilityTime: 1000,
         position: 'top',
         topOffset: 100,
@@ -211,7 +270,8 @@ export default function PhotoOrganizerScreen() {
         setHistory(prev => [...prev, {
           type: 'categorize',
           image: imageToCategorize,
-          categoryId: category.id
+          categoryId: category.id,
+          note: currentNote.trim() || undefined
         }]);
 
         setSelectedImages(prev => prev.slice(1));
@@ -288,6 +348,62 @@ export default function PhotoOrganizerScreen() {
 
     // Reset note? Maybe keep empty or restore? For now reset.
     setCurrentNote('');
+  };
+
+  const handleComplete = async () => {
+    if (isUploading) return;
+
+    // Filter only categorized items (not trash)
+    const categorizedItems = history.filter(item => item.type === 'categorize' && item.categoryId);
+
+    if (categorizedItems.length === 0) {
+      Alert.alert('\uc54c\ub9bc', '\ubd84\ub958\ub41c \uc0ac\uc9c4\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.'); // 알림, 분류된 사진이 없습니다.
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const BUCKET = 'photos-v2';
+
+      // Upload all photos and save to DB
+      for (let i = 0; i < categorizedItems.length; i++) {
+        const item = categorizedItems[i];
+        if (!item.categoryId) continue;
+
+        // 1. Upload to Storage (original folder)
+        const ts = Date.now() + i; // Unique timestamp
+        const fileName = `photo_${profileId}_${ts}.jpg`;
+        const filePath = `original/${fileName}`;
+
+        const bytes = await uriToBytes(item.image.uri);
+        const imageUrl = await uploadToStorage(BUCKET, filePath, bytes);
+
+        // 2. Save to DB
+        const { error: insertError } = await supabase
+          .from('photos')
+          .insert({
+            profile_id: profileId,
+            category_id: item.categoryId,
+            image_url: imageUrl,
+            memo: item.note || null,
+          });
+
+        if (insertError) {
+          console.error('DB Save Failed:', insertError);
+          throw insertError;
+        }
+      }
+
+      Alert.alert('\uc644\ub8cc', `${categorizedItems.length}\uc7a5\uc758 \uc0ac\uc9c4\uc744 \uc800\uc7a5\ud588\uc2b5\ub2c8\ub2e4!`, [ // 완료, N장의 사진을 저장했습니다!
+        { text: '\ud655\uc778', onPress: () => router.back() } // 확인
+      ]);
+
+    } catch (error) {
+      console.error('Photo Save Failed:', error);
+      Alert.alert('\uc624\ub958', '\uc0ac\uc9c4 \uc800\uc7a5\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.'); // 오류, 사진 저장에 실패했습니다. 다시 시도해주세요.
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handlePrevPage = () => {
@@ -393,7 +509,8 @@ export default function PhotoOrganizerScreen() {
       const TRASH_THRESHOLD_Y = 150;
 
       // Check Trash
-      if (e.translationY > TRASH_THRESHOLD_Y) {
+      // Only trigger trash if dragged down AND kept relatively in the center horizontally
+      if (e.translationY > TRASH_THRESHOLD_Y && Math.abs(e.translationX) < 60) {
         runOnJS(handleTrash)();
         return;
       }
@@ -540,7 +657,7 @@ export default function PhotoOrganizerScreen() {
         <View style={[styles.noteContainer, { width: CARD_WIDTH }]}>
           <TextInput
             style={[styles.noteInput, { fontSize: scaleFont(14) }]}
-            placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'}
+            placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'} // 노트를 입력해주세요
             placeholderTextColor="#666"
             value={currentNote}
             onChangeText={setCurrentNote}
@@ -579,7 +696,7 @@ export default function PhotoOrganizerScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerControls}>
-            {selectedImages.length > 0 && (
+            {(selectedImages.length > 0 || hasUploaded) && (
               <>
                 <TouchableOpacity
                   style={[styles.headerControlBtn, isMultiSelectMode && styles.activeControlBtn]}
@@ -592,8 +709,16 @@ export default function PhotoOrganizerScreen() {
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity onPress={() => router.back()} style={styles.doneButton}>
-              <Text style={[styles.doneButtonText, { fontSize: scaleFont(14) }]}>{'\uc644\ub8cc'}</Text>
+            <TouchableOpacity
+              onPress={handleComplete}
+              style={[styles.doneButton, isUploading && styles.doneButtonDisabled]}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={[styles.doneButtonText, { fontSize: scaleFont(14) }]}>{'\uc644\ub8cc'}</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -751,6 +876,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 16,
+  },
+  doneButtonDisabled: {
+    opacity: 0.7,
   },
   doneButtonText: {
     color: 'white',
