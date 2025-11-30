@@ -1,26 +1,17 @@
-import { Feather } from "@expo/vector-icons";
+import { BackButton } from "@/components/BackButton";
+import { commonHeaderOptions } from "@/styles/common";
 import * as Application from 'expo-application';
-import { router, useNavigation } from "expo-router";
+import { useNavigation } from "expo-router";
 import { useEffect } from "react";
-import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function VersionScreen() {
   const navigation = useNavigation();
   useEffect(() => {
     navigation.setOptions({
-      headerShadowVisible: false,
-      headerTitleAlign: "center",
-      headerTitle: () => (
-        <View style={{ alignItems: "center" }}>
-          <Text style={ styles.Title }>My Dearday</Text>
-          <Text style={ styles.SubTitle }>버전 정보</Text>
-        </View>
-      ),
-      headerLeft: () => (
-        <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
-          <Feather name="chevron-left" size={24} color="#000" />
-        </Pressable>
-      ),
+      ...commonHeaderOptions,
+      headerTitle: "버전 정보",
+      headerLeft: () => <BackButton />,
     });
   }, [navigation]);
 
@@ -60,24 +51,15 @@ const styles = StyleSheet.create({
     fontSize: 26, 
     color: "#5B8DEF" 
   },
-  versionText: { 
+  versionText: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 16, 
-    color: '#333', 
-    marginBottom: 8 
-  }, 
-  updateText: { 
-    fontFamily: "Pretendard-Regular",
-    fontSize: 14, 
-    color: '#929292' 
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8
   },
-  Title: { 
-    fontFamily: "Pretendard-Bold",
-    fontSize: 18, 
-    color: "#5B8DEF" },
-  SubTitle: { 
+  updateText: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 12, 
-    color: "#929292", 
-    marginTop: -1 }
+    fontSize: 14,
+    color: '#929292'
+  },
 });

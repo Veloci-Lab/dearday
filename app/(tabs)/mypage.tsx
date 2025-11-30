@@ -1,7 +1,7 @@
+import { getProfile } from "@/utils/api/profiles";
 import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,14 +15,7 @@ import {
   View,
 } from "react-native";
 
-/** 우상단 편집 버튼과 겹치지 않도록 카드 오른쪽 여백 계산 */
-const EDIT_SIZE = 28;
-const EDIT_RIGHT = 16;
-const EDIT_SAFE = 8;
-const CARD_RIGHT_PADDING = EDIT_SIZE + EDIT_RIGHT + EDIT_SAFE; // 52
-
 export default function MypageScreen() {
-  const navigation = useNavigation();
   const router = useRouter();
   const { profileId } = useAuthStore();
 
@@ -40,11 +33,9 @@ export default function MypageScreen() {
     name?: React.ComponentProps<typeof Feather>["name"];
     source?: ImageSourcePropType;
   }) => {
-    // PNG 아이콘: 배경 없이 평평하게
     if (source) {
       return <Image source={source} style={styles.rowIconImg} />;
     }
-    // Feather 아이콘: 기존처럼 동그란 배지 배경
     return (
       <View style={styles.rowIconBadge}>
         <Feather name={name!} size={16} color="#5B8DEF" />
@@ -52,7 +43,6 @@ export default function MypageScreen() {
     );
   };
 
-  // ↓ SettingRow도 PNG를 받도록 iconImg 옵션 추가
   const SettingRow = ({
     icon,
     iconImg,
@@ -85,7 +75,6 @@ export default function MypageScreen() {
     lock: require("@/assets/images/icons/lock.png"),
     mail: require("@/assets/images/icons/mail.png"),
     info: require("@/assets/images/icons/info.png"),
-    moon: require("@/assets/images/icons/moon.png"),
   };
 
   const EditCornerButton = ({ onPress }: { onPress: () => void }) => (
@@ -99,18 +88,17 @@ export default function MypageScreen() {
     </View>
   );
 
-  // 프로필 불러오기
   useFocusEffect(
     useCallback(() => {
       if (!profileId) return;
       (async () => {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*, sleep_time")
-          .eq("profile_id", profileId)
-          .single();
-        if (!error) setProfile(data);
+        try {
+          const data = await getProfile(profileId);
+          setProfile(data);
+        } catch (error) {
+          console.error("프로필 조회 실패:", error);
+        }
         setLoading(false);
       })();
       return () => {};
@@ -126,7 +114,6 @@ export default function MypageScreen() {
   }
 
   const joinDate = new Date(profile.created_at).toLocaleDateString("ko-KR");
-  const sleepTime = profile.sleep_time ? profile.sleep_time.slice(0, 5) : "설정 안함";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,19 +136,6 @@ export default function MypageScreen() {
             </View>
           </View>
           <EditCornerButton onPress={() => router.push("/mypage/profile-edit")} />
-        </View>
-
-        {/* 내가 설정한 시간 카드 */}
-        <SectionTitle>내가 설정한 시간</SectionTitle>
-        <View style={[styles.card, styles.cardHasEdit]}>
-          <EditCornerButton onPress={() => router.push("/mypage/edit-time")} />
-          <View style={styles.timeRow}>
-            <View style={styles.rowLeft}>
-              <RowIcon source={ICONS.moon} />
-              <Text style={styles.rowTitle}>하루 기록 시간</Text>
-            </View>
-            <Text style={styles.timeValue}>{sleepTime}</Text>
-          </View>
         </View>
 
         {/* 메뉴 리스트 */}
@@ -199,26 +173,18 @@ export default function MypageScreen() {
   );
 }
 
-// 스타일
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FEFEFE" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  /* 카드 공통 */
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     position: "relative",
-    // shadowColor: "#000",
-    // shadowOpacity: 0.04,
-    // shadowOffset: { width: 0, height: 1 },
-    // shadowRadius: 10,
-    // elevation: 1,
     borderWidth: 1,
     borderColor: "#F2F2F2",
   },
-
   card2: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -226,22 +192,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginBottom: 12,
     position: "relative",
-    // shadowColor: "#000",
-    // shadowOpacity: 0.04,
-    // shadowOffset: { width: 0, height: 1 },
-    // shadowRadius: 10,
-    // elevation: 1,
     borderWidth: 1,
     borderColor: "#F2F2F2",
   },
-
-  /* 프로필 카드 */
   profileRow: { flexDirection: "row", alignItems: "center" },
   avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#ccc" },
   nickname: {
     fontFamily: "Pretendard-Medium",
     fontSize: 18,
-    //fontWeight: "bold",
     color: "#0F172A",
   },
   subText: {
@@ -250,19 +208,13 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 1,
   },
-  editIcon: { position: "absolute", right: 16, top: 16 },
-
-  /* 행(아이콘 + 라벨) 공통 */
   settingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#F2F2F2",
   },
   rowLeft: { flexDirection: "row", alignItems: "center" },
-
   rowIconBadge: {
     width: 28,
     height: 28,
@@ -272,51 +224,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 10,
   },
-
   rowIconImg: {
     width: 22,
     height: 22,
     resizeMode: "contain",
     marginRight: 10,
   },
-
   rowTitle: {
     fontFamily: "Pretendard-SemiBold",
     fontSize: 15,
     color: "#111",
-    //fontWeight: "700",
     marginLeft: 2,
     flexShrink: 1,
   },
-
-  /* '내가 설정한 시간' 행 */
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  timeValue: {
-    fontFamily: "Pretendard-Regular",
-    fontSize: 16,
-    color: "#111",
-    //fontWeight: "700"
-  },
-
-  /* 섹션 부제 */
   sectionTitle: {
     fontFamily: "Pretendard-Bold",
     fontSize: 14,
     color: "#000",
-    //fontWeight: "700",
     marginTop: 12,
     marginBottom: 8,
     marginLeft: 10,
   },
-
-  cardHasEdit: {
-    paddingRight: 56, // 아이콘(28) + 여백(16~20) 만큼 공간 비워두기
-  },
-
   editAtCornerWrap: {
     position: "absolute",
     right: 16,
@@ -324,19 +252,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
   },
-
-  // 아이콘 배지 스타일
-  editBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#EFF3FF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E6ECFF",
-  },
-
   editIconImage: {
     width: 24,
     height: 24,

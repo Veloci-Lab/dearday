@@ -27,7 +27,7 @@ import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function GridOverlay() {
-  const lineStyle = { position: "absolute", backgroundColor: "#C3C3C3" };
+  const lineStyle = { position: "absolute" as const, backgroundColor: "#C3C3C3" };
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {/* 세로선 */}
@@ -121,16 +121,11 @@ export default function App() {
   const toggleRatio = () =>
     setRatio((p) => (p === "4:3" ? "16:9" : p === "16:9" ? "1:1" : "4:3"));
 
-  const handleConfirmPhoto = async () => {
-    if (!uri) return;
-    router.replace({
-      pathname: "/quick-memo",
-      params: {
-        local_uri: encodeURIComponent(uri),
-        ...(notification_id && { notification_id: String(notification_id) }),
-      },
-    });
-  };
+const handleConfirmPhoto = useCallback(() => {
+  if (!uri) return;
+  router.back();
+}, [uri]);
+
 
   const pinchGesture = Gesture.Pinch()
     .onBegin(() => {
@@ -189,10 +184,31 @@ export default function App() {
 
   const renderCamera = () => {
     const arNum = ratio === "1:1" ? 1 : ratio === "16:9" ? 9 / 16 : 3 / 4;
-    const cameraFrame =
-      ratio === "16:9"
-        ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }
-        : { position: "absolute", top: topOffset, left: 0, right: 0, bottom: bottomOffset, alignItems: "center", justifyContent: "center" };
+
+  const cameraStyles = StyleSheet.create({
+    frame16_9: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    frame4_3: {
+      position: "absolute",
+      top: topOffset,
+      left: 0,
+      right: 0,
+      bottom: bottomOffset,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });
+
+  const cameraFrame = ratio === "16:9" 
+    ? cameraStyles.frame16_9 
+    : cameraStyles.frame4_3;
 
     return (
       <GestureDetector gesture={pinchGesture}>
