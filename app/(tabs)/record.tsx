@@ -18,8 +18,8 @@ import {
 import ConfirmModal from "../makingdearday/modals/ConfirmModal";
 
 // TODO: authStore로 교체
-const TEST_MODE = true;
-const TEST_PROFILE_ID = 102;
+// const TEST_MODE = true;
+// const TEST_PROFILE_ID = 102;
 
 type ContentItem = {
   id: string;
@@ -35,9 +35,11 @@ type GroupedContents = {
 };
 
 export default function RecordScreen() {
+  // const router = useRouter();
+  // const storeProfileId = useAuthStore((state) => state.profileId);
+  // const profileId = TEST_MODE ? TEST_PROFILE_ID : storeProfileId;
   const router = useRouter();
-  const storeProfileId = useAuthStore((state) => state.profileId);
-  const profileId = TEST_MODE ? TEST_PROFILE_ID : storeProfileId;
+  const profileId = useAuthStore((state) => state.profileId);
 
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);

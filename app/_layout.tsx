@@ -84,7 +84,7 @@ export default function RootLayout() {
         <Stack>
           {/* 1. 로그인 안 된 유저만 접근 */}
           <Stack.Protected guard={!isLoggedIn}>
-            <Stack.Screen name="/sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
           </Stack.Protected>
 
           {/* 2. 로그인됐지만 온보딩 안 한 유저만 접근 */}
@@ -95,10 +95,10 @@ export default function RootLayout() {
           {/* 3. 로그인&온보딩 완료한 유저만 접근 */}
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="photo-organizer"
-              options={{ headerShown: false }}
-            />
+            <Stack.Screen name="photo-organizer" options={{ headerShown: false }} />
+            <Stack.Screen name="making-dearday" options={{headerShown:false}} />
+            <Stack.Screen name="dearday-editor" options={{headerShown:false}} />
+            <Stack.Screen name="content-detail" options={{ headerShown: false }} />
             <Stack.Screen name="photo/[id]" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>
