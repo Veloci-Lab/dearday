@@ -138,7 +138,7 @@ export default function TabsLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Tabs
         screenOptions={{
-          headerShown: true,
+          headerShown: false,
           tabBarStyle: { display: "none" },
           headerShadowVisible: false,
           headerStyle: { borderBottomWidth: 2, borderBottomColor: "#f2f2f2" },
