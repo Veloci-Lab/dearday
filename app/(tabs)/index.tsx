@@ -1,13 +1,12 @@
-import HomePhotoGrid from '@/components/HomePhotoGrid';
-import SwipeableHome from '@/components/SwipableHome';
-import { commonStyles } from '@/styles/common';
-import { updateExpoPushToken } from '@/utils/api/notifications';
-import { getProfile } from '@/utils/api/profiles';
-import { useAuthStore } from '@/utils/authStore';
-import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import PhotoGallery from "@/components/PhotoGallery";
+import SwipeableHome from "@/components/SwipableHome";
+import { updateExpoPushToken } from "@/utils/api/notifications";
+import { getProfile } from "@/utils/api/profiles";
+import { useAuthStore } from "@/utils/authStore";
+import { registerForPushNotificationsAsync } from "@/utils/registerForPushNotificationsAsync";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -16,9 +15,9 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Path, Svg } from 'react-native-svg';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Path, Svg } from "react-native-svg";
 
 const LogoIcon = () => (
   <Svg width="27" height="20" viewBox="0 0 27 20" fill="none">
@@ -50,12 +49,12 @@ const LogoIcon = () => (
 );
 
 async function checkPermissions(): Promise<boolean> {
-  const v = await AsyncStorage.getItem('hasRequestedPermissions');
-  return v === 'true';
+  const v = await AsyncStorage.getItem("hasRequestedPermissions");
+  return v === "true";
 }
 
 function Hairline() {
-  return <View style={{ height: 1, backgroundColor: '#e0e0e0' }} />;
+  return <View style={{ height: 1, backgroundColor: "#e0e0e0" }} />;
 }
 
 export default function HomeScreen() {
@@ -71,13 +70,13 @@ export default function HomeScreen() {
       const token = await registerForPushNotificationsAsync();
       if (token) await updateExpoPushToken(profileId, token);
     } catch (err) {
-      console.error('푸시 알림 권한/토큰 처리 실패:', err);
+      console.error("푸시 알림 권한/토큰 처리 실패:", err);
     }
 
     try {
-      await AsyncStorage.setItem('hasRequestedPermissions', 'true');
+      await AsyncStorage.setItem("hasRequestedPermissions", "true");
     } catch (err) {
-      console.error('AsyncStorage 저장 실패:', err);
+      console.error("AsyncStorage 저장 실패:", err);
     }
 
     setVisible(false);
@@ -109,7 +108,7 @@ export default function HomeScreen() {
           const data = await getProfile(profileId);
           setProfile(data);
         } catch (error) {
-          console.error('프로필 조회 실패:', error);
+          console.error("프로필 조회 실패:", error);
         } finally {
           setLoading(false);
         }
@@ -121,7 +120,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <SafeAreaView
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
       >
         <ActivityIndicator size="large" />
       </SafeAreaView>
@@ -131,12 +130,12 @@ export default function HomeScreen() {
   return (
     <SwipeableHome>
       <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ flex: 1, flexDirection: 'column' }}>
+        <View style={{ flex: 1, flexDirection: "column" }}>
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
               paddingHorizontal: 24,
               height: 62,
             }}
@@ -144,11 +143,11 @@ export default function HomeScreen() {
             <LogoIcon />
             <Text
               style={{
-                fontFamily: 'Pretendard-Bold',
+                fontFamily: "Pretendard-Bold",
                 fontSize: 17,
                 lineHeight: 20,
                 letterSpacing: -0.03,
-                textAlign: 'center',
+                textAlign: "center",
               }}
             >
               Dearday
@@ -157,17 +156,17 @@ export default function HomeScreen() {
               source={
                 profile.avatar_url
                   ? { uri: profile.avatar_url }
-                  : require('@/assets/images/avatar.png')
+                  : require("@/assets/images/avatar.png")
               }
               style={{
                 width: 32,
                 height: 32,
                 borderRadius: 16,
-                backgroundColor: '#D9D9D9',
+                backgroundColor: "#D9D9D9",
               }}
             />
           </View>
-          <Hairline />
+          {/* <Hairline />
           <View style={{ padding: 24, gap: 12 }}>
             <Text style={commonStyles.title}>홈</Text>
             <Text style={commonStyles.subtitle}>v2.0.0</Text>
@@ -176,10 +175,10 @@ export default function HomeScreen() {
             <Link href="/photo-organize-2">사진 정리하기 (하연)</Link>
             <Link href="/photo-organize-3">사진 정리하기 (서윤)</Link>
             <Link href="/photo-organize-4">사진 정리하기 (민재)</Link>
-          </View>
+          </View> */}
           <Hairline />
           <View style={{ flex: 1 }}>
-            <HomePhotoGrid />
+            <PhotoGallery />
           </View>
         </View>
         <Modal visible={visible} transparent animationType="slide">
@@ -187,7 +186,7 @@ export default function HomeScreen() {
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>필요한 권한 요청이 있어요.</Text>
               <Text style={styles.modalDesc}>
-                Dearday를 원활히 사용하기 위해서,{'\n'}알림 권한을 요청드릴
+                Dearday를 원활히 사용하기 위해서,{"\n"}알림 권한을 요청드릴
                 예정이에요.
               </Text>
 
@@ -208,41 +207,41 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContainer: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
   },
   modalTitle: {
-    fontFamily: 'Pretendard-Bold',
+    fontFamily: "Pretendard-Bold",
     fontSize: 20,
     marginBottom: 8,
-    color: '#0d0d0d',
+    color: "#0d0d0d",
   },
   modalDesc: {
-    fontFamily: 'Pretendard-Regular',
+    fontFamily: "Pretendard-Regular",
     fontSize: 16,
-    color: '#000000ff',
-    textAlign: 'left',
+    color: "#000000ff",
+    textAlign: "left",
     marginBottom: 24,
   },
   confirmButton: {
-    backgroundColor: '#5B8DEF',
+    backgroundColor: "#5B8DEF",
     paddingVertical: 12,
     paddingHorizontal: 32,
     marginBottom: 12,
     borderRadius: 12,
     height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   confirmText: {
-    fontFamily: 'Pretendard-Bold',
-    color: '#fff',
+    fontFamily: "Pretendard-Bold",
+    color: "#fff",
     fontSize: 16,
   },
 });
