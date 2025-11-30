@@ -6,10 +6,10 @@ type AuthState = {
   authLoading: boolean;
   setAuthLoading: (v: boolean) => void;
   hasCompletedOnboarding: boolean;
-  setHasCompletedOnboarding: (v: boolean) => void;
   profileId: string | null;
   logIn: () => Promise<void>;
   logOut: () => void;
+  setHasCompletedOnboarding: (v: boolean) => void;
   pendingRedirectUrl: string | null;
   setPendingRedirectUrl: (v: string | null) => void;
   clearPendingRedirectUrl: () => void;
@@ -20,11 +20,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   authLoading: true,
   setAuthLoading: (v) => set({ authLoading: v }),
   hasCompletedOnboarding: false,
-  setHasCompletedOnboarding: (v) => set({ hasCompletedOnboarding: v }),
   profileId: null,
   logIn: async () => {
-    set({ authLoading: true });
-
+    set({ authLoading: true }); // 로그인 확인 시작
+    
     try {
       const {
         data: { session },
@@ -55,7 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         profileId: null,
       });
     } finally {
-      set({ authLoading: false });
+      set({ authLoading: false }); // 로그인 확인 끝
     }
   },
   logOut: () =>
@@ -64,6 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       hasCompletedOnboarding: false,
       profileId: null,
   }),
+  setHasCompletedOnboarding: (v) => set({ hasCompletedOnboarding: v }),
   pendingRedirectUrl: null,
   setPendingRedirectUrl: (v) => set({ pendingRedirectUrl: v }),
   clearPendingRedirectUrl: () => set({ pendingRedirectUrl: null }),
