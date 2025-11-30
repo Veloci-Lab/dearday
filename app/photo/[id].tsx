@@ -1,5 +1,5 @@
 // app/photo/[id].tsx
-import { HomePhoto, PhotoCategory } from "@/types/photo";
+import { HomePhoto } from "@/components/PhotoGallery";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Image } from "expo-image";
@@ -8,7 +8,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,7 +17,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -173,7 +171,7 @@ export default function PhotoDetailScreen() {
         const currentPhoto: HomePhoto = {
           id: photoData.id,
           categoryId: photoData.category_id,
-          category: (photoData.categories as any)?.name as PhotoCategory,
+          category: (photoData.categories as any)?.name,
           imageUrl: photoData.image_url,
           memo: photoData.memo,
           isRecorded: !!photoData.memo,
@@ -208,7 +206,7 @@ export default function PhotoDetailScreen() {
               (item: any) => ({
                 id: item.id,
                 categoryId: item.category_id,
-                category: item.categories?.name as PhotoCategory,
+                category: item.categories?.name,
                 imageUrl: item.image_url,
                 memo: item.memo,
                 isRecorded: !!item.memo,
@@ -368,273 +366,271 @@ export default function PhotoDetailScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} // 필요시 조정
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={{ flex: 1 }}>
-            {/* 헤더 */}
-            <View style={styles.header}>
-              {/* 왼쪽 영역 - 고정 너비 */}
-              <View style={{ width: 60, alignItems: "flex-start" }}>
-                <Pressable
-                  style={{ width: 24, height: 24 }}
-                  onPress={handleBackPress}
-                  hitSlop={10}
+        <View style={{ flex: 1 }}>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            {/* 왼쪽 영역 - 고정 너비 */}
+            <View style={{ width: 60, alignItems: "flex-start" }}>
+              <Pressable
+                style={{ width: 24, height: 24 }}
+                onPress={handleBackPress}
+                hitSlop={10}
+              >
+                <BackIcon />
+              </Pressable>
+            </View>
+
+            {/* 가운데 카테고리 - 절대 위치로 항상 중앙 */}
+            <View style={styles.categoryChipContainer}>
+              <View style={styles.categoryChip}>
+                <View style={styles.categoryDot} />
+                <Text
+                  style={{
+                    fontFamily: "Pretendard-Bold",
+                    fontSize: 17,
+                    color: "#0D0D0D",
+                    lineHeight: 20,
+                    letterSpacing: -0.3,
+                  }}
                 >
-                  <BackIcon />
-                </Pressable>
-              </View>
-
-              {/* 가운데 카테고리 - 절대 위치로 항상 중앙 */}
-              <View style={styles.categoryChipContainer}>
-                <View style={styles.categoryChip}>
-                  <View style={styles.categoryDot} />
-                  <Text
-                    style={{
-                      fontFamily: "Pretendard-Bold",
-                      fontSize: 17,
-                      color: "#0D0D0D",
-                      lineHeight: 20,
-                      letterSpacing: -0.3,
-                    }}
-                  >
-                    {photo.category ?? "미분류"}
-                  </Text>
-                </View>
-              </View>
-
-              {/* 오른쪽 영역 - 고정 너비 */}
-              <View style={{ width: 60, alignItems: "flex-end" }}>
-                {isEditing ? (
-                  <Pressable
-                    style={{
-                      paddingHorizontal: 15,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor: "#5B8DEF",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    onPress={handleSave}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text
-                        style={{
-                          fontFamily: "Pretendard-Bold",
-                          fontSize: 15,
-                          color: "#FEFEFE",
-                        }}
-                      >
-                        완료
-                      </Text>
-                    )}
-                  </Pressable>
-                ) : null}
+                  {photo.category ?? "미분류"}
+                </Text>
               </View>
             </View>
 
-            <ScrollView
-              ref={scrollViewRef}
-              style={{ flex: 1, marginHorizontal: 13 }}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 19 }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  marginVertical: 15,
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
+            {/* 오른쪽 영역 - 고정 너비 */}
+            <View style={{ width: 60, alignItems: "flex-end" }}>
+              {isEditing ? (
                 <Pressable
                   style={{
-                    width: 40,
-                    height: 40,
-                    backgroundColor: "#F2F2F2",
+                    paddingHorizontal: 15,
+                    paddingVertical: 8,
                     borderRadius: 20,
+                    backgroundColor: "#5B8DEF",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
-                  onPress={isEditing ? handleStopEditing : handleStartEditing}
+                  onPress={handleSave}
+                  disabled={saving}
                 >
-                  <EditIcon />
-                </Pressable>
-
-                {dateParts && (
-                  <View style={{ alignItems: "center" }}>
-                    <View
-                      style={{
-                        height: 40,
-                        paddingHorizontal: 15,
-                        paddingVertical: 10,
-                        borderRadius: 20,
-                        backgroundColor: "#F2F2F2",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Pretendard-SemiBold",
-                          fontSize: 14,
-                          color: "#0D0D0D",
-                        }}
-                      >
-                        {dateParts.top}
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: "Pretendard-Regular",
-                          fontSize: 10,
-                          color: "#0D0D0D",
-                        }}
-                      >
-                        {dateParts.bottom}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                <Pressable
-                  style={{
-                    width: 40,
-                    height: 40,
-                    backgroundColor: "#F2F2F2",
-                    borderRadius: 20,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  onPress={() => setShowDeleteModal(true)}
-                >
-                  <TrashIcon />
-                </Pressable>
-              </View>
-
-              <View style={{ gap: 10 }}>
-                <View style={{ borderRadius: 16, overflow: "hidden" }}>
-                  <Image
-                    source={{ uri: photo.imageUrl }}
-                    style={styles.mainImage}
-                    contentFit="cover"
-                  />
-                </View>
-
-                {/* 메모 영역 - 편집 모드에 따라 다르게 표시 */}
-                <View onLayout={(e) => setMemoLayoutY(e.nativeEvent.layout.y)}>
-                  {isEditing ? (
-                    <View
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 11,
-                        borderRadius: 16,
-                        backgroundColor: "#F2F2F2",
-                      }}
-                    >
-                      <TextInput
-                        style={{
-                          fontFamily: "Pretendard-Regular",
-                          fontSize: 13,
-                          color: "#000000",
-                          lineHeight: 20,
-                          letterSpacing: -0.3,
-                          textAlignVertical: "top",
-                        }}
-                        value={editedMemo}
-                        onChangeText={setEditedMemo}
-                        placeholder="메모를 입력하세요..."
-                        multiline
-                        autoFocus
-                        onFocus={handleMemoFocus} // 포커스 시 스크롤
-                        scrollEnabled={false} // TextInput 자체 스크롤 비활성화
-                      />
-                    </View>
-                  ) : photo.memo ? (
-                    <View
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 11,
-                        borderRadius: 16,
-                        backgroundColor: "#F2F2F2",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Pretendard-Regular",
-                          fontSize: 13,
-                          color: "#000000",
-                          lineHeight: 20,
-                          letterSpacing: -0.3,
-                        }}
-                      >
-                        {photo.memo}
-                      </Text>
-                    </View>
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Pressable
-                      onPress={handleStartEditing}
+                    <Text
                       style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 11,
-                        borderRadius: 10,
-                        backgroundColor: "#F2F2F2",
-                        borderWidth: 1,
-                        borderColor: "#E0E0E0",
-                        borderStyle: "dashed",
+                        fontFamily: "Pretendard-Bold",
+                        fontSize: 15,
+                        color: "#FEFEFE",
                       }}
                     >
-                      <Text
-                        style={{
-                          fontFamily: "Pretendard-Regular",
-                          fontSize: 13,
-                          color: "#999",
-                          textAlign: "center",
-                        }}
-                      >
-                        메모를 추가하려면 탭하세요
-                      </Text>
-                    </Pressable>
+                      완료
+                    </Text>
                   )}
-                </View>
-              </View>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
 
-              {/* 하단 썸네일 리스트 */}
-              {siblings.length > 0 && !isEditing && (
-                <View style={styles.bottomSection}>
-                  <RNScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
-                      flexGrow: 1,
-                      justifyContent: "center", // 가운데 정렬
+          <ScrollView
+            ref={scrollViewRef}
+            style={{ flex: 1, marginHorizontal: 13 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 19 }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                marginVertical: 15,
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Pressable
+                style={{
+                  width: 40,
+                  height: 40,
+                  backgroundColor: "#F2F2F2",
+                  borderRadius: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={isEditing ? handleStopEditing : handleStartEditing}
+              >
+                <EditIcon />
+              </Pressable>
+
+              {dateParts && (
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      height: 40,
+                      paddingHorizontal: 15,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: "#F2F2F2",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {siblings.map((p) => (
-                      <Pressable
-                        key={p.id}
-                        onPress={() =>
-                          router.replace({
-                            pathname: "/photo/[id]",
-                            params: { id: p.id },
-                          })
-                        }
-                        style={styles.thumbWrapper}
-                      >
-                        <Image
-                          source={{ uri: p.imageUrl }}
-                          style={styles.thumb}
-                          contentFit="cover"
-                        />
-                      </Pressable>
-                    ))}
-                  </RNScrollView>
+                    <Text
+                      style={{
+                        fontFamily: "Pretendard-SemiBold",
+                        fontSize: 14,
+                        color: "#0D0D0D",
+                      }}
+                    >
+                      {dateParts.top}
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: "Pretendard-Regular",
+                        fontSize: 10,
+                        color: "#0D0D0D",
+                      }}
+                    >
+                      {dateParts.bottom}
+                    </Text>
+                  </View>
                 </View>
               )}
-            </ScrollView>
-          </View>
-        </TouchableWithoutFeedback>
+
+              <Pressable
+                style={{
+                  width: 40,
+                  height: 40,
+                  backgroundColor: "#F2F2F2",
+                  borderRadius: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={() => setShowDeleteModal(true)}
+              >
+                <TrashIcon />
+              </Pressable>
+            </View>
+
+            <View style={{ gap: 10 }}>
+              <View style={{ borderRadius: 16, overflow: "hidden" }}>
+                <Image
+                  source={{ uri: photo.imageUrl }}
+                  style={styles.mainImage}
+                  contentFit="cover"
+                />
+              </View>
+
+              {/* 메모 영역 - 편집 모드에 따라 다르게 표시 */}
+              <View onLayout={(e) => setMemoLayoutY(e.nativeEvent.layout.y)}>
+                {isEditing ? (
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 11,
+                      borderRadius: 16,
+                      backgroundColor: "#F2F2F2",
+                    }}
+                  >
+                    <TextInput
+                      style={{
+                        fontFamily: "Pretendard-Regular",
+                        fontSize: 13,
+                        color: "#000000",
+                        lineHeight: 20,
+                        letterSpacing: -0.3,
+                        textAlignVertical: "top",
+                      }}
+                      value={editedMemo}
+                      onChangeText={setEditedMemo}
+                      placeholder="메모를 입력하세요..."
+                      multiline
+                      autoFocus
+                      onFocus={handleMemoFocus} // 포커스 시 스크롤
+                      scrollEnabled={false} // TextInput 자체 스크롤 비활성화
+                    />
+                  </View>
+                ) : photo.memo ? (
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 11,
+                      borderRadius: 16,
+                      backgroundColor: "#F2F2F2",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Pretendard-Regular",
+                        fontSize: 13,
+                        color: "#000000",
+                        lineHeight: 20,
+                        letterSpacing: -0.3,
+                      }}
+                    >
+                      {photo.memo}
+                    </Text>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={handleStartEditing}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 11,
+                      borderRadius: 10,
+                      backgroundColor: "#F2F2F2",
+                      borderWidth: 1,
+                      borderColor: "#E0E0E0",
+                      borderStyle: "dashed",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Pretendard-Regular",
+                        fontSize: 13,
+                        color: "#999",
+                        textAlign: "center",
+                      }}
+                    >
+                      메모를 추가하려면 탭하세요
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+
+            {/* 하단 썸네일 리스트 */}
+            {siblings.length > 0 && !isEditing && (
+              <View style={styles.bottomSection}>
+                <RNScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: "center", // 가운데 정렬
+                  }}
+                >
+                  {siblings.map((p) => (
+                    <Pressable
+                      key={p.id}
+                      onPress={() =>
+                        router.replace({
+                          pathname: "/photo/[id]",
+                          params: { id: p.id },
+                        })
+                      }
+                      style={styles.thumbWrapper}
+                    >
+                      <Image
+                        source={{ uri: p.imageUrl }}
+                        style={styles.thumb}
+                        contentFit="cover"
+                      />
+                    </Pressable>
+                  ))}
+                </RNScrollView>
+              </View>
+            )}
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
 
       {/* 저장 완료 토스트 */}
