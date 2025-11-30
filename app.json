@@ -2,12 +2,12 @@
   "expo": {
     "name": "dearday",
     "slug": "dearday",
-    "version": "2.0.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dearday",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "requireFullScreen": true,
       "bundleIdentifier": "com.koreauniv.dearday",
@@ -91,7 +91,7 @@
       }
     },
     "owner": "dearday",
-    "runtimeVersion": "2.0",
+    "runtimeVersion": "1.2",
     "updates": {
       "url": "https://u.expo.dev/ad8392b2-46a3-4856-ae38-28e46bb436b6"
     }
