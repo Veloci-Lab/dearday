@@ -366,10 +366,14 @@ export default function PhotoOrganizerScreen() {
       setIsUploading(true);
       const BUCKET = 'photos-v2';
 
+      console.log('Starting upload process...');
+      console.log('Profile ID:', profileId);
       // Upload all photos and save to DB
       for (let i = 0; i < categorizedItems.length; i++) {
         const item = categorizedItems[i];
         if (!item.categoryId) continue;
+        console.log(`Processing item ${i + 1}/${categorizedItems.length}`);
+        console.log('Category ID:', item.categoryId);
 
         // 1. Upload to Storage (original folder)
         const ts = Date.now() + i; // Unique timestamp
@@ -378,6 +382,7 @@ export default function PhotoOrganizerScreen() {
 
         const bytes = await uriToBytes(item.image.uri);
         const imageUrl = await uploadToStorage(BUCKET, filePath, bytes);
+        console.log('Image uploaded to storage:', imageUrl);
 
         // 2. Save to DB
         const { error: insertError } = await supabase
