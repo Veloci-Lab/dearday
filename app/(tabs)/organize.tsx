@@ -12,12 +12,13 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Image as RNImage,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
 import { DraggableGrid } from 'react-native-draggable-grid';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,10 +38,29 @@ const CATEGORY_COLORS = [
   '#8ED6D6', // Cyan-ish
 ];
 
+// Icon assets mapping
+const CATEGORY_ICONS: Record<number, any> = {
+  1: require('@/assets/images/category_icons/category_icon_1.png'),
+  2: require('@/assets/images/category_icons/category_icon_2.png'),
+  3: require('@/assets/images/category_icons/category_icon_3.png'),
+  4: require('@/assets/images/category_icons/category_icon_4.png'),
+  5: require('@/assets/images/category_icons/category_icon_5.png'),
+  6: require('@/assets/images/category_icons/category_icon_6.png'),
+  7: require('@/assets/images/category_icons/category_icon_7.png'),
+  8: require('@/assets/images/category_icons/category_icon_8.png'),
+  9: require('@/assets/images/category_icons/category_icon_9.png'),
+  10: require('@/assets/images/category_icons/category_icon_10.png'),
+  11: require('@/assets/images/category_icons/category_icon_11.png'),
+  12: require('@/assets/images/category_icons/category_icon_12.png'),
+  13: require('@/assets/images/category_icons/category_icon_13.png'),
+  14: require('@/assets/images/category_icons/category_icon_14.png'),
+};
+
 interface GridItem extends Category {
   key: string;
   disabledDrag?: boolean;
   disabledReOrder?: boolean;
+  icon_number?: number;
 }
 
 export default function OrganizeScreen() {
@@ -48,6 +68,7 @@ export default function OrganizeScreen() {
   const [categories, setCategories] = useState<GridItem[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState<number>(1); // Default icon 1
   const [isLoading, setIsLoading] = useState(false);
 
   // New State for Edit/Delete/Reorder
@@ -68,6 +89,7 @@ export default function OrganizeScreen() {
     try {
       setIsLoading(true);
       const data = await categoryService.fetchCategories(profileId);
+      console.log('Fetched categories:', JSON.stringify(data, null, 2));
 
       // Sort by created_at to determine color index deterministically and distinctly
       // This ensures that:
@@ -99,7 +121,8 @@ export default function OrganizeScreen() {
     if (newCategoryName.trim().length === 0 || !profileId) return;
 
     try {
-      const newCat = await categoryService.addCategory(profileId, newCategoryName);
+      console.log('Adding category with icon:', selectedIcon);
+      const newCat = await categoryService.addCategory(profileId, newCategoryName, selectedIcon);
       if (newCat) {
         // The new category is the newest, so it gets the next color index
         // We can just use the current length of categories as the index
@@ -112,6 +135,7 @@ export default function OrganizeScreen() {
         };
         setCategories([...categories, categoryWithColor]);
         setNewCategoryName('');
+        setSelectedIcon(1); // Reset icon
         setIsModalVisible(false);
       }
     } catch (error) {
@@ -123,10 +147,11 @@ export default function OrganizeScreen() {
     if (!selectedCategory || newCategoryName.trim().length === 0) return;
 
     try {
-      const updatedCat = await categoryService.updateCategory(selectedCategory.id, newCategoryName);
+      const updatedCat = await categoryService.updateCategory(selectedCategory.id, newCategoryName, selectedIcon);
       if (updatedCat) {
-        setCategories(prev => prev.map(cat => cat.id === selectedCategory.id ? { ...cat, name: updatedCat.name } : cat));
+        setCategories(prev => prev.map(cat => cat.id === selectedCategory.id ? { ...cat, name: updatedCat.name, icon_number: updatedCat.icon_number } : cat));
         setNewCategoryName('');
+        setSelectedIcon(1);
         setIsModalVisible(false);
         setIsRenameMode(false);
         setSelectedCategory(null);
@@ -152,6 +177,7 @@ export default function OrganizeScreen() {
   const openRenameModal = () => {
     if (selectedCategory) {
       setNewCategoryName(selectedCategory.name);
+      setSelectedIcon(selectedCategory.icon_number || 1);
       setIsRenameMode(true);
       setIsOptionsModalVisible(false);
       setIsModalVisible(true);
@@ -174,8 +200,16 @@ export default function OrganizeScreen() {
 
     return (
       <View style={styles.gridItemContainer}>
-        <View style={[styles.gridItem, { backgroundColor: item.color || '#EDA6A6' }]}>
-          <View style={styles.categoryShape} />
+        <View style={[styles.gridItem, { backgroundColor: item.icon_number ? 'transparent' : (item.color || '#EDA6A6') }]}>
+          {item.icon_number && CATEGORY_ICONS[item.icon_number] ? (
+            <RNImage
+              source={CATEGORY_ICONS[item.icon_number]}
+              style={styles.categoryIconFull}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.categoryShape} />
+          )}
         </View>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName} numberOfLines={1}>{item.name}</Text>
@@ -221,13 +255,21 @@ export default function OrganizeScreen() {
     return (
       <View style={styles.gridItemContainer}>
         <TouchableOpacity
-          style={[styles.gridItem, { backgroundColor: category.color || '#EDA6A6' }]}
+          style={[styles.gridItem, { backgroundColor: category.icon_number ? 'transparent' : (category.color || '#EDA6A6') }]}
           onPress={() => router.push({
             pathname: '/category/[id]',
             params: { id: category.id, name: category.name }
           })}
         >
-          <View style={styles.categoryShape} />
+          {category.icon_number && CATEGORY_ICONS[category.icon_number] ? (
+            <RNImage
+              source={CATEGORY_ICONS[category.icon_number]}
+              style={styles.categoryIconFull}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.categoryShape} />
+          )}
         </TouchableOpacity>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
@@ -339,6 +381,28 @@ export default function OrganizeScreen() {
                 onChangeText={setNewCategoryName}
                 autoFocus
               />
+
+              <Text style={styles.sectionTitle}>{'\uc544\uc774\ucf58 \uc120\ud0dd'}</Text>
+              <View style={styles.iconListContainer}>
+                <FlatList
+                  data={Object.keys(CATEGORY_ICONS).map(Number)}
+                  keyExtractor={(item) => item.toString()}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.iconListContent}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.iconOption,
+                        selectedIcon === item && styles.selectedIconOption
+                      ]}
+                      onPress={() => setSelectedIcon(item)}
+                    >
+                      <RNImage source={CATEGORY_ICONS[item]} style={styles.iconImage} />
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
               <Text style={styles.helperText}>{'\ub098\uc911\uc5d0\ub3c4 \uc218\uc815\ud560 \uc218 \uc788\uc5b4\uc694.'}</Text>
 
               <View style={styles.modalButtons}>
@@ -618,5 +682,47 @@ const styles = StyleSheet.create({
     height: 1,
     width: '100%',
     backgroundColor: '#EEE',
+  },
+  categoryIcon: {
+    width: '60%',
+    height: '60%',
+  },
+  categoryIconFull: {
+    width: '100%',
+    height: '100%',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: colors.text,
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  iconListContainer: {
+    height: 60,
+    marginBottom: 16,
+  },
+  iconListContent: {
+    gap: 12,
+    alignItems: 'center',
+  },
+  iconOption: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedIconOption: {
+    borderColor: colors.primary,
+    backgroundColor: '#E8F0FE',
+  },
+  iconImage: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
   },
 });
