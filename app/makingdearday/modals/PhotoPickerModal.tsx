@@ -17,22 +17,20 @@ const PHOTO_SIZE = (width - 32) / PHOTO_COLUMN_COUNT;
 
 // 카테고리 아이콘 매핑
 const CATEGORY_ICONS = [
-  require("@/assets/images/category-1.png"),
-  require("@/assets/images/category-2.png"),
-  require("@/assets/images/category-3.png"),
-  require("@/assets/images/category-4.png"),
-  require("@/assets/images/category-5.png"),
-  require("@/assets/images/category-6.png"),
-  require("@/assets/images/category-7.png"),
-  require("@/assets/images/category-8.png"),
-  require("@/assets/images/category-9.png"),
-  require("@/assets/images/category-10.png"),
-  require("@/assets/images/category-11.png"),
-  require("@/assets/images/category-12.png"),
-  require("@/assets/images/category-13.png"),
-  require("@/assets/images/category-14.png"),
-  require("@/assets/images/category-15.png"),
-  require("@/assets/images/category-16.png"),
+  require("@/assets/images/category_icons/category_icon_1.png"),
+  require("@/assets/images/category_icons/category_icon_2.png"),
+  require("@/assets/images/category_icons/category_icon_3.png"),
+  require("@/assets/images/category_icons/category_icon_4.png"),
+  require("@/assets/images/category_icons/category_icon_5.png"),
+  require("@/assets/images/category_icons/category_icon_6.png"),
+  require("@/assets/images/category_icons/category_icon_7.png"),
+  require("@/assets/images/category_icons/category_icon_8.png"),
+  require("@/assets/images/category_icons/category_icon_9.png"),
+  require("@/assets/images/category_icons/category_icon_10.png"),
+  require("@/assets/images/category_icons/category_icon_11.png"),
+  require("@/assets/images/category_icons/category_icon_12.png"),
+  require("@/assets/images/category_icons/category_icon_13.png"),
+  require("@/assets/images/category_icons/category_icon_14.png"),
 ];
 
 interface Category {
@@ -69,12 +67,12 @@ export default function PhotoPickerModal({
 }: PhotoPickerModalProps) {
   const getGridData = (): (Photo | null)[] => {
     const data: (Photo | null)[] = [...photos];
-    
+
     const minCells = 35;
     while (data.length < minCells) {
       data.push(null);
     }
-    
+
     const remainder = data.length % PHOTO_COLUMN_COUNT;
     if (remainder !== 0) {
       const emptyCount = PHOTO_COLUMN_COUNT - remainder;
@@ -82,11 +80,17 @@ export default function PhotoPickerModal({
         data.push(null);
       }
     }
-    
+
     return data;
   };
 
-  const renderItem = ({ item, index }: { item: Photo | null; index: number }) => {
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: Photo | null;
+    index: number;
+  }) => {
     if (!item) {
       return (
         <View style={styles.photoCell}>
@@ -126,9 +130,10 @@ export default function PhotoPickerModal({
             <View style={styles.categoryLabel}>
               {/* 카테고리 아이콘 */}
               <View style={styles.categoryIconContainer}>
-                {category?.icon_number && CATEGORY_ICONS[category.icon_number - 1] ? (
-                  <Image 
-                    source={CATEGORY_ICONS[category.icon_number - 1]} 
+                {category?.icon_number &&
+                CATEGORY_ICONS[category.icon_number - 1] ? (
+                  <Image
+                    source={CATEGORY_ICONS[category.icon_number - 1]}
                     style={styles.categoryIcon}
                     resizeMode="contain"
                   />

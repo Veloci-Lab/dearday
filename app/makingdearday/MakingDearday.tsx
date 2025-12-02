@@ -29,7 +29,7 @@ interface Category {
   id: string;
   name: string;
   display_order: number;
-  icon_number: number; 
+  icon_number: number;
 }
 
 interface Photo {
@@ -53,15 +53,12 @@ const CATEGORY_ICONS = [
   require("@/assets/images/category_icons/category_icon_12.png"),
   require("@/assets/images/category_icons/category_icon_13.png"),
   require("@/assets/images/category_icons/category_icon_14.png"),
-  // require("@/assets/images/category_icons/category_icon_15.png"),
-  // require("@/assets/images/category_icons/category_icon_16.png"),
 ];
 
 // ============================================================
 // 테스트용 profile_id (나중에 authStore로 교체)
 // ============================================================
 // const TEST_PROFILE_ID = 102;
-
 
 // ============================================================
 // 메인 스크린 컴포넌트
@@ -80,7 +77,9 @@ export default function MakingDeardayScreen() {
 
   // 사진 선택 모달
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const [categoryPhotos, setCategoryPhotos] = useState<Photo[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
 
@@ -220,7 +219,10 @@ export default function MakingDeardayScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>making dearday</Text>
         <TouchableOpacity
-          style={[styles.nextButton, !hasSelectedPhotos && styles.nextButtonDisabled]}
+          style={[
+            styles.nextButton,
+            !hasSelectedPhotos && styles.nextButtonDisabled,
+          ]}
           onPress={handleNext}
           disabled={!hasSelectedPhotos}
         >
@@ -235,7 +237,10 @@ export default function MakingDeardayScreen() {
             data={selectedPhotos}
             renderItem={({ item }) => (
               <View style={styles.selectedPhotoWrapper}>
-                <Image source={{ uri: item.image_url }} style={styles.selectedPhotoImage} />
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.selectedPhotoImage}
+                />
                 <TouchableOpacity
                   style={styles.removePhotoButton}
                   onPress={() => handleRemovePhoto(item.id)}
@@ -270,8 +275,8 @@ export default function MakingDeardayScreen() {
           >
             <View style={styles.categoryIconContainer}>
               {CATEGORY_ICONS[item.icon_number] ? (
-                <Image 
-                  source={CATEGORY_ICONS[item.icon_number]} 
+                <Image
+                  source={CATEGORY_ICONS[item.icon_number]}
                   style={{ width: 40, height: 40 }}
                   resizeMode="contain"
                 />
