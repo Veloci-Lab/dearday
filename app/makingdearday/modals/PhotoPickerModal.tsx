@@ -196,24 +196,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: "#F3F4F6",
+    width: 17,
+    height: 17,
+    borderRadius: 0,
+    overflow: "hidden", // ← 추가
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   categoryIcon: {
-    width: 16,
-    height: 16,
-  },
-  categoryDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    backgroundColor: "#E879F9",
-    marginRight: 8,
+    width: "100%", // ← 수정
+    height: "100%", // ← 수정
   },
   categoryName: {
     fontSize: 16,

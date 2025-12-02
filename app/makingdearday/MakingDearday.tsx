@@ -274,11 +274,11 @@ export default function MakingDeardayScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.categoryIconContainer}>
-              {CATEGORY_ICONS[item.icon_number] ? (
+              {CATEGORY_ICONS[item.icon_number - 1] ? (
                 <Image
-                  source={CATEGORY_ICONS[item.icon_number]}
-                  style={{ width: 40, height: 40 }}
-                  resizeMode="contain"
+                  source={CATEGORY_ICONS[item.icon_number - 1]}
+                  style={styles.categoryIcon}
+                  resizeMode="cover"
                 />
               ) : (
                 <Ionicons name="folder-outline" size={24} color="#999" />
@@ -418,13 +418,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryIconContainer: {
-    width: CATEGORY_SIZE - 8,
-    height: CATEGORY_SIZE - 8,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
+    width: CATEGORY_SIZE,
+    height: CATEGORY_SIZE,
+    borderRadius: 0,
+    overflow: "hidden", // ← 추가 (borderRadius 적용)
   },
+  categoryIcon: {
+    width: "100%",
+    height: "100%",
+  },
+  // categoryIconContainer: {
+  //   width: CATEGORY_SIZE ,
+  //   height: CATEGORY_SIZE,
+  //   borderRadius: 8,
+  //   backgroundColor: "#F3F4F6",
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  // },
   categoryName: {
     marginTop: 8,
     fontSize: 13,
