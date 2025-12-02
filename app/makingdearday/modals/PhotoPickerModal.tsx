@@ -15,10 +15,31 @@ const { width } = Dimensions.get("window");
 const PHOTO_COLUMN_COUNT = 5;
 const PHOTO_SIZE = (width - 32) / PHOTO_COLUMN_COUNT;
 
+// 카테고리 아이콘 매핑
+const CATEGORY_ICONS = [
+  require("@/assets/images/category-1.png"),
+  require("@/assets/images/category-2.png"),
+  require("@/assets/images/category-3.png"),
+  require("@/assets/images/category-4.png"),
+  require("@/assets/images/category-5.png"),
+  require("@/assets/images/category-6.png"),
+  require("@/assets/images/category-7.png"),
+  require("@/assets/images/category-8.png"),
+  require("@/assets/images/category-9.png"),
+  require("@/assets/images/category-10.png"),
+  require("@/assets/images/category-11.png"),
+  require("@/assets/images/category-12.png"),
+  require("@/assets/images/category-13.png"),
+  require("@/assets/images/category-14.png"),
+  require("@/assets/images/category-15.png"),
+  require("@/assets/images/category-16.png"),
+];
+
 interface Category {
   id: string;
   name: string;
   display_order: number;
+  icon_number: number; // ← 추가
 }
 
 interface Photo {
@@ -103,7 +124,18 @@ export default function PhotoPickerModal({
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.categoryLabel}>
-              <View style={styles.categoryDot} />
+              {/* 카테고리 아이콘 */}
+              <View style={styles.categoryIconContainer}>
+                {category?.icon_number && CATEGORY_ICONS[category.icon_number - 1] ? (
+                  <Image 
+                    source={CATEGORY_ICONS[category.icon_number - 1]} 
+                    style={styles.categoryIcon}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Ionicons name="folder-outline" size={14} color="#999" />
+                )}
+              </View>
               <Text style={styles.categoryName}>{category?.name}</Text>
             </View>
             <TouchableOpacity style={styles.doneButton} onPress={onClose}>
@@ -157,6 +189,19 @@ const styles = StyleSheet.create({
   categoryLabel: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  categoryIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  categoryIcon: {
+    width: 16,
+    height: 16,
   },
   categoryDot: {
     width: 16,
