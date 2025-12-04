@@ -5,7 +5,7 @@ import { getProfile } from "@/utils/api/profiles";
 import { useAuthStore } from "@/utils/authStore";
 import { registerForPushNotificationsAsync } from "@/utils/registerForPushNotificationsAsync";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -152,19 +152,25 @@ export default function HomeScreen() {
             >
               Dearday
             </Text>
-            <Image
-              source={
-                profile.avatar_url
-                  ? { uri: profile.avatar_url }
-                  : require("@/assets/images/avatar.png")
-              }
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: "#D9D9D9",
+            <Pressable
+              onPress={() => {
+                router.push("/mypage");
               }}
-            />
+            >
+              <Image
+                source={
+                  profile.avatar_url
+                    ? { uri: profile.avatar_url }
+                    : require("@/assets/images/avatar.png")
+                }
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "#D9D9D9",
+                }}
+              />
+            </Pressable>
           </View>
           {/* <Hairline />
           <View style={{ padding: 24, gap: 12 }}>
