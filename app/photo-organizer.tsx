@@ -1,4 +1,4 @@
-// import { Category, categoryService } from '@/services/categoryService';
+ï»¿// import { Category, categoryService } from '@/services/categoryService';
 // import { fonts } from '@/styles/common';
 // import { useAuthStore } from '@/utils/authStore';
 // import { supabase } from '@/utils/supabase';
@@ -202,7 +202,7 @@
 //       setTotalUploadedCount(prev => prev + result.assets.length);
 //       Toast.show({
 //         type: 'success',
-//         text1: '\uc0ac\uc9c4\uc774 \ucd94\uac00\ub410\uc5b4\uc694', // »çÁøÀÌ Ãß°¡µÇ¾ú¾î¿ä
+//         text1: '\uc0ac\uc9c4\uc774 \ucd94\uac00\ub410\uc5b4\uc694', // ì‚¬ì§„ì´ ì¶”ê°€ë˜ì—ˆì–´ìš”
 //         visibilityTime: 1000,
 //         position: 'top',
 //         topOffset: 100,
@@ -357,7 +357,7 @@
 //     const categorizedItems = history.filter(item => item.type === 'categorize' && item.categoryId);
 
 //     if (categorizedItems.length === 0) {
-//       Alert.alert('\uc54c\ub9bc', '\ubd84\ub958\ub41c \uc0ac\uc9c4\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.'); // ¾Ë¸², ºĞ·ùµÈ »çÁøÀÌ ¾ø½À´Ï´Ù.
+//       Alert.alert('\uc54c\ub9bc', '\ubd84\ub958\ub41c \uc0ac\uc9c4\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.'); // ì•Œë¦¼, ë¶„ë¥˜ëœ ì‚¬ì§„ì´ ì—†ìŠµë‹ˆë‹¤.
 //       return;
 //     }
 
@@ -399,13 +399,13 @@
 //         }
 //       }
 
-//       Alert.alert('\uc644\ub8cc', `${categorizedItems.length}\uc7a5\uc758 \uc0ac\uc9c4\uc744 \uc800\uc7a5\ud588\uc2b5\ub2c8\ub2e4!`, [ // ¿Ï·á, NÀåÀÇ »çÁøÀ» ÀúÀåÇß½À´Ï´Ù!
-//         { text: '\ud655\uc778', onPress: () => router.back() } // È®ÀÎ
+//       Alert.alert('\uc644\ub8cc', `${categorizedItems.length}\uc7a5\uc758 \uc0ac\uc9c4\uc744 \uc800\uc7a5\ud588\uc2b5\ub2c8\ub2e4!`, [ // ì™„ë£Œ, Nì¥ì˜ ì‚¬ì§„ì„ ì €ì¥í–ˆìŠµë‹ˆë‹¤!
+//         { text: '\ud655\uc778', onPress: () => router.back() } // í™•ì¸
 //       ]);
 
 //     } catch (error) {
 //       console.error('Photo Save Failed:', error);
-//       Alert.alert('\uc624\ub958', '\uc0ac\uc9c4 \uc800\uc7a5\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.'); // ¿À·ù, »çÁø ÀúÀå¿¡ ½ÇÆĞÇß½À´Ï´Ù. ´Ù½Ã ½ÃµµÇØÁÖ¼¼¿ä.
+//       Alert.alert('\uc624\ub958', '\uc0ac\uc9c4 \uc800\uc7a5\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.'); // ì˜¤ë¥˜, ì‚¬ì§„ ì €ì¥ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤. ë‹¤ì‹œ ì‹œë„í•´ì£¼ì„¸ìš”.
 //     } finally {
 //       setIsUploading(false);
 //     }
@@ -662,7 +662,7 @@
 //         <View style={[styles.noteContainer, { width: CARD_WIDTH }]}>
 //           <TextInput
 //             style={[styles.noteInput, { fontSize: scaleFont(14) }]}
-//             placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'} // ³ëÆ®¸¦ ÀÔ·ÂÇØÁÖ¼¼¿ä
+//             placeholder={'\ub178\ud2b8\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694'} // ë…¸íŠ¸ë¥¼ ì…ë ¥í•´ì£¼ì„¸ìš”
 //             placeholderTextColor="#666"
 //             value={currentNote}
 //             onChangeText={setCurrentNote}
@@ -1389,7 +1389,7 @@ export default function PhotoOrganizerScreen() {
       setTotalUploadedCount(prev => prev + result.assets.length);
       Toast.show({
         type: 'success',
-        text1: '»çÁøÀÌ Ãß°¡µÆ¾î¿ä',
+        text1: 'ì‚¬ì§„ì´ ì¶”ê°€ëì–´ìš”',
         visibilityTime: 1000,
         position: 'top',
         topOffset: 100,
@@ -1560,7 +1560,7 @@ export default function PhotoOrganizerScreen() {
     const categorizedItems = history.filter(item => item.type === 'categorize' && item.categoryId);
 
     if (categorizedItems.length === 0) {
-      Alert.alert('¾Ë¸²', 'ºĞ·ùµÈ »çÁøÀÌ ¾ø½À´Ï´Ù.');
+      Alert.alert('ì•Œë¦¼', 'ë¶„ë¥˜ëœ ì‚¬ì§„ì´ ì—†ìŠµë‹ˆë‹¤.');
       return;
     }
 
@@ -1602,13 +1602,13 @@ export default function PhotoOrganizerScreen() {
         }
       }
 
-      Alert.alert('¿Ï·á', `${categorizedItems.length}ÀåÀÇ »çÁøÀ» ÀúÀåÇß½À´Ï´Ù!`, [
-        { text: 'È®ÀÎ', onPress: () => router.back() }
+      Alert.alert('ì™„ë£Œ', `${categorizedItems.length}ì¥ì˜ ì‚¬ì§„ì„ ì €ì¥í–ˆìŠµë‹ˆë‹¤!`, [
+        { text: 'í™•ì¸', onPress: () => router.back() }
       ]);
 
     } catch (error) {
       console.error('Photo Save Failed:', error);
-      Alert.alert('¿À·ù', '»çÁø ÀúÀå¿¡ ½ÇÆĞÇß½À´Ï´Ù. ´Ù½Ã ½ÃµµÇØÁÖ¼¼¿ä.');
+      Alert.alert('ì˜¤ë¥˜', 'ì‚¬ì§„ ì €ì¥ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤. ë‹¤ì‹œ ì‹œë„í•´ì£¼ì„¸ìš”.');
     } finally {
       setIsUploading(false);
     }
@@ -1773,14 +1773,14 @@ export default function PhotoOrganizerScreen() {
         return (
           <View style={styles.completeContainer}>
             <Ionicons name="checkmark-circle-outline" size={scaleFont(64)} color="#5B8DEF" />
-            <Text style={[styles.completeText, { fontSize: scaleFont(20) }]}>{'Á¤¸® ¿Ï·á!'}</Text>
+            <Text style={[styles.completeText, { fontSize: scaleFont(20) }]}>{'ì •ë¦¬ ì™„ë£Œ!'}</Text>
           </View>
         );
       } else {
         return (
           <TouchableOpacity style={styles.uploadButton} onPress={handlePickImages}>
             <MaterialCommunityIcons name="upload" size={scaleFont(24)} color="#A8A6ED" />
-            <Text style={[styles.uploadButtonText, { fontSize: scaleFont(16) }]}>{'»çÁø ¾÷·Îµå'}</Text>
+            <Text style={[styles.uploadButtonText, { fontSize: scaleFont(16) }]}>{'ì‚¬ì§„ ì—…ë¡œë“œ'}</Text>
           </TouchableOpacity>
         );
       }
@@ -1865,7 +1865,7 @@ export default function PhotoOrganizerScreen() {
         <View style={[styles.noteContainer, { width: CARD_WIDTH }]}>
           <TextInput
             style={[styles.noteInput, { fontSize: scaleFont(14) }]}
-            placeholder={'³ëÆ®¸¦ ÀÔ·ÂÇØÁÖ¼¼¿ä'}
+            placeholder={'ë…¸íŠ¸ë¥¼ ì…ë ¥í•´ì£¼ì„¸ìš”'}
             placeholderTextColor="#666"
             value={currentNote}
             onChangeText={setCurrentNote}
@@ -1910,10 +1910,10 @@ export default function PhotoOrganizerScreen() {
                   style={[styles.headerControlBtn, isMultiSelectMode && styles.activeControlBtn]}
                   onPress={() => setIsMultiSelectMode(!isMultiSelectMode)}
                 >
-                  <Text style={[styles.headerControlText, { fontSize: scaleFont(12) }]}>{'¿©·¯Àå ¼±ÅÃ'}</Text>
+                  <Text style={[styles.headerControlText, { fontSize: scaleFont(12) }]}>{'ì—¬ëŸ¬ì¥ ì„ íƒ'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.headerControlBtn} onPress={handlePickImages}>
-                  <Text style={[styles.headerControlText, { fontSize: scaleFont(12) }]}>{'»çÁø Ãß°¡'}</Text>
+                  <Text style={[styles.headerControlText, { fontSize: scaleFont(12) }]}>{'ì‚¬ì§„ ì¶”ê°€'}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -1925,7 +1925,7 @@ export default function PhotoOrganizerScreen() {
               {isUploading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={[styles.doneButtonText, { fontSize: scaleFont(14) }]}>{'¿Ï·á'}</Text>
+                <Text style={[styles.doneButtonText, { fontSize: scaleFont(14) }]}>{'ì™„ë£Œ'}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -1994,18 +1994,18 @@ export default function PhotoOrganizerScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxWidth: Math.min(320, width * 0.9) }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{'Ãë¼ÒÇÏ°í ³ª°¡½Ã°Ú¾î¿ä?'}</Text>
+                <Text style={styles.modalTitle}>{'ì·¨ì†Œí•˜ê³  ë‚˜ê°€ì‹œê² ì–´ìš”?'}</Text>
                 <TouchableOpacity onPress={handleContinue}>
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalMessage}>{'Á¤¸®ÇÏ´ø ³»¿ëÀÌ »ç¶óÁ®¿ä!'}</Text>
+              <Text style={styles.modalMessage}>{'ì •ë¦¬í•˜ë˜ ë‚´ìš©ì´ ì‚¬ë¼ì ¸ìš”!'}</Text>
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                  <Text style={styles.continueButtonText}>{'ÀÌ¾î¼­ ÇÏ±â'}</Text>
+                  <Text style={styles.continueButtonText}>{'ì´ì–´ì„œ í•˜ê¸°'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
-                  <Text style={styles.exitButtonText}>{'³ª°¡±â'}</Text>
+                  <Text style={styles.exitButtonText}>{'ë‚˜ê°€ê¸°'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
