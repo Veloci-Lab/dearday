@@ -95,11 +95,27 @@ export default function RootLayout() {
           {/* 3. 로그인&온보딩 완료한 유저만 접근 */}
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="photo-organizer" options={{ headerShown: false }} />
-            <Stack.Screen name="making-dearday" options={{headerShown:false}} />
-            <Stack.Screen name="dearday-editor" options={{headerShown:false}} />
-            <Stack.Screen name="content-detail" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="photo-organizer"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="making-dearday"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="dearday-editor"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="content-detail"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="photo/[id]" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="category/[id]"
+              options={{ headerShown: false }}
+            />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>
