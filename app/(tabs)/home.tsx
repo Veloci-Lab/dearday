@@ -1,4 +1,6 @@
+import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -168,25 +170,14 @@ function DatePill() {
 
 /* ------ 오늘의 질문 섹션 ------- */
 function QuestionSection() {
-  // TODO: 서버에서 질문 불러오기
   const question = "오늘 찍은 사진 중\n가장 마음에 드는  사진은 뭔가요?";
 
   return (
     <View style={styles.questionSection}>
-      {/* 세로선 */}
       <VerticalLine />
-
-      {/* 오늘의 질문 */}
       <Text style={styles.questionLabel}>오늘의 질문</Text>
-
-      {/* 질문 텍스트 */}
       <Text style={styles.questionText}>{question}</Text>
-
-      {/* 설명 텍스트 */}
       <Text style={styles.questionHint}>사진을 통해 답변해주세요!</Text>
-
-      {/* 앱 로고 placeholder */}
-      <View style={styles.logoPlaceholder} />
     </View>
   );
 }
@@ -194,21 +185,26 @@ function QuestionSection() {
 /* ------ 버튼 섹션 ------- */
 interface ButtonSectionProps {
   onSendQuestion: () => void;
+  onUploadPhoto: () => void;
+  showUploadButton: boolean; // 추가
 }
 
-function ButtonSection({ onSendQuestion }: ButtonSectionProps) {
+function ButtonSection({
+  onSendQuestion,
+  onUploadPhoto,
+  showUploadButton,
+}: ButtonSectionProps) {
   return (
     <View style={styles.buttonSection}>
-      {/* 오늘의 사진 올리기 버튼 */}
-      <Pressable
-        style={styles.uploadButton}
-        onPress={() => console.log("사진 올리기")}
-      >
-        <UploadIcon />
-        <Text style={styles.uploadButtonText}>오늘의 사진 올리기</Text>
-      </Pressable>
+      {/* 사진 선택 전에만 보임 */}
+      {showUploadButton && (
+        <Pressable style={styles.uploadButton} onPress={onUploadPhoto}>
+          <UploadIcon />
+          <Text style={styles.uploadButtonText}>오늘의 사진 올리기</Text>
+        </Pressable>
+      )}
 
-      {/* 질문 보내기 */}
+      {/* 질문 보내기는 항상 보임 */}
       <Pressable style={styles.sendQuestionButton} onPress={onSendQuestion}>
         <Text style={styles.sendQuestionText}>질문 보내기</Text>
         <ArrowIcon />
@@ -225,6 +221,9 @@ export default function HomeScreen() {
   // Popup 상태 관리
   const [isPopupVisible, setIsPopupVisible] = useState(false);
 
+  // 선택된 이미지 상태
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   const handleSubmitQuestion = (text: string) => {
     console.log("제출된 질문:", text);
     // TODO: API 호출
@@ -232,6 +231,34 @@ export default function HomeScreen() {
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);
+  };
+
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("갤러리 접근 권한이 필요해요!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false, // 편집 없이 바로 선택
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const handleShare = () => {
+    console.log("공유하기");
+    // TODO: 공유 기능 구현
+  };
+
+  const handleEdit = () => {
+    console.log("편집하기");
+    // TODO: 편집 화면으로 이동
   };
 
   const TAB_BAR_HEIGHT = 72;
@@ -252,7 +279,22 @@ export default function HomeScreen() {
         <HomeHeader />
         <DatePill />
         <QuestionSection />
-        <ButtonSection onSendQuestion={() => setIsPopupVisible(true)} />
+        <View style={styles.centerContent}>
+          {selectedImage ? (
+            <PhotoFrame
+              imageUri={selectedImage}
+              onShare={handleShare}
+              onEdit={handleEdit}
+            />
+          ) : (
+            <View style={styles.logoPlaceholder} />
+          )}
+        </View>
+        <ButtonSection
+          onSendQuestion={() => setIsPopupVisible(true)}
+          onUploadPhoto={handlePickImage}
+          showUploadButton={!selectedImage} // 사진 없을 때만 버튼 보임
+        />
       </View>
       <Popup
         visible={isPopupVisible}
@@ -395,7 +437,6 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     backgroundColor: "rgba(91, 141, 239, 0.2)",
-    marginTop: 15,
   },
 
   // 버튼 섹션
@@ -435,5 +476,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: -0.39,
     color: "#929292",
+  },
+
+  // questionSection에서 logoPlaceholder 제거하고 여기로 이동
+  centerContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
