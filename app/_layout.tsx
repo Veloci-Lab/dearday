@@ -27,6 +27,8 @@ export default function RootLayout() {
     "Pretendard-SemiBold": require("@/assets/fonts/Pretendard-SemiBold.otf"),
     "RedHat-Bold": require("@/assets/fonts/RedHatDisplay-Bold.ttf"),
     "RedHat-Regular": require("@/assets/fonts/RedHatDisplay-Regular.ttf"),
+    "HakgyoansimBadasseugi-L": require("@/assets/fonts/HakgyoansimBadasseugi-L.otf"),
+    "HakgyoansimBadasseugi-B": require("@/assets/fonts/HakgyoansimBadasseugi-B.otf"),
   });
 
   useEffect(() => {
