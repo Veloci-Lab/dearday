@@ -2,9 +2,15 @@ import { getProfile } from "@/utils/api/profiles";
 import { useAuthStore } from "@/utils/authStore";
 import { useFocusEffect } from "@react-navigation/native";
 import { Tabs } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -40,6 +46,64 @@ const SocialIcon = ({ color }: { color: string }) => (
   </Svg>
 );
 
+/* ------ Reanimated 탭 버튼 (라벨 애니메이션 제거) ------- */
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function TabButton({
+  focused,
+  onPress,
+  children,
+  label,
+  labelColor,
+}: {
+  focused: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+  label: string;
+  labelColor: string;
+}) {
+  // press-in/out용
+  const pressScale = useSharedValue(1);
+  // focused 변화용
+  const focusedScale = useSharedValue(focused ? 1.12 : 1);
+
+  useEffect(() => {
+    // 포커스 상태에 따른 스케일 업/복귀
+    focusedScale.value = withSpring(focused ? 1.12 : 1, {
+      damping: 14,
+      stiffness: 220,
+      mass: 0.6,
+    });
+  }, [focused]);
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: focusedScale.value * pressScale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={() => {
+        // press-in: 짧게 scale down
+        pressScale.value = withTiming(0.94, { duration: 90 });
+      }}
+      onPressOut={() => {
+        // press-out: spring(bounce) 복귀
+        pressScale.value = withSpring(1, { damping: 12, stiffness: 260 });
+      }}
+      style={styles.tab}
+    >
+      <Animated.View style={[styles.iconWrapper, iconStyle]}>
+        {children}
+      </Animated.View>
+
+      {/* 라벨 애니메이션 없음: 정적 렌더링 (색상만 변경) */}
+      <Text style={[styles.tabLabel, { color: labelColor }]}>{label}</Text>
+    </AnimatedPressable>
+  );
+}
+
 /* ------ 커스텀 탭바 ------- */
 function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -71,7 +135,7 @@ function CustomTabBar({ state, navigation }: any) {
   );
 
   const TABS = [
-    { name: "index", label: "홈", type: "home" },
+    { name: "home", label: "홈", type: "home" },
     { name: "social", label: "소셜", type: "social" },
     { name: "mypage", label: "마이", type: "profile" },
   ];
@@ -85,37 +149,33 @@ function CustomTabBar({ state, navigation }: any) {
           const labelColor = focused ? ACTIVE : INACTIVE;
 
           return (
-            <Pressable
+            <TabButton
               key={t.name}
+              focused={focused}
               onPress={() => go(t.name)}
-              style={styles.tab}
+              label={t.label}
+              labelColor={labelColor}
             >
-              <View style={styles.iconWrapper}>
-                {t.type === "home" && <HomeIcon color={iconColor} />}
-                {t.type === "social" && <SocialIcon color={iconColor} />}
-                {t.type === "profile" && (
-                  <View
-                    style={[
-                      styles.profileWrapper,
-                      focused && styles.profileWrapperActive,
-                    ]}
-                  >
-                    <Image
-                      source={
-                        profile?.avatar_url
-                          ? { uri: profile.avatar_url }
-                          : require("@/assets/images/avatar.png")
-                      }
-                      style={styles.profileImage}
-                    />
-                  </View>
-                )}
-              </View>
-
-              <Text style={[styles.tabLabel, { color: labelColor }]}>
-                {t.label}
-              </Text>
-            </Pressable>
+              {t.type === "home" && <HomeIcon color={iconColor} />}
+              {t.type === "social" && <SocialIcon color={iconColor} />}
+              {t.type === "profile" && (
+                <View
+                  style={[
+                    styles.profileWrapper,
+                    focused && styles.profileWrapperActive,
+                  ]}
+                >
+                  <Image
+                    source={
+                      profile?.avatar_url
+                        ? { uri: profile.avatar_url }
+                        : require("@/assets/images/avatar.png")
+                    }
+                    style={styles.profileImage}
+                  />
+                </View>
+              )}
+            </TabButton>
           );
         })}
       </View>
@@ -133,7 +193,7 @@ export default function TabsLayout() {
         }}
         tabBar={(props) => <CustomTabBar {...props} />}
       >
-        <Tabs.Screen name="index" />
+        <Tabs.Screen name="home" />
         <Tabs.Screen name="social" />
         <Tabs.Screen name="mypage" />
       </Tabs>
