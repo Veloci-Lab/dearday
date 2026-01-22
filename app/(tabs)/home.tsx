@@ -1,4 +1,5 @@
-import React from "react";
+import Popup from "@/components/Popup";
+import React, { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from "react-native-svg";
@@ -191,7 +192,11 @@ function QuestionSection() {
 }
 
 /* ------ 버튼 섹션 ------- */
-function ButtonSection() {
+interface ButtonSectionProps {
+  onSendQuestion: () => void;
+}
+
+function ButtonSection({ onSendQuestion }: ButtonSectionProps) {
   return (
     <View style={styles.buttonSection}>
       {/* 오늘의 사진 올리기 버튼 */}
@@ -204,10 +209,7 @@ function ButtonSection() {
       </Pressable>
 
       {/* 질문 보내기 */}
-      <Pressable
-        style={styles.sendQuestionButton}
-        onPress={() => console.log("질문 보내기")}
-      >
+      <Pressable style={styles.sendQuestionButton} onPress={onSendQuestion}>
         <Text style={styles.sendQuestionText}>질문 보내기</Text>
         <ArrowIcon />
       </Pressable>
@@ -220,13 +222,22 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const HomeGradient = require("@/assets/images/backgrounds/home_gradient.png");
 
-  // 네 탭바 스타일 기준 추정치
-  const TAB_BAR_HEIGHT = 72; // 대략(실제 tabBar 스타일에 맞춰 58~66 사이로 조정 가능)
-  const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10; // 네 탭바 코드의 bottom: safeBottom + 10
+  // Popup 상태 관리
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+
+  const handleSubmitQuestion = (text: string) => {
+    console.log("제출된 질문:", text);
+    // TODO: API 호출
+  };
+
+  const handleClosePopup = () => {
+    setIsPopupVisible(false);
+  };
+
+  const TAB_BAR_HEIGHT = 72;
+  const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
   const GAP_FROM_TABBAR = 32;
 
-  // "버튼 섹션 bottom"이 탭바 "위"로 32 떨어지도록,
-  // 화면 바닥부터 탭바까지의 공간 + 탭바 높이 + 32 를 paddingBottom으로 확보
   const paddingBottom =
     TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT + GAP_FROM_TABBAR;
 
@@ -241,8 +252,18 @@ export default function HomeScreen() {
         <HomeHeader />
         <DatePill />
         <QuestionSection />
-        <ButtonSection />
+        <ButtonSection onSendQuestion={() => setIsPopupVisible(true)} />
       </View>
+      <Popup
+        visible={isPopupVisible}
+        title="질문 보내기"
+        helperText="디어데이에 올라오면 좋을 것 같은 질문을 공유해주세요!"
+        cancelText="취소"
+        submitText="투고하기"
+        onCancel={handleClosePopup}
+        onSubmit={handleSubmitQuestion}
+        onGoHome={handleClosePopup}
+      />
     </View>
   );
 }
