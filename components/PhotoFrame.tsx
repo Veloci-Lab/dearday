@@ -91,7 +91,10 @@ export default function PhotoFrame({
           {/* 공유 버튼 */}
           <Pressable
             style={[styles.iconButton, styles.shareButton]}
-            onPress={onShare}
+            onPress={() => {
+              console.log("공유 버튼 클릭됨!"); // 로그 추가
+              onShare?.();
+            }}
           >
             <ShareIcon />
           </Pressable>

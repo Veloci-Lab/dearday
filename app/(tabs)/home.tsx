@@ -1,10 +1,12 @@
 import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import * as Sharing from "expo-sharing";
+import React, { useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from "react-native-svg";
+import ViewShot from "react-native-view-shot";
 
 /* ------ 헤더 아이콘 SVG ------- */
 const CalendarIcon = () => (
@@ -217,11 +219,8 @@ function ButtonSection({
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const HomeGradient = require("@/assets/images/backgrounds/home_gradient.png");
-
-  // Popup 상태 관리
+  const viewShotRef = useRef<ViewShot>(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
-
-  // 선택된 이미지 상태
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleSubmitQuestion = (text: string) => {
@@ -241,8 +240,8 @@ export default function HomeScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false, // 편집 없이 바로 선택
+      mediaTypes: ["images"],
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -251,14 +250,31 @@ export default function HomeScreen() {
     }
   };
 
-  const handleShare = () => {
-    console.log("공유하기");
-    // TODO: 공유 기능 구현
+  // 공유하기 - 화면 캡쳐 후 공유
+  const handleShare = async () => {
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        alert("이 기기에서는 공유 기능을 사용할 수 없어요.");
+        return;
+      }
+
+      if (viewShotRef.current?.capture) {
+        const uri = await viewShotRef.current.capture();
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "오늘의 질문 공유하기",
+        });
+      }
+    } catch (error) {
+      console.error("공유 실패:", error);
+      alert("공유에 실패했어요. 다시 시도해주세요.");
+    }
   };
 
+  // 편집하기 - 이미지 다시 선택
   const handleEdit = () => {
-    console.log("편집하기");
-    // TODO: 편집 화면으로 이동
+    handlePickImage();
   };
 
   const TAB_BAR_HEIGHT = 72;
@@ -277,19 +293,25 @@ export default function HomeScreen() {
       />
       <View style={[styles.content, { paddingBottom }]}>
         <HomeHeader />
-        <DatePill />
-        <QuestionSection />
-        <View style={styles.centerContent}>
-          {selectedImage ? (
-            <PhotoFrame
-              imageUri={selectedImage}
-              onShare={handleShare}
-              onEdit={handleEdit}
-            />
-          ) : (
-            <View style={styles.logoPlaceholder} />
-          )}
-        </View>
+        <ViewShot
+          ref={viewShotRef}
+          options={{ format: "png", quality: 1 }}
+          style={styles.captureArea}
+        >
+          <DatePill />
+          <QuestionSection />
+          <View style={styles.centerContent}>
+            {selectedImage ? (
+              <PhotoFrame
+                imageUri={selectedImage}
+                onShare={handleShare}
+                onEdit={handleEdit}
+              />
+            ) : (
+              <View style={styles.logoPlaceholder} />
+            )}
+          </View>
+        </ViewShot>
         <ButtonSection
           onSendQuestion={() => setIsPopupVisible(true)}
           onUploadPhoto={handlePickImage}
@@ -483,5 +505,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  captureArea: {
+    flex: 1,
+    overflow: "hidden",
+  },
+  captureBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
   },
 });
