@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -24,7 +25,8 @@ const { width } = Dimensions.get("window");
 const SELECTED_PHOTO_SIZE = 56;
 
 // TODO: authStore로 교체
-const TEST_PROFILE_ID = 102;
+// const TEST_PROFILE_ID = 102;
+const profileId = useAuthStore((state) => state.profileId);
 
 interface Photo {
   id: string;
@@ -133,7 +135,7 @@ export default function DeardayEditorScreen() {
       const { data: contentData, error: contentError } = await supabase
         .from("contents")
         .insert({
-          profile_id: TEST_PROFILE_ID,
+          profile_id: profileId,
           name: contentName,
           thumbnail_photo_id: thumbnailPhotoId,
         })

@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -39,7 +40,8 @@ interface Photo {
 // ============================================================
 // 테스트용 profile_id (나중에 authStore로 교체)
 // ============================================================
-const TEST_PROFILE_ID = 102;
+// const TEST_PROFILE_ID = 102;
+const profileId = useAuthStore((state) => state.profileId);
 
 // ============================================================
 // 메인 스크린 컴포넌트
@@ -75,7 +77,7 @@ export default function MakingDeardayScreen() {
         const { data, error } = await supabase
           .from("categories")
           .select("id, name, display_order")
-          .eq("profile_id", TEST_PROFILE_ID)
+          .eq("profile_id", profileId)
           .order("display_order", { ascending: true });
 
         if (error) throw error;
@@ -102,7 +104,7 @@ export default function MakingDeardayScreen() {
       const { data, error } = await supabase
         .from("photos")
         .select("id, image_url, category_id")
-        .eq("profile_id", TEST_PROFILE_ID)
+        .eq("profile_id", profileId)
         .eq("category_id", category.id)
         .order("created_at", { ascending: false });
 
