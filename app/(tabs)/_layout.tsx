@@ -138,17 +138,17 @@ export default function TabsLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Tabs
         screenOptions={{
-          headerShown: true,
+          headerShown: false,
           tabBarStyle: { display: "none" },
-          headerShadowVisible: false,
+          headerShadowVisible: true,
           headerStyle: { borderBottomWidth: 2, borderBottomColor: "#f2f2f2" },
         }}
         tabBar={(props) => <CustomTabBar {...props} />}
       >
-        <Tabs.Screen name="index" />
+        <Tabs.Screen name="index" options={{ headerShown: false }} />
         <Tabs.Screen name="organize" options={{ headerShown: false }} />
-        <Tabs.Screen name="record" />
-        <Tabs.Screen name="mypage" />
+        <Tabs.Screen name="record" options={{ headerShown: true }} />
+        <Tabs.Screen name="mypage" options={{ headerShown: true }} />
       </Tabs>
     </GestureHandlerRootView>
   );

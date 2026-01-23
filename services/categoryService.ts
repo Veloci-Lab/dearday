@@ -7,13 +7,14 @@ export interface Category {
   color?: string;
   display_order?: number;
   created_at?: string;
+  icon_number?: number;
 }
 
 export const categoryService = {
   async fetchCategories(profileId: string): Promise<Category[]> {
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, created_at, display_order')
+      .select('id, name, created_at, display_order, icon_number')
       .eq('profile_id', profileId)
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: true });
@@ -26,7 +27,7 @@ export const categoryService = {
     return data || [];
   },
 
-  async addCategory(profileId: string, name: string): Promise<Category | null> {
+  async addCategory(profileId: string, name: string, iconNumber?: number): Promise<Category | null> {
     // Get the current max display_order to append the new category at the end
     const { data: maxOrderData, error: maxOrderError } = await supabase
       .from('categories')
@@ -38,15 +39,17 @@ export const categoryService = {
 
     const nextOrder = (maxOrderData?.display_order ?? 0) + 1;
 
+    const payload = {
+      profile_id: profileId,
+      name: name,
+      display_order: nextOrder,
+      icon_number: iconNumber,
+    };
+    console.log('addCategory payload:', payload);
+
     const { data, error } = await supabase
       .from('categories')
-      .insert([
-        {
-          profile_id: profileId,
-          name: name,
-          display_order: nextOrder,
-        },
-      ])
+      .insert([payload])
       .select()
       .single();
 
@@ -58,10 +61,16 @@ export const categoryService = {
     return data;
   },
 
-  async updateCategory(id: string, name: string): Promise<Category | null> {
+  async updateCategory(id: string, name: string, iconNumber?: number): Promise<Category | null> {
+    const updatePayload: any = { name };
+    if (iconNumber !== undefined) {
+      updatePayload.icon_number = iconNumber;
+    }
+    console.log('updateCategory payload:', updatePayload);
+
     const { data, error } = await supabase
       .from('categories')
-      .update({ name })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

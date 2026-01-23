@@ -15,10 +15,29 @@ const { width } = Dimensions.get("window");
 const PHOTO_COLUMN_COUNT = 5;
 const PHOTO_SIZE = (width - 32) / PHOTO_COLUMN_COUNT;
 
+// 카테고리 아이콘 매핑
+const CATEGORY_ICONS = [
+  require("@/assets/images/category_icons/category_icon_1.png"),
+  require("@/assets/images/category_icons/category_icon_2.png"),
+  require("@/assets/images/category_icons/category_icon_3.png"),
+  require("@/assets/images/category_icons/category_icon_4.png"),
+  require("@/assets/images/category_icons/category_icon_5.png"),
+  require("@/assets/images/category_icons/category_icon_6.png"),
+  require("@/assets/images/category_icons/category_icon_7.png"),
+  require("@/assets/images/category_icons/category_icon_8.png"),
+  require("@/assets/images/category_icons/category_icon_9.png"),
+  require("@/assets/images/category_icons/category_icon_10.png"),
+  require("@/assets/images/category_icons/category_icon_11.png"),
+  require("@/assets/images/category_icons/category_icon_12.png"),
+  require("@/assets/images/category_icons/category_icon_13.png"),
+  require("@/assets/images/category_icons/category_icon_14.png"),
+];
+
 interface Category {
   id: string;
   name: string;
   display_order: number;
+  icon_number: number; // ← 추가
 }
 
 interface Photo {
@@ -48,12 +67,12 @@ export default function PhotoPickerModal({
 }: PhotoPickerModalProps) {
   const getGridData = (): (Photo | null)[] => {
     const data: (Photo | null)[] = [...photos];
-    
+
     const minCells = 35;
     while (data.length < minCells) {
       data.push(null);
     }
-    
+
     const remainder = data.length % PHOTO_COLUMN_COUNT;
     if (remainder !== 0) {
       const emptyCount = PHOTO_COLUMN_COUNT - remainder;
@@ -61,11 +80,17 @@ export default function PhotoPickerModal({
         data.push(null);
       }
     }
-    
+
     return data;
   };
 
-  const renderItem = ({ item, index }: { item: Photo | null; index: number }) => {
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: Photo | null;
+    index: number;
+  }) => {
     if (!item) {
       return (
         <View style={styles.photoCell}>
@@ -103,7 +128,19 @@ export default function PhotoPickerModal({
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.categoryLabel}>
-              <View style={styles.categoryDot} />
+              {/* 카테고리 아이콘 */}
+              <View style={styles.categoryIconContainer}>
+                {category?.icon_number &&
+                CATEGORY_ICONS[category.icon_number - 1] ? (
+                  <Image
+                    source={CATEGORY_ICONS[category.icon_number - 1]}
+                    style={styles.categoryIcon}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Ionicons name="folder-outline" size={14} color="#999" />
+                )}
+              </View>
               <Text style={styles.categoryName}>{category?.name}</Text>
             </View>
             <TouchableOpacity style={styles.doneButton} onPress={onClose}>
@@ -147,22 +184,29 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
+    position: "relative",
   },
   categoryLabel: {
     flexDirection: "row",
     alignItems: "center",
   },
-  categoryDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    backgroundColor: "#E879F9",
+  categoryIconContainer: {
+    width: 17,
+    height: 17,
+    borderRadius: 0,
+    overflow: "hidden", // ← 추가
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
+  },
+  categoryIcon: {
+    width: "100%", // ← 수정
+    height: "100%", // ← 수정
   },
   categoryName: {
     fontSize: 16,
@@ -171,6 +215,8 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     backgroundColor: "#5B8DEF",
+    position: "absolute",
+    right: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,

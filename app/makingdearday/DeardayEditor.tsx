@@ -26,7 +26,6 @@ const SELECTED_PHOTO_SIZE = 56;
 
 // TODO: authStore로 교체
 // const TEST_PROFILE_ID = 102;
-const profileId = useAuthStore((state) => state.profileId);
 
 interface Photo {
   id: string;
@@ -37,6 +36,7 @@ interface Photo {
 export default function DeardayEditorScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const profileId = useAuthStore((state) => state.profileId);
 
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);

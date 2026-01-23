@@ -29,6 +29,7 @@ interface Category {
   id: string;
   name: string;
   display_order: number;
+  icon_number: number;
 }
 
 interface Photo {
@@ -37,11 +38,27 @@ interface Photo {
   category_id: string;
 }
 
+const CATEGORY_ICONS = [
+  require("@/assets/images/category_icons/category_icon_1.png"),
+  require("@/assets/images/category_icons/category_icon_2.png"),
+  require("@/assets/images/category_icons/category_icon_3.png"),
+  require("@/assets/images/category_icons/category_icon_4.png"),
+  require("@/assets/images/category_icons/category_icon_5.png"),
+  require("@/assets/images/category_icons/category_icon_6.png"),
+  require("@/assets/images/category_icons/category_icon_7.png"),
+  require("@/assets/images/category_icons/category_icon_8.png"),
+  require("@/assets/images/category_icons/category_icon_9.png"),
+  require("@/assets/images/category_icons/category_icon_10.png"),
+  require("@/assets/images/category_icons/category_icon_11.png"),
+  require("@/assets/images/category_icons/category_icon_12.png"),
+  require("@/assets/images/category_icons/category_icon_13.png"),
+  require("@/assets/images/category_icons/category_icon_14.png"),
+];
+
 // ============================================================
 // 테스트용 profile_id (나중에 authStore로 교체)
 // ============================================================
 // const TEST_PROFILE_ID = 102;
-const profileId = useAuthStore((state) => state.profileId);
 
 // ============================================================
 // 메인 스크린 컴포넌트
@@ -49,6 +66,8 @@ const profileId = useAuthStore((state) => state.profileId);
 export default function MakingDeardayScreen() {
   const router = useRouter();
   const isLoadedRef = useRef(false);
+
+  const profileId = useAuthStore((state) => state.profileId);
 
   // State
   const [categories, setCategories] = useState<Category[]>([]);
@@ -58,7 +77,9 @@ export default function MakingDeardayScreen() {
 
   // 사진 선택 모달
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const [categoryPhotos, setCategoryPhotos] = useState<Photo[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
 
@@ -76,7 +97,7 @@ export default function MakingDeardayScreen() {
       try {
         const { data, error } = await supabase
           .from("categories")
-          .select("id, name, display_order")
+          .select("id, name, display_order, icon_number")
           .eq("profile_id", profileId)
           .order("display_order", { ascending: true });
 
@@ -198,7 +219,10 @@ export default function MakingDeardayScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>making dearday</Text>
         <TouchableOpacity
-          style={[styles.nextButton, !hasSelectedPhotos && styles.nextButtonDisabled]}
+          style={[
+            styles.nextButton,
+            !hasSelectedPhotos && styles.nextButtonDisabled,
+          ]}
           onPress={handleNext}
           disabled={!hasSelectedPhotos}
         >
@@ -213,7 +237,10 @@ export default function MakingDeardayScreen() {
             data={selectedPhotos}
             renderItem={({ item }) => (
               <View style={styles.selectedPhotoWrapper}>
-                <Image source={{ uri: item.image_url }} style={styles.selectedPhotoImage} />
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.selectedPhotoImage}
+                />
                 <TouchableOpacity
                   style={styles.removePhotoButton}
                   onPress={() => handleRemovePhoto(item.id)}
@@ -247,7 +274,15 @@ export default function MakingDeardayScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.categoryIconContainer}>
-              {/* TODO: 카테고리별 아이콘 */}
+              {CATEGORY_ICONS[item.icon_number - 1] ? (
+                <Image
+                  source={CATEGORY_ICONS[item.icon_number - 1]}
+                  style={styles.categoryIcon}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Ionicons name="folder-outline" size={24} color="#999" />
+              )}
             </View>
             <Text style={styles.categoryName} numberOfLines={1}>
               {item.name}
@@ -383,13 +418,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryIconContainer: {
-    width: CATEGORY_SIZE - 8,
-    height: CATEGORY_SIZE - 8,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
+    width: CATEGORY_SIZE,
+    height: CATEGORY_SIZE,
+    borderRadius: 0,
+    overflow: "hidden", // ← 추가 (borderRadius 적용)
   },
+  categoryIcon: {
+    width: "100%",
+    height: "100%",
+  },
+  // categoryIconContainer: {
+  //   width: CATEGORY_SIZE ,
+  //   height: CATEGORY_SIZE,
+  //   borderRadius: 8,
+  //   backgroundColor: "#F3F4F6",
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  // },
   categoryName: {
     marginTop: 8,
     fontSize: 13,

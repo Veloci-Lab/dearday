@@ -33,7 +33,7 @@ const AVAILABLE_HEIGHT = height - SAFE_AREA_TOP - HEADER_HEIGHT - TAB_HEIGHT - B
 
 // TODO: authStore로 교체
 // const TEST_PROFILE_ID = 102;
-const profileId = useAuthStore((state) => state.profileId);
+// const profileId = useAuthStore((state) => state.profileId);
 
 interface ContentPhotoData {
   id: string;
@@ -64,6 +64,7 @@ export default function ContentDetailScreen() {
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"dearday" | "blog">("dearday");
   const [showToast, setShowToast] = useState(false);
+  
 
   useEffect(() => {
     if (contentId) {
