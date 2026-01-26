@@ -1,6 +1,7 @@
 import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -135,10 +136,16 @@ function HomeHeader() {
           <Pressable onPress={() => console.log("캘린더")}>
             <CalendarIcon />
           </Pressable>
-          <Pressable onPress={() => console.log("알림")}>
+          <Pressable onPress={() => {
+              console.log("알림");
+              router.push("/notifications");
+            }}>
             <NotificationIcon />
           </Pressable>
-          <Pressable onPress={() => console.log("설정")}>
+          <Pressable onPress={() => {
+              console.log("설정");
+              router.push("/settings");
+            }}>
             <SettingsIcon />
           </Pressable>
         </View>
