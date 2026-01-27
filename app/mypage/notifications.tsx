@@ -284,38 +284,6 @@ export async function updateExpoPushToken(profileId: string, token: string) {
   if (error) throw error;
 }
 
-// --- 테스트용 푸시 전송 함수 ---
-async function sendTestPush(token: string, title: string, body: string) {
-  try {
-    await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: token,
-        title,
-        body,
-        sound: "default",
-      }),
-    });
-    console.log("푸시 전송 완료");
-  } catch (err) {
-    console.error("푸시 전송 실패:", err);
-  }
-}
-
-async function sendPush(token: string, title: string, body: string) {
-  try {
-    await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: token, title, body, sound: "default" }),
-    });
-    console.log("푸시 전송 완료:", title);
-  } catch (err) {
-    console.error("푸시 전송 실패:", err);
-  }
-}
-
 export default function NotificationSettingsScreen() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -377,7 +345,7 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  /** 푸시 토큰 재발급 + Daily Question 테스트 푸시 전송 */
+  /** 푸시 토큰 재발급 **/
   const handleReissueToken = async () => {
     if (!profileId) return;
 
@@ -401,84 +369,6 @@ export default function NotificationSettingsScreen() {
       setReissuing(false);
     }
   };
-
-  useEffect(() => {
-    if (!settings?.daily_question_enabled || !profileId) return;
-
-    const scheduleDailyQuestion = () => {
-      const now = new Date();
-      const nextMidnight = new Date();
-      nextMidnight.setHours(24, 0, 0, 0); // 다음 0시
-      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
-
-      const timeoutId = setTimeout(async () => {
-        const { data: profile } = await supabase
-          .from("notification_settings")
-          .select("expo_push_token")
-          .eq("profile_id", profileId)
-          .maybeSingle();
-
-        if (profile?.expo_push_token) {
-          await sendPush(profile.expo_push_token, "오늘의 질문", "오늘 하루 질문을 확인해보세요!");
-        }
-
-        // 다음날 반복
-        scheduleDailyQuestion();
-      }, msUntilMidnight);
-
-      return timeoutId;
-    };
-
-    const timeoutId = scheduleDailyQuestion();
-    return () => clearTimeout(timeoutId);
-  }, [settings, profileId]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("public:follow_notifications")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "follow_notifications" },
-        (payload) => {
-          const handleNotification = async () => {
-            const notification = payload.new;
-            console.log("payload:", payload);
-
-            const { data: profile } = await supabase
-              .from("notification_settings")
-              .select("expo_push_token")
-              .eq("profile_id", notification.profile_id)
-              .maybeSingle();
-
-            if (!profile?.expo_push_token) return;
-            
-            console.log("알림 수신:", notification.type);
-
-            let title = "";
-            let body = "";
-            if (notification.type === "follow_request") {
-              title = "새 팔로우 요청";
-              body = "누군가 당신을 팔로우하려고 합니다.";
-            } else if (notification.type === "emoji") {
-              title = "새 좋아요!";
-              body = "누군가 당신의 게시물을 좋아합니다.";
-            }
-
-            await sendPush(profile.expo_push_token, title, body);
-          };
-
-          handleNotification();
-        }
-      )
-      .subscribe((status) => {
-        console.log("채널 상태:", status);
-      });
-
-      return () => {
-        supabase.removeChannel(channel).then(() => {}).catch(() => {});
-      };
-  }, []);
-
   
   if (!settings) return null;
 
