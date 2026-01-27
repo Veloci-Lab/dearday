@@ -26,6 +26,11 @@ type Notification = {
     nickname: string
     avatar_url: string
   }
+  entity?: {      
+    answer_id: string
+    photo_url: string
+  }
+  emoji?: string
 }
 
 type NotificationItemProps = {
@@ -78,6 +83,8 @@ function NotificationItem({
   const translateX = useSharedValue(0)
 
   // 다른 아이템이 열리면 자동으로 닫힘
+  console.log('Notification item:', item.type, item.emoji)
+
   useEffect(() => {
     if (openId !== item.notification_id) {
       translateX.value = withTiming(0)
@@ -147,7 +154,7 @@ function NotificationItem({
                   <Text style={styles.bold}>
                     {item.actor ? item.actor.nickname : '알 수 없음'}
                   </Text>
-                  {renderMessage(item.type)}
+                  {renderMessage(item.type, item.emoji)}
                 </Text>
                 <Text style={styles.time}>
                   {formatNotificationDate(item.created_at)}
@@ -162,7 +169,7 @@ function NotificationItem({
   )
 }
 
-function renderMessage(type: Notification['type']) {
+function renderMessage(type: Notification['type'], emoji?: Notification['emoji']) {
   switch (type) {
     case 'follow_request':
       return '님이 팔로우 요청을 보냈어요.'
@@ -171,7 +178,9 @@ function renderMessage(type: Notification['type']) {
     case 'follow':
       return '님이 나를 팔로우하기 시작했어요.'
     case 'emoji':
-      return '님이 나의 사진에 이모지를 남겼어요.'
+      return emoji
+        ? `님이 나의 사진에 ${emoji}를 남겼어요.`
+        : '님이 나의 사진에 반응을 남겼어요.'
   }
 }
 
@@ -217,6 +226,22 @@ function renderAction(
             <Text style={styles.followingText}>팔로잉 중</Text>
         </View>
       )
+    case 'emoji':
+      return item.entity?.photo_url ? (
+        <Image
+          source={{ uri: item.entity.photo_url }}
+          style={{ width: 60, height: 60, borderRadius: 12 }}
+        />
+      ) : (
+        <View
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 12,
+            backgroundColor: '#ccc', // 회색 대체
+          }}
+        />
+      )
   }
 }
 
@@ -233,6 +258,7 @@ function EmptyNotifications() {
     </View>
   )
 }
+
 
 export default function NotificationsScreen() {
   const router = useRouter()
@@ -276,11 +302,17 @@ export default function NotificationsScreen() {
         type,
         is_read,
         created_at,
+        emoji,
+        entity_id,
         actor:actor_profile_id(
           profile_id,
           uid,
           nickname,
           avatar_url
+        ),
+        entity:entity_id(
+          answer_id,
+          photo_url
         )
       `)
       .eq('user_profile_id', profileId)
@@ -297,6 +329,8 @@ export default function NotificationsScreen() {
       is_read: n.is_read,
       created_at: n.created_at,
       actor: n.actor,
+      emoji: n.emoji,                   
+      entity: n.entity, 
     }))
 
     console.log('[notifications] fetched length:', normalized.length)
