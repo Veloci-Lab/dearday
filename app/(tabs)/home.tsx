@@ -1,13 +1,38 @@
 import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
+import { supabase } from "@/utils/supabase"; // 기존 경로로 변경
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
-import React, { useRef, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 import ViewShot from "react-native-view-shot";
+
+/* ------ 타입 정의 ------- */
+interface Profile {
+  profile_id: number;
+  uid: string;
+  created_at: string;
+  nickname: string | null;
+  avatar_url: string | null;
+}
+
+interface DailyQuestion {
+  question_date: string;
+  question_text: string;
+  source: string | null;
+}
+
+interface Answer {
+  answer_id: string;
+  question_date: string;
+  owner_profile_id: number;
+  photo_url: string | null;
+  caption: string | null;
+  created_at: string;
+}
 
 /* ------ 헤더 아이콘 SVG ------- */
 const CalendarIcon = () => (
@@ -124,7 +149,23 @@ const ArrowIcon = () => (
   </Svg>
 );
 
-/* ------ 홈 헤더 ------- */
+/* ------ 유틸리티 함수 ------- */
+// 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+const getTodayDateString = (): string => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+};
+
+// 두 날짜 사이의 일수 계산
+const calculateDaysSince = (startDate: string): number => {
+  const start = new Date(startDate);
+  const today = new Date();
+  const diffTime = today.getTime() - start.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays + 1; // 가입 당일을 1일로 계산
+};
+
+/* ------ 헤더 ------- */
 function HomeHeader() {
   const insets = useSafeAreaInsets();
 
@@ -136,16 +177,20 @@ function HomeHeader() {
           <Pressable onPress={() => console.log("캘린더")}>
             <CalendarIcon />
           </Pressable>
-          <Pressable onPress={() => {
+          <Pressable
+            onPress={() => {
               console.log("알림");
               router.push("/notifications");
-            }}>
+            }}
+          >
             <NotificationIcon />
           </Pressable>
-          <Pressable onPress={() => {
+          <Pressable
+            onPress={() => {
               console.log("설정");
               router.push("/settings");
-            }}>
+            }}
+          >
             <SettingsIcon />
           </Pressable>
         </View>
@@ -155,13 +200,16 @@ function HomeHeader() {
 }
 
 /* ------ 날짜 Pill ------- */
-function DatePill() {
+interface DatePillProps {
+  dearDayCount: number;
+}
+
+function DatePill({ dearDayCount }: DatePillProps) {
   const today = new Date();
   const dayOfWeek = ["일", "월", "화", "수", "목", "금", "토"][today.getDay()];
   const dateString = `${today.getFullYear()}년 ${
     today.getMonth() + 1
   }월 ${today.getDate()}일 (${dayOfWeek})`;
-  const dearDayCount = 4; // TODO: 실제 계산 로직
 
   return (
     <View style={styles.datePillContainer}>
@@ -178,14 +226,19 @@ function DatePill() {
 }
 
 /* ------ 오늘의 질문 섹션 ------- */
-function QuestionSection() {
-  const question = "오늘 찍은 사진 중\n가장 마음에 드는  사진은 뭔가요?";
+interface QuestionSectionProps {
+  question: string;
+  isLoading: boolean;
+}
 
+function QuestionSection({ question, isLoading }: QuestionSectionProps) {
   return (
     <View style={styles.questionSection}>
       <VerticalLine />
       <Text style={styles.questionLabel}>오늘의 질문</Text>
-      <Text style={styles.questionText}>{question}</Text>
+      <Text style={styles.questionText}>
+        {isLoading ? "질문을 불러오는 중..." : question}
+      </Text>
       <Text style={styles.questionHint}>사진을 통해 답변해주세요!</Text>
     </View>
   );
@@ -195,25 +248,34 @@ function QuestionSection() {
 interface ButtonSectionProps {
   onSendQuestion: () => void;
   onUploadPhoto: () => void;
-  showUploadButton: boolean; // 추가
+  showUploadButton: boolean;
+  isUploading: boolean;
 }
 
 function ButtonSection({
   onSendQuestion,
   onUploadPhoto,
   showUploadButton,
+  isUploading,
 }: ButtonSectionProps) {
   return (
     <View style={styles.buttonSection}>
-      {/* 사진 선택 전에만 보임 */}
       {showUploadButton && (
-        <Pressable style={styles.uploadButton} onPress={onUploadPhoto}>
+        <Pressable
+          style={[
+            styles.uploadButton,
+            isUploading && styles.uploadButtonDisabled,
+          ]}
+          onPress={onUploadPhoto}
+          disabled={isUploading}
+        >
           <UploadIcon />
-          <Text style={styles.uploadButtonText}>오늘의 사진 올리기</Text>
+          <Text style={styles.uploadButtonText}>
+            {isUploading ? "업로드 중..." : "오늘의 사진 올리기"}
+          </Text>
         </Pressable>
       )}
 
-      {/* 질문 보내기는 항상 보임 */}
       <Pressable style={styles.sendQuestionButton} onPress={onSendQuestion}>
         <Text style={styles.sendQuestionText}>질문 보내기</Text>
         <ArrowIcon />
@@ -227,42 +289,298 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const HomeGradient = require("@/assets/images/backgrounds/home_gradient.png");
   const viewShotRef = useRef<ViewShot>(null);
+
+  // State
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmitQuestion = (text: string) => {
-    console.log("제출된 질문:", text);
-    // TODO: API 호출
+  // DB에서 가져온 데이터
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [todayQuestion, setTodayQuestion] = useState<DailyQuestion | null>(
+    null,
+  );
+  const [todayAnswer, setTodayAnswer] = useState<Answer | null>(null);
+  const [dearDayCount, setDearDayCount] = useState(1);
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true);
+
+      // 현재 로그인한 사용자 가져오기
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("로그인된 사용자가 없습니다.");
+        return;
+      }
+
+      // 1. 프로필 정보 가져오기 (DAY 계산용)
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("uid", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("프로필 로드 실패:", profileError);
+      } else if (profileData) {
+        setProfile(profileData);
+        // DAY 계산
+        const days = calculateDaysSince(profileData.created_at);
+        setDearDayCount(days);
+      }
+
+      // 2. 오늘의 질문 가져오기
+      const todayDate = getTodayDateString();
+      const { data: questionData, error: questionError } = await supabase
+        .from("daily_questions")
+        .select("*")
+        .eq("question_date", todayDate)
+        .single();
+
+      if (questionError) {
+        console.error("질문 로드 실패:", questionError);
+        // 질문이 없으면 기본 질문 표시
+        setTodayQuestion({
+          question_date: todayDate,
+          question_text: "오늘 하루는 어땠나요?",
+          source: null,
+        });
+      } else {
+        setTodayQuestion(questionData);
+      }
+
+      // 3. 오늘 이미 답변했는지 확인
+      if (profileData) {
+        const { data: answerData, error: answerError } = await supabase
+          .from("answers")
+          .select("*")
+          .eq("owner_profile_id", profileData.profile_id)
+          .eq("question_date", todayDate)
+          .is("deleted_at", null)
+          .single();
+
+        if (!answerError && answerData) {
+          setTodayAnswer(answerData);
+          setSelectedImage(answerData.photo_url);
+        }
+      }
+    } catch (error) {
+      console.error("데이터 로드 오류:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleClosePopup = () => {
-    setIsPopupVisible(false);
+  // 사진 업로드 (Storage에 업로드 후 URL 반환)
+  const uploadImageToStorage = async (uri: string): Promise<string | null> => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      // 파일 확장자 추출
+      const fileExt = uri.split(".").pop()?.toLowerCase() || "jpg";
+      const fileName = `${user.id}/${getTodayDateString()}_${Date.now()}.${fileExt}`;
+
+      // fetch로 이미지를 blob으로 변환
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // ArrayBuffer로 변환
+      const arrayBuffer = await new Response(blob).arrayBuffer();
+
+      // Supabase Storage에 업로드
+      const { data, error } = await supabase.storage
+        .from("answer-photos") // 버킷 이름
+        .upload(fileName, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: true,
+        });
+
+      if (error) {
+        console.error("Storage 업로드 실패:", error);
+        return null;
+      }
+
+      // Public URL 가져오기
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("answer-photos").getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("이미지 업로드 오류:", error);
+      return null;
+    }
   };
 
+  // 기존 사진 삭제 (Storage에서)
+  const deleteImageFromStorage = async (photoUrl: string): Promise<void> => {
+    try {
+      // URL에서 파일 경로 추출
+      const urlParts = photoUrl.split("/answer-photos/");
+      if (urlParts.length < 2) return;
+
+      const filePath = urlParts[1];
+
+      const { error } = await supabase.storage
+        .from("answer-photos")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Storage 삭제 실패:", error);
+      }
+    } catch (error) {
+      console.error("이미지 삭제 오류:", error);
+    }
+  };
+
+  // 답변 저장/업데이트
+  const saveAnswer = async (photoUrl: string): Promise<boolean> => {
+    try {
+      if (!profile) return false;
+
+      const todayDate = getTodayDateString();
+
+      if (todayAnswer) {
+        // 기존 답변 업데이트
+        const { error } = await supabase
+          .from("answers")
+          .update({
+            photo_url: photoUrl,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("answer_id", todayAnswer.answer_id);
+
+        if (error) {
+          console.error("답변 업데이트 실패:", error);
+          return false;
+        }
+
+        setTodayAnswer({ ...todayAnswer, photo_url: photoUrl });
+      } else {
+        // 새 답변 생성
+        const { data, error } = await supabase
+          .from("answers")
+          .insert({
+            question_date: todayDate,
+            owner_profile_id: profile.profile_id,
+            photo_url: photoUrl,
+            visibility: "private", // 기본값
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("답변 저장 실패:", error);
+          return false;
+        }
+
+        setTodayAnswer(data);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("답변 저장 오류:", error);
+      return false;
+    }
+  };
+
+  // 이미지 선택 핸들러
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      alert("갤러리 접근 권한이 필요해요!");
+      Alert.alert("권한 필요", "갤러리 접근 권한이 필요해요!");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: false,
-      quality: 1,
+      quality: 0.8,
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      const localUri = result.assets[0].uri;
+      setIsUploading(true);
+
+      try {
+        // 기존 사진이 있으면 Storage에서 삭제
+        if (todayAnswer?.photo_url) {
+          await deleteImageFromStorage(todayAnswer.photo_url);
+        }
+
+        // 새 사진 업로드
+        const uploadedUrl = await uploadImageToStorage(localUri);
+
+        if (uploadedUrl) {
+          // DB에 저장
+          const success = await saveAnswer(uploadedUrl);
+
+          if (success) {
+            setSelectedImage(uploadedUrl);
+          } else {
+            Alert.alert("오류", "사진 저장에 실패했어요. 다시 시도해주세요.");
+          }
+        } else {
+          Alert.alert("오류", "사진 업로드에 실패했어요. 다시 시도해주세요.");
+        }
+      } catch (error) {
+        console.error("사진 처리 오류:", error);
+        Alert.alert("오류", "사진 처리 중 문제가 발생했어요.");
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
-  // 공유하기 - 화면 캡쳐 후 공유
+  // 질문 제출 핸들러
+  const handleSubmitQuestion = async (text: string) => {
+    try {
+      if (!profile) {
+        Alert.alert("오류", "프로필 정보를 불러올 수 없어요.");
+        return;
+      }
+
+      const { error } = await supabase.from("question_submissions").insert({
+        submitter_profile_id: profile.profile_id,
+        question_text: text,
+        is_selected: false,
+      });
+
+      if (error) {
+        console.error("질문 제출 실패:", error);
+        Alert.alert("오류", "질문 제출에 실패했어요.");
+      } else {
+        Alert.alert("완료", "질문이 성공적으로 제출되었어요!");
+        setIsPopupVisible(false);
+      }
+    } catch (error) {
+      console.error("질문 제출 오류:", error);
+      Alert.alert("오류", "질문 제출 중 문제가 발생했어요.");
+    }
+  };
+
+  const handleClosePopup = () => {
+    setIsPopupVisible(false);
+  };
+
+  // 공유하기
   const handleShare = async () => {
     try {
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
-        alert("이 기기에서는 공유 기능을 사용할 수 없어요.");
+        Alert.alert("알림", "이 기기에서는 공유 기능을 사용할 수 없어요.");
         return;
       }
 
@@ -275,11 +593,11 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error("공유 실패:", error);
-      alert("공유에 실패했어요. 다시 시도해주세요.");
+      Alert.alert("오류", "공유에 실패했어요. 다시 시도해주세요.");
     }
   };
 
-  // 편집하기 - 이미지 다시 선택
+  // 편집하기
   const handleEdit = () => {
     handlePickImage();
   };
@@ -287,9 +605,12 @@ export default function HomeScreen() {
   const TAB_BAR_HEIGHT = 72;
   const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
   const GAP_FROM_TABBAR = 32;
-
   const paddingBottom =
     TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT + GAP_FROM_TABBAR;
+
+  // 질문 텍스트 포맷팅 (줄바꿈 처리)
+  const formattedQuestion =
+    todayQuestion?.question_text?.replace(/\\n/g, "\n") || "";
 
   return (
     <View style={styles.container}>
@@ -305,8 +626,8 @@ export default function HomeScreen() {
           options={{ format: "png", quality: 1 }}
           style={styles.captureArea}
         >
-          <DatePill />
-          <QuestionSection />
+          <DatePill dearDayCount={dearDayCount} />
+          <QuestionSection question={formattedQuestion} isLoading={isLoading} />
           <View style={styles.centerContent}>
             {selectedImage ? (
               <PhotoFrame
@@ -322,7 +643,8 @@ export default function HomeScreen() {
         <ButtonSection
           onSendQuestion={() => setIsPopupVisible(true)}
           onUploadPhoto={handlePickImage}
-          showUploadButton={!selectedImage} // 사진 없을 때만 버튼 보임
+          showUploadButton={!selectedImage}
+          isUploading={isUploading}
         />
       </View>
       <Popup
@@ -452,7 +774,6 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0.5,
-    // React Native에서는 text-stroke 대신 이렇게 처리
   },
   questionHint: {
     fontFamily: "Pretendard",
@@ -487,6 +808,9 @@ const styles = StyleSheet.create({
     borderColor: "#F2F2F2",
     backgroundColor: "#5B8DEF",
   },
+  uploadButtonDisabled: {
+    backgroundColor: "#A0C0F0",
+  },
   uploadButtonText: {
     fontFamily: "Pretendard-Bold",
     fontSize: 17,
@@ -507,7 +831,6 @@ const styles = StyleSheet.create({
     color: "#929292",
   },
 
-  // questionSection에서 logoPlaceholder 제거하고 여기로 이동
   centerContent: {
     flex: 1,
     justifyContent: "center",
