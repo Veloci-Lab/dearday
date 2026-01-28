@@ -83,7 +83,7 @@ function NotificationItem({
   const translateX = useSharedValue(0)
 
   // 다른 아이템이 열리면 자동으로 닫힘
-  console.log('Notification item:', item.type, item.emoji)
+  // console.log('Notification item:', item.type, item.emoji)
 
   useEffect(() => {
     if (openId !== item.notification_id) {
