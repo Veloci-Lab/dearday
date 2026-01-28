@@ -77,13 +77,15 @@ const CalendarIcon = () => (
   </Svg>
 );
 
-const NotificationIcon = () => (
+const NotificationIcon = ({ hasUnread = false }: { hasUnread?: boolean }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
     <Path
       d="M12.43 1.82812C14.5328 1.82812 16.2844 2.39457 17.4427 3.97656C18.5393 5.4746 18.9544 7.69827 18.9544 10.623C18.9544 12.242 19.3677 13.5406 19.9212 14.5352C20.2517 15.129 20.5392 15.6605 20.7171 16.1045C20.8719 16.4909 21.075 17.1082 20.8265 17.708C20.5428 18.3917 19.8832 18.6122 19.4456 18.7012C18.9739 18.797 18.3682 18.8193 17.679 18.8193H16.1497C16.033 19.5 15.7781 20.2763 15.3011 20.9736C14.5579 22.0597 13.3114 22.9014 11.4515 22.9014C9.59166 22.9012 8.34489 22.0598 7.60186 20.9736C7.12491 20.2763 6.8709 19.5 6.7542 18.8193H5.26299C4.57379 18.8193 3.96807 18.797 3.49639 18.7012C3.05874 18.6121 2.39909 18.3917 2.11553 17.708C1.86703 17.1083 2.07013 16.4909 2.2249 16.1045C2.40277 15.6605 2.6903 15.129 3.0208 14.5352C3.57428 13.5406 3.98755 12.2421 3.9876 10.623C3.98763 7.69835 4.40274 5.4746 5.49932 3.97656C6.65758 2.39454 8.40923 1.82817 10.512 1.82812H12.43ZM8.79717 18.8193C8.88863 19.1644 9.03405 19.5257 9.25225 19.8447C9.64321 20.4162 10.2878 20.9012 11.4515 20.9014C12.6153 20.9014 13.2596 20.4161 13.6507 19.8447C13.869 19.5256 14.0153 19.1644 14.1067 18.8193H8.79717ZM10.512 3.82812C8.76557 3.82817 7.75422 4.28184 7.1126 5.1582C6.40977 6.11868 5.98763 7.79251 5.9876 10.623C5.98755 12.5963 5.48017 14.228 4.76787 15.5078C4.45399 16.0718 4.24132 16.4749 4.11358 16.7744C4.37229 16.8039 4.74168 16.8193 5.26299 16.8193H17.679C18.2003 16.8193 18.5697 16.8038 18.8284 16.7744C18.7007 16.4749 18.488 16.0718 18.1741 15.5078C17.4619 14.228 16.9544 12.5963 16.9544 10.623C16.9544 7.79238 16.5323 6.11866 15.8294 5.1582C15.1877 4.28188 14.1765 3.82812 12.43 3.82812H10.512Z"
       fill="#0D0D0D"
     />
-    <Rect x={13} y={1.00098} width={7} height={7} rx={3.5} fill="#4190FF" />
+    {hasUnread && (
+      <Rect x={13} y={1.00098} width={7} height={7} rx={3.5} fill="#4190FF" />
+    )}
   </Svg>
 );
 
@@ -166,7 +168,7 @@ const calculateDaysSince = (startDate: string): number => {
 };
 
 /* ------ 헤더 ------- */
-function HomeHeader() {
+function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -183,7 +185,7 @@ function HomeHeader() {
               router.push("/notifications");
             }}
           >
-            <NotificationIcon />
+            <NotificationIcon hasUnread={hasUnread} />
           </Pressable>
           <Pressable
             onPress={() => {
@@ -295,6 +297,7 @@ export default function HomeScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   // DB에서 가져온 데이터
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -371,6 +374,17 @@ export default function HomeScreen() {
         if (!answerError && answerData) {
           setTodayAnswer(answerData);
           setSelectedImage(answerData.photo_url);
+        }
+
+        // 읽지 않은 알림 확인
+        const { count, error: notifError } = await supabase
+          .from("follow_notifications")
+          .select("*", { count: "exact", head: true })
+          .eq("profile_id", profileData.profile_id)
+          .eq("is_read", false);
+
+        if (!notifError && count !== null) {
+          setHasUnreadNotifications(count > 0);
         }
       }
     } catch (error) {
@@ -620,7 +634,7 @@ export default function HomeScreen() {
         resizeMode="cover"
       />
       <View style={[styles.content, { paddingBottom }]}>
-        <HomeHeader />
+        <HomeHeader hasUnread={hasUnreadNotifications} />
         <ViewShot
           ref={viewShotRef}
           options={{ format: "png", quality: 1 }}
