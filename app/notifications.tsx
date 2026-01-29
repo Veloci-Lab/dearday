@@ -211,10 +211,17 @@ function renderAction(
       )
 
     case 'follow_back':
-      return (
+      return (    
         <Pressable
-          style={[styles.confirm, { width: 109, alignItems: 'center', height: 35, }]}
-          onPress={() => onFollowBack(item)}
+          style={[
+            styles.confirm,
+            {
+              width: 109,
+              height: 35,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+          ]}
         >
           <Text style={styles.confirmText}>맞팔로우 하기</Text>
         </Pressable>
@@ -588,6 +595,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     marginLeft: 10,
+    marginRight: 10,
+    flexShrink: 1,
   },
 
   text: { fontSize: 15 },
