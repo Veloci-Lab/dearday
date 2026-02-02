@@ -1,6 +1,7 @@
 import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
-import { supabase } from "@/utils/supabase"; // 기존 경로로 변경
+import { supabase } from "@/utils/supabase";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -152,19 +153,17 @@ const ArrowIcon = () => (
 );
 
 /* ------ 유틸리티 함수 ------- */
-// 오늘 날짜를 YYYY-MM-DD 형식으로 반환
 const getTodayDateString = (): string => {
   const today = new Date();
   return today.toISOString().split("T")[0];
 };
 
-// 두 날짜 사이의 일수 계산
 const calculateDaysSince = (startDate: string): number => {
   const start = new Date(startDate);
   const today = new Date();
   const diffTime = today.getTime() - start.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays + 1; // 가입 당일을 1일로 계산
+  return diffDays + 1;
 };
 
 /* ------ 헤더 ------- */
@@ -316,7 +315,6 @@ export default function HomeScreen() {
     try {
       setIsLoading(true);
 
-      // 현재 로그인한 사용자 가져오기
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -325,7 +323,7 @@ export default function HomeScreen() {
         return;
       }
 
-      // 1. 프로필 정보 가져오기 (DAY 계산용)
+      // 1. 프로필 정보 가져오기
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -336,7 +334,6 @@ export default function HomeScreen() {
         console.error("프로필 로드 실패:", profileError);
       } else if (profileData) {
         setProfile(profileData);
-        // DAY 계산
         const days = calculateDaysSince(profileData.created_at);
         setDearDayCount(days);
       }
@@ -351,7 +348,6 @@ export default function HomeScreen() {
 
       if (questionError) {
         console.error("질문 로드 실패:", questionError);
-        // 질문이 없으면 기본 질문 표시
         setTodayQuestion({
           question_date: todayDate,
           question_text: "오늘 하루는 어땠나요?",
@@ -402,20 +398,15 @@ export default function HomeScreen() {
       } = await supabase.auth.getUser();
       if (!user) return null;
 
-      // 파일 확장자 추출
       const fileExt = uri.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}/${getTodayDateString()}_${Date.now()}.${fileExt}`;
 
-      // fetch로 이미지를 blob으로 변환
       const response = await fetch(uri);
       const blob = await response.blob();
-
-      // ArrayBuffer로 변환
       const arrayBuffer = await new Response(blob).arrayBuffer();
 
-      // Supabase Storage에 업로드
       const { data, error } = await supabase.storage
-        .from("answer-photos") // 버킷 이름
+        .from("answer-photos")
         .upload(fileName, arrayBuffer, {
           contentType: `image/${fileExt}`,
           upsert: true,
@@ -426,7 +417,6 @@ export default function HomeScreen() {
         return null;
       }
 
-      // Public URL 가져오기
       const {
         data: { publicUrl },
       } = supabase.storage.from("answer-photos").getPublicUrl(fileName);
@@ -441,7 +431,6 @@ export default function HomeScreen() {
   // 기존 사진 삭제 (Storage에서)
   const deleteImageFromStorage = async (photoUrl: string): Promise<void> => {
     try {
-      // URL에서 파일 경로 추출
       const urlParts = photoUrl.split("/answer-photos/");
       if (urlParts.length < 2) return;
 
@@ -467,7 +456,6 @@ export default function HomeScreen() {
       const todayDate = getTodayDateString();
 
       if (todayAnswer) {
-        // 기존 답변 업데이트
         const { error } = await supabase
           .from("answers")
           .update({
@@ -483,14 +471,13 @@ export default function HomeScreen() {
 
         setTodayAnswer({ ...todayAnswer, photo_url: photoUrl });
       } else {
-        // 새 답변 생성
         const { data, error } = await supabase
           .from("answers")
           .insert({
             question_date: todayDate,
             owner_profile_id: profile.profile_id,
             photo_url: photoUrl,
-            visibility: "private", // 기본값
+            visibility: "private",
           })
           .select()
           .single();
@@ -510,7 +497,31 @@ export default function HomeScreen() {
     }
   };
 
-  // 이미지 선택 핸들러
+  // 이미지를 정사각형으로 크롭하는 함수
+  const cropToSquare = async (
+    uri: string,
+    width: number,
+    height: number,
+  ): Promise<string> => {
+    // 이미 정사각형이면 그대로 반환
+    if (width === height) {
+      return uri;
+    }
+
+    const size = Math.min(width, height);
+    const originX = (width - size) / 2;
+    const originY = (height - size) / 2;
+
+    const manipulated = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ crop: { originX, originY, width: size, height: size } }],
+      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+    );
+
+    return manipulated.uri;
+  };
+
+  // 이미지 선택 핸들러 (정사각형 크롭 적용)
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -520,25 +531,32 @@ export default function HomeScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: false,
-      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1, // manipulator에서 압축할 거라 원본 유지
     });
 
     if (!result.canceled) {
-      const localUri = result.assets[0].uri;
+      const asset = result.assets[0];
       setIsUploading(true);
 
       try {
+        // iOS에서 aspect가 무시될 수 있으므로 정사각형 크롭 보정
+        const finalUri = await cropToSquare(
+          asset.uri,
+          asset.width,
+          asset.height,
+        );
+
         // 기존 사진이 있으면 Storage에서 삭제
         if (todayAnswer?.photo_url) {
           await deleteImageFromStorage(todayAnswer.photo_url);
         }
 
         // 새 사진 업로드
-        const uploadedUrl = await uploadImageToStorage(localUri);
+        const uploadedUrl = await uploadImageToStorage(finalUri);
 
         if (uploadedUrl) {
-          // DB에 저장
           const success = await saveAnswer(uploadedUrl);
 
           if (success) {
@@ -622,7 +640,6 @@ export default function HomeScreen() {
   const paddingBottom =
     TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT + GAP_FROM_TABBAR;
 
-  // 질문 텍스트 포맷팅 (줄바꿈 처리)
   const formattedQuestion =
     todayQuestion?.question_text?.replace(/\\n/g, "\n") || "";
 
