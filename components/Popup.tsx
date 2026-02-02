@@ -144,7 +144,7 @@ const Popup: React.FC<PopupProps> = ({
 
   return (
     // none, fade, slide 중에서 결정 가능!
-    <Modal visible={visible} transparent animationType="none">
+    <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.container}>
           {popupState === "input" ? renderInputState() : renderSuccessState()}

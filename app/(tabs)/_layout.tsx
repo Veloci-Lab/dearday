@@ -131,7 +131,7 @@ function CustomTabBar({ state, navigation }: any) {
       })();
 
       return () => {};
-    }, [profileId])
+    }, [profileId]),
   );
 
   const TABS = [
@@ -207,11 +207,12 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     backgroundColor: "#FEFEFE",
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 90,
+    alignItems: "stretch",
+    justifyContent: "space-between",
+    width: 244,
+    height: 70,
     paddingVertical: 12,
-    paddingHorizontal: 32,
+    paddingHorizontal: 31,
     borderRadius: 100,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },

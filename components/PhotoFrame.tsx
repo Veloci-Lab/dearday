@@ -52,26 +52,12 @@ export default function PhotoFrame({
   onShare,
   onEdit,
 }: PhotoFrameProps) {
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
 
-  // 화면 기준 최대 크기 (패딩 24 * 2 + 액자 패딩 9.5 * 2)
-  const maxWidth = screenWidth - 48 - 19;
-  const maxHeight = screenHeight - 550; // 화면 높이의 50%로 제한
-
-  const [imageSize, setImageSize] = React.useState({ width: 0, height: 0 });
-
-  React.useEffect(() => {
-    Image.getSize(imageUri, (width, height) => {
-      // 비율 유지하면서 최대 크기에 맞게 조정
-      const ratio = Math.min(maxWidth / width, maxHeight / height);
-      setImageSize({
-        width: width * ratio,
-        height: height * ratio,
-      });
-    });
-  }, [imageUri, maxWidth, maxHeight]);
-
-  if (imageSize.width === 0) return null;
+  // 정사각형 크기 계산: 화면 너비 - 양쪽 패딩(24*2) - 액자 패딩(9.5*2)
+  const HORIZONTAL_PADDING = 24;
+  const FRAME_PADDING = 9.5;
+  const imageSize = screenWidth - HORIZONTAL_PADDING * 2 - FRAME_PADDING * 2;
 
   return (
     <View style={styles.frameContainer}>
@@ -79,8 +65,8 @@ export default function PhotoFrame({
         <Image
           source={{ uri: imageUri }}
           style={{
-            width: imageSize.width,
-            height: imageSize.height,
+            width: imageSize,
+            height: imageSize, // 정사각형
             borderRadius: 12,
           }}
           resizeMode="cover"
@@ -90,9 +76,9 @@ export default function PhotoFrame({
         <View style={styles.buttonContainer}>
           {/* 공유 버튼 */}
           <Pressable
-            style={[styles.iconButton, styles.shareButton]}
+            style={styles.iconButton}
             onPress={() => {
-              console.log("공유 버튼 클릭됨!"); // 로그 추가
+              console.log("공유 버튼 클릭됨!");
               onShare?.();
             }}
           >
@@ -100,10 +86,7 @@ export default function PhotoFrame({
           </Pressable>
 
           {/* 편집 버튼 */}
-          <Pressable
-            style={[styles.iconButton, styles.editButton]}
-            onPress={onEdit}
-          >
+          <Pressable style={styles.iconButton} onPress={onEdit}>
             <EditIcon />
           </Pressable>
         </View>
@@ -115,7 +98,6 @@ export default function PhotoFrame({
 const styles = StyleSheet.create({
   frameContainer: {
     paddingHorizontal: 24,
-    paddingVertical: 24,
     alignItems: "center",
   },
   frame: {
@@ -130,12 +112,10 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     position: "absolute",
-    right: 9.5,
-    bottom: 9.5,
+    right: 9.5 + 16, // 액자 패딩 + 버튼 마진
+    bottom: 9.5 + 16,
     flexDirection: "row",
     gap: 8,
-    paddingRight: 16,
-    paddingBottom: 16,
   },
   iconButton: {
     width: 40,
@@ -145,6 +125,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  shareButton: {},
-  editButton: {},
 });
