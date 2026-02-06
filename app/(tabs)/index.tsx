@@ -6,7 +6,15 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  AppState,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 import ViewShot from "react-native-view-shot";
@@ -155,7 +163,10 @@ const ArrowIcon = () => (
 /* ------ 유틸리티 함수 ------- */
 const getTodayDateString = (): string => {
   const today = new Date();
-  return today.toISOString().split("T")[0];
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, "0");
+  const d = String(today.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
 const calculateDaysSince = (startDate: string): number => {
@@ -307,9 +318,33 @@ export default function HomeScreen() {
   const [todayAnswer, setTodayAnswer] = useState<Answer | null>(null);
   const [dearDayCount, setDearDayCount] = useState(1);
 
+  // 마지막으로 로드한 날짜 추적
+  const lastLoadedDateRef = useRef<string>(getTodayDateString());
+
   // 초기 데이터 로드
   useEffect(() => {
     loadInitialData();
+  }, []);
+
+  // 앱이 포그라운드로 돌아올 때 날짜가 바뀌었으면 새로고침
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        const currentDate = getTodayDateString();
+        if (currentDate !== lastLoadedDateRef.current) {
+          // 날짜가 바뀌었으므로 데이터 초기화 후 재로드
+          setTodayQuestion(null);
+          setTodayAnswer(null);
+          setSelectedImage(null);
+          lastLoadedDateRef.current = currentDate;
+          loadInitialData();
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const loadInitialData = async () => {
@@ -341,6 +376,8 @@ export default function HomeScreen() {
 
       // 2. 오늘의 질문 가져오기
       const todayDate = getTodayDateString();
+      lastLoadedDateRef.current = todayDate;
+
       const { data: questionData, error: questionError } = await supabase
         .from("daily_questions")
         .select("*")
