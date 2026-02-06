@@ -135,7 +135,7 @@ function CustomTabBar({ state, navigation }: any) {
   );
 
   const TABS = [
-    { name: "home", label: "홈", type: "home" },
+    { name: "index", label: "홈", type: "home" },
     { name: "social", label: "소셜", type: "social" },
     { name: "mypage", label: "마이", type: "profile" },
   ];
@@ -193,7 +193,7 @@ export default function TabsLayout() {
         }}
         tabBar={(props) => <CustomTabBar {...props} />}
       >
-        <Tabs.Screen name="home" />
+        <Tabs.Screen name="index" />
         <Tabs.Screen name="social" />
         <Tabs.Screen name="mypage" />
       </Tabs>
