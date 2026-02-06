@@ -293,6 +293,7 @@ export default function HomeScreen() {
 
   // State
   const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [isErrorPopupVisible, setIsErrorPopupVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -503,7 +504,6 @@ export default function HomeScreen() {
     width: number,
     height: number,
   ): Promise<string> => {
-    // 이미 정사각형이면 그대로 반환
     if (width === height) {
       return uri;
     }
@@ -533,7 +533,7 @@ export default function HomeScreen() {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1, // manipulator에서 압축할 거라 원본 유지
+      quality: 1,
     });
 
     if (!result.canceled) {
@@ -541,19 +541,16 @@ export default function HomeScreen() {
       setIsUploading(true);
 
       try {
-        // iOS에서 aspect가 무시될 수 있으므로 정사각형 크롭 보정
         const finalUri = await cropToSquare(
           asset.uri,
           asset.width,
           asset.height,
         );
 
-        // 기존 사진이 있으면 Storage에서 삭제
         if (todayAnswer?.photo_url) {
           await deleteImageFromStorage(todayAnswer.photo_url);
         }
 
-        // 새 사진 업로드
         const uploadedUrl = await uploadImageToStorage(finalUri);
 
         if (uploadedUrl) {
@@ -592,19 +589,22 @@ export default function HomeScreen() {
 
       if (error) {
         console.error("질문 제출 실패:", error);
-        Alert.alert("오류", "질문 제출에 실패했어요.");
-      } else {
-        Alert.alert("완료", "질문이 성공적으로 제출되었어요!");
         setIsPopupVisible(false);
+        setIsErrorPopupVisible(true);
       }
     } catch (error) {
       console.error("질문 제출 오류:", error);
-      Alert.alert("오류", "질문 제출 중 문제가 발생했어요.");
+      setIsPopupVisible(false);
+      setIsErrorPopupVisible(true);
     }
   };
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);
+  };
+
+  const handleCloseErrorPopup = () => {
+    setIsErrorPopupVisible(false);
   };
 
   // 공유하기
@@ -678,8 +678,11 @@ export default function HomeScreen() {
           isUploading={isUploading}
         />
       </View>
+
+      {/* 질문 투고 팝업 */}
       <Popup
         visible={isPopupVisible}
+        variant="input"
         title="질문 보내기"
         helperText="디어데이에 올라오면 좋을 것 같은 질문을 공유해주세요!"
         cancelText="취소"
@@ -687,6 +690,19 @@ export default function HomeScreen() {
         onCancel={handleClosePopup}
         onSubmit={handleSubmitQuestion}
         onGoHome={handleClosePopup}
+      />
+
+      {/* 질문 전달 실패 에러 팝업 */}
+      <Popup
+        visible={isErrorPopupVisible}
+        variant="alert"
+        icon="warning"
+        title="질문 전달에 실패했어요."
+        description="조금 이따 다시 시도해주세요."
+        homeText="홈으로"
+        onCancel={handleCloseErrorPopup}
+        onSubmit={() => {}}
+        onGoHome={handleCloseErrorPopup}
       />
     </View>
   );
