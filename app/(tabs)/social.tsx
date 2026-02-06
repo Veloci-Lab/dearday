@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
+import FriendsScreen from "./screens/FriendsScreen";
 
 /* ====== 상수 ====== */
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -108,7 +109,13 @@ const PersonIcon = ({
 );
 
 /* ====== 헤더 ====== */
-function SocialHeader({ hasNotification }: { hasNotification: boolean }) {
+function SocialHeader({
+  hasNotification,
+  onPressFriends,
+}: {
+  hasNotification: boolean;
+  onPressFriends: () => void;
+}) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -116,10 +123,7 @@ function SocialHeader({ hasNotification }: { hasNotification: boolean }) {
       <View style={styles.headerContent}>
         <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>소셜</Text>
-        <Pressable
-          style={styles.headerIconWrapper}
-          onPress={() => console.log("친구")}
-        >
+        <Pressable style={styles.headerIconWrapper} onPress={onPressFriends}>
           <PersonIcon hasNotification={hasNotification} />
         </Pressable>
       </View>
@@ -327,6 +331,7 @@ export default function SocialScreen() {
   );
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("social");
+  const [showFriends, setShowFriends] = useState(false);
 
   // 현재 월의 날짜 목록
   const daysInMonth = useMemo(
@@ -414,6 +419,11 @@ export default function SocialScreen() {
   const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
   const paddingBottom = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
 
+  // 친구 화면 표시
+  if (showFriends) {
+    return <FriendsScreen onBack={() => setShowFriends(false)} />;
+  }
+
   return (
     <View style={styles.container}>
       {/* 배경 그라데이션: 상단 고정 */}
@@ -423,7 +433,10 @@ export default function SocialScreen() {
         resizeMode="cover"
       />
 
-      <SocialHeader hasNotification={false} />
+      <SocialHeader
+        hasNotification={false}
+        onPressFriends={() => setShowFriends(true)}
+      />
 
       <ScrollView
         style={styles.scrollView}
