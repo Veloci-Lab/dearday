@@ -20,7 +20,7 @@ import { Path, Svg } from "react-native-svg";
 export default function SettingsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { profileId } = useAuthStore();  
+  const { profileId } = useAuthStore();
 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -63,12 +63,19 @@ export default function SettingsScreen() {
     isLast?: boolean;
     showChevron?: boolean;
   }) => (
-    <Pressable onPress={onPress} style={[styles.settingRow, isLast && { borderBottomWidth: 0 }]}>
+    <Pressable
+      onPress={onPress}
+      style={[styles.settingRow, isLast && { borderBottomWidth: 0 }]}
+    >
       <View style={styles.rowLeft}>
         <RowIcon name={icon} source={iconImg} />
         <Text style={styles.rowTitle}>{label}</Text>
       </View>
-      {trailing ? trailing : showChevron && <Feather name="chevron-right" size={18} color="#929292" />}
+      {trailing
+        ? trailing
+        : showChevron && (
+            <Feather name="chevron-right" size={18} color="#929292" />
+          )}
     </Pressable>
   );
 
@@ -96,19 +103,17 @@ export default function SettingsScreen() {
       ...commonHeaderOptions,
       headerShown: true,
       headerShadowVisible: true,
-      headerTitle: () => (
-        <Text style={styles.headerTitle}>
-          환경설정
-        </Text>
-      ),
-      headerLeft: () => <Pressable onPress={() => router.replace('/(tabs)/home')}>
-        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      headerTitle: () => <Text style={styles.headerTitle}>환경설정</Text>,
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()}>
+          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
             <Path
-            d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
-            fill="#0D0D0D"
+              d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
+              fill="#0D0D0D"
             />
-        </Svg>
-        </Pressable>,
+          </Svg>
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
@@ -126,7 +131,7 @@ export default function SettingsScreen() {
         setLoading(false);
       })();
       return () => {};
-    }, [profileId])
+    }, [profileId]),
   );
 
   if (loading || !profile) {
@@ -200,7 +205,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FEFEFE" , paddingTop: 10},
+  container: { flex: 1, backgroundColor: "#FEFEFE", paddingTop: 10 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
     backgroundColor: "#fff",
@@ -285,10 +290,9 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontFamily: "Pretendard-Bold", 
+    fontFamily: "Pretendard-Bold",
     fontSize: 17,
     color: "#0D0D0D",
     letterSpacing: -0.03,
   },
-
 });
