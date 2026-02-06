@@ -2,11 +2,11 @@ import Toggle from "@/components/Toggle";
 import { supabase } from "@/utils/supabase";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -17,6 +17,7 @@ import FriendsScreen from "./screens/FriendsScreen";
 
 /* ====== 상수 ====== */
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 // 앱 출시일 (어제 날짜)
 const getAppLaunchDate = (): Date => {
@@ -108,29 +109,6 @@ const PersonIcon = ({
   </Svg>
 );
 
-/* ====== 헤더 ====== */
-function SocialHeader({
-  hasNotification,
-  onPressFriends,
-}: {
-  hasNotification: boolean;
-  onPressFriends: () => void;
-}) {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View style={[styles.headerContainer, { paddingTop: insets.top + 18 }]}>
-      <View style={styles.headerContent}>
-        <View style={styles.headerSpacer} />
-        <Text style={styles.headerTitle}>소셜</Text>
-        <Pressable style={styles.headerIconWrapper} onPress={onPressFriends}>
-          <PersonIcon hasNotification={hasNotification} />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 /* ====== 월 네비게이션 ====== */
 interface MonthNavProps {
   year: number;
@@ -190,34 +168,36 @@ function DayItem({ date, isSelected, isDisabled, onPress }: DayItemProps) {
   const dayLabel = DAYS_OF_WEEK[date.getDay()];
 
   return (
-    <Pressable
-      style={[
-        styles.dayItem,
-        isSelected && styles.dayItemSelected,
-        isDisabled && styles.dayItemDisabled,
-      ]}
-      onPress={onPress}
-      disabled={isDisabled}
-    >
-      <Text
+    <View style={styles.dayItemWrapper}>
+      <Pressable
         style={[
-          styles.dayNumber,
-          isSelected && styles.dayNumberSelected,
-          isDisabled && styles.dayNumberDisabled,
+          styles.dayItem,
+          isSelected && styles.dayItemSelected,
+          isDisabled && styles.dayItemDisabled,
         ]}
+        onPress={onPress}
+        disabled={isDisabled}
       >
-        {String(dayNum).padStart(2, "0")}
-      </Text>
-      <Text
-        style={[
-          styles.dayLabel,
-          isSelected && styles.dayLabelSelected,
-          isDisabled && styles.dayLabelDisabled,
-        ]}
-      >
-        {dayLabel}
-      </Text>
-    </Pressable>
+        <Text
+          style={[
+            styles.dayNumber,
+            isSelected && styles.dayNumberSelected,
+            isDisabled && styles.dayNumberDisabled,
+          ]}
+        >
+          {String(dayNum).padStart(2, "0")}
+        </Text>
+        <Text
+          style={[
+            styles.dayLabel,
+            isSelected && styles.dayLabelSelected,
+            isDisabled && styles.dayLabelDisabled,
+          ]}
+        >
+          {dayLabel}
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -236,7 +216,6 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
     return d;
   }, []);
 
-  // 선택된 날짜로 스크롤
   useEffect(() => {
     const idx = days.findIndex((d) => isSameDay(d, selectedDate));
     if (idx >= 0 && flatListRef.current) {
@@ -263,6 +242,7 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.dayScrollerContent}
+      style={styles.dayScrollerList}
       keyExtractor={(item) => toDateString(item)}
       getItemLayout={(_, index) => ({
         length: 69,
@@ -315,6 +295,7 @@ const SOCIAL_TOGGLE_OPTIONS = [
 export default function SocialScreen() {
   const insets = useSafeAreaInsets();
   const SocialGradient = require("@/assets/images/backgrounds/social_gradient.png");
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const today = useMemo(() => {
     const d = new Date();
@@ -333,18 +314,15 @@ export default function SocialScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("social");
   const [showFriends, setShowFriends] = useState(false);
 
-  // 현재 월의 날짜 목록
   const daysInMonth = useMemo(
     () => getDaysInMonth(currentYear, currentMonth),
     [currentYear, currentMonth],
   );
 
-  // 다음 달 이동 가능 여부 (이번 달까지만)
   const canGoNext =
     currentYear < today.getFullYear() ||
     (currentYear === today.getFullYear() && currentMonth < today.getMonth());
 
-  // 월 이동
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentYear((y) => y - 1);
@@ -364,20 +342,16 @@ export default function SocialScreen() {
     }
   };
 
-  // 날짜 선택
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
   };
 
-  // 선택된 날짜의 질문 가져오기
   useEffect(() => {
     fetchQuestion(selectedDate);
   }, [selectedDate]);
 
   const fetchQuestion = async (date: Date) => {
     const dateStr = toDateString(date);
-
-    // 이미 캐시에 있으면 스킵
     if (questionMap[dateStr]) return;
 
     setIsLoadingQuestion(true);
@@ -391,7 +365,6 @@ export default function SocialScreen() {
       if (!error && data) {
         setQuestionMap((prev) => ({ ...prev, [dateStr]: data }));
       } else {
-        // 질문이 없을 경우 기본값
         setQuestionMap((prev) => ({
           ...prev,
           [dateStr]: {
@@ -408,7 +381,6 @@ export default function SocialScreen() {
     }
   };
 
-  // 현재 선택된 날짜의 질문
   const currentQuestion =
     questionMap[toDateString(selectedDate)]?.question_text?.replace(
       /\\n/g,
@@ -419,30 +391,42 @@ export default function SocialScreen() {
   const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
   const paddingBottom = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
 
-  // 친구 화면 표시
+  // 헤더 높이
+  const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
+
+  // 헤더 배경색: 스크롤에 따라 투명 → 흰색
+  const headerBackgroundColor = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: ["rgba(255,255,255,0)", "rgba(255,255,255,1)"],
+    extrapolate: "clamp",
+  });
+
   if (showFriends) {
     return <FriendsScreen onBack={() => setShowFriends(false)} />;
   }
 
   return (
     <View style={styles.container}>
-      {/* 배경 그라데이션: 상단 고정 */}
-      <Image
-        source={SocialGradient}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      />
-
-      <SocialHeader
-        hasNotification={false}
-        onPressFriends={() => setShowFriends(true)}
-      />
-
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={{ paddingBottom }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
       >
+        {/* 그래디언트 배경: 스크롤 콘텐츠 안에서 absolute, 화면 높이만큼 */}
+        <Image
+          source={SocialGradient}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+
+        {/* 헤더 높이만큼 여백 */}
+        <View style={{ height: HEADER_HEIGHT }} />
+
         <MonthNav
           year={currentYear}
           month={currentMonth}
@@ -471,12 +455,32 @@ export default function SocialScreen() {
         </View>
 
         {/* TODO: 사진 그리드 (토글에서 21px 아래, 양옆 11px) */}
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* 헤더: 상단 고정 오버레이, 스크롤에 따라 투명 → 흰색 */}
+      <Animated.View
+        style={[
+          styles.headerOverlay,
+          {
+            paddingTop: insets.top + 18,
+            backgroundColor: headerBackgroundColor,
+          },
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerSpacer} />
+          <Text style={styles.headerTitle}>소셜</Text>
+          <Pressable
+            style={styles.headerIconWrapper}
+            onPress={() => setShowFriends(true)}
+          >
+            <PersonIcon hasNotification={false} />
+          </Pressable>
+        </View>
+      </Animated.View>
     </View>
   );
 }
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /* ====== 스타일 ====== */
 const styles = StyleSheet.create({
@@ -484,6 +488,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  scrollView: {
+    flex: 1,
+  },
+
+  /* 배경 이미지: 그래디언트 영역 내부 absolute */
   backgroundImage: {
     position: "absolute",
     top: 0,
@@ -492,16 +501,18 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     width: "100%",
   },
-  scrollView: {
-    flex: 1,
-  },
 
-  /* 헤더 */
-  headerContainer: {
+  /* 헤더 (상단 고정 오버레이) */
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 24,
     paddingBottom: 18,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 10,
   },
   headerContent: {
     width: 342,
@@ -563,10 +574,19 @@ const styles = StyleSheet.create({
   },
 
   /* 날짜 스크롤러 */
+  dayScrollerList: {
+    height: 93,
+    marginTop: 12,
+  },
   dayScrollerContent: {
     paddingHorizontal: 13,
     gap: 7,
-    marginTop: 12,
+    alignItems: "center",
+  },
+  dayItemWrapper: {
+    width: 69,
+    height: 93,
+    justifyContent: "center",
     alignItems: "center",
   },
   dayItem: {
