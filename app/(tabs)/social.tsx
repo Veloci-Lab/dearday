@@ -168,34 +168,36 @@ function DayItem({ date, isSelected, isDisabled, onPress }: DayItemProps) {
   const dayLabel = DAYS_OF_WEEK[date.getDay()];
 
   return (
-    <Pressable
-      style={[
-        styles.dayItem,
-        isSelected && styles.dayItemSelected,
-        isDisabled && styles.dayItemDisabled,
-      ]}
-      onPress={onPress}
-      disabled={isDisabled}
-    >
-      <Text
+    <View style={styles.dayItemWrapper}>
+      <Pressable
         style={[
-          styles.dayNumber,
-          isSelected && styles.dayNumberSelected,
-          isDisabled && styles.dayNumberDisabled,
+          styles.dayItem,
+          isSelected && styles.dayItemSelected,
+          isDisabled && styles.dayItemDisabled,
         ]}
+        onPress={onPress}
+        disabled={isDisabled}
       >
-        {String(dayNum).padStart(2, "0")}
-      </Text>
-      <Text
-        style={[
-          styles.dayLabel,
-          isSelected && styles.dayLabelSelected,
-          isDisabled && styles.dayLabelDisabled,
-        ]}
-      >
-        {dayLabel}
-      </Text>
-    </Pressable>
+        <Text
+          style={[
+            styles.dayNumber,
+            isSelected && styles.dayNumberSelected,
+            isDisabled && styles.dayNumberDisabled,
+          ]}
+        >
+          {String(dayNum).padStart(2, "0")}
+        </Text>
+        <Text
+          style={[
+            styles.dayLabel,
+            isSelected && styles.dayLabelSelected,
+            isDisabled && styles.dayLabelDisabled,
+          ]}
+        >
+          {dayLabel}
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -240,6 +242,7 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.dayScrollerContent}
+      style={styles.dayScrollerList}
       keyExtractor={(item) => toDateString(item)}
       getItemLayout={(_, index) => ({
         length: 69,
@@ -571,10 +574,19 @@ const styles = StyleSheet.create({
   },
 
   /* 날짜 스크롤러 */
+  dayScrollerList: {
+    height: 93,
+    marginTop: 12,
+  },
   dayScrollerContent: {
     paddingHorizontal: 13,
     gap: 7,
-    marginTop: 12,
+    alignItems: "center",
+  },
+  dayItemWrapper: {
+    width: 69,
+    height: 93,
+    justifyContent: "center",
     alignItems: "center",
   },
   dayItem: {
