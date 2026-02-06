@@ -100,19 +100,17 @@ function SearchHeader({ onBack }: { onBack: () => void }) {
 }
 
 /* ====== 친구 요청 확인 팝업 ====== */
-interface FriendRequestPopupProps {
-  visible: boolean;
-  profile: SearchResult | null;
-  onCancel: () => void;
-  onConfirm: () => void;
-}
-
 function FriendRequestPopup({
   visible,
   profile,
   onCancel,
   onConfirm,
-}: FriendRequestPopupProps) {
+}: {
+  visible: boolean;
+  profile: SearchResult | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
   if (!profile) return null;
 
   return (
@@ -170,33 +168,16 @@ function SearchResultItem({
   status: RequestStatus;
   onRequest: (profile: SearchResult) => void;
 }) {
-  const getButtonStyle = () => {
-    switch (status) {
-      case "accepted":
-        return styles.statusButtonGray;
-      case "pending":
-        return styles.statusButtonGray;
-      case "sending":
-        return styles.statusButtonGray;
-      default:
-        return styles.requestButton;
-    }
-  };
+  const isDisabled = status !== "none";
 
-  const getButtonTextStyle = () => {
-    switch (status) {
-      case "accepted":
-        return styles.statusButtonTextWhite;
-      case "pending":
-        return styles.statusButtonTextWhite;
-      case "sending":
-        return styles.statusButtonTextWhite;
-      default:
-        return styles.requestButtonText;
-    }
-  };
+  const buttonStyle = isDisabled
+    ? styles.statusButtonGray
+    : styles.requestButton;
+  const textStyle = isDisabled
+    ? styles.statusButtonTextWhite
+    : styles.requestButtonText;
 
-  const getButtonLabel = () => {
+  const label = (() => {
     switch (status) {
       case "accepted":
         return "친구";
@@ -207,7 +188,7 @@ function SearchResultItem({
       default:
         return "친구 요청";
     }
-  };
+  })();
 
   return (
     <View style={styles.resultItem}>
@@ -223,11 +204,11 @@ function SearchResultItem({
         <Text style={styles.resultName}>{profile.nickname}</Text>
       </View>
       <Pressable
-        style={getButtonStyle()}
+        style={buttonStyle}
         onPress={() => onRequest(profile)}
-        disabled={status !== "none"}
+        disabled={isDisabled}
       >
-        <Text style={getButtonTextStyle()}>{getButtonLabel()}</Text>
+        <Text style={textStyle}>{label}</Text>
       </Pressable>
     </View>
   );
@@ -256,7 +237,7 @@ export default function SearchFriendsScreen({
     null,
   );
 
-  /* ── 내 프로필 ID 가져오기 ── */
+  /* ── 내 프로필 ID ── */
   useEffect(() => {
     const fetchMyProfile = async () => {
       const {
@@ -326,12 +307,14 @@ export default function SearchFriendsScreen({
         return;
       }
 
+      // 내가 보낸 요청
       const { data: sentFollows } = await supabase
         .from("follows")
         .select("followee_profile_id, status")
         .eq("follower_profile_id", myProfileId)
         .in("followee_profile_id", profileIds);
 
+      // 내가 받은 요청
       const { data: receivedFollows } = await supabase
         .from("follows")
         .select("follower_profile_id, status")
@@ -351,10 +334,8 @@ export default function SearchFriendsScreen({
       receivedFollows?.forEach((f: any) => {
         if (f.status === "accepted") {
           map[f.follower_profile_id] = "accepted";
-        } else if (f.status === "pending") {
-          if (!map[f.follower_profile_id]) {
-            map[f.follower_profile_id] = "pending";
-          }
+        } else if (f.status === "pending" && !map[f.follower_profile_id]) {
+          map[f.follower_profile_id] = "pending";
         }
       });
 
@@ -366,38 +347,37 @@ export default function SearchFriendsScreen({
     }
   };
 
-  /* ── 친구 요청 버튼 클릭 → 팝업 열기 ── */
+  /* ── 친구 요청 버튼 → 팝업 열기 ── */
   const handleRequestPress = (profile: SearchResult) => {
     setSelectedProfile(profile);
     setPopupVisible(true);
   };
 
-  /* ── 팝업에서 확인 → 실제 요청 보내기 ── */
+  /* ── 팝업 확인 → 요청 보내기 ── */
   const handleConfirmRequest = async () => {
     if (!myProfileId || !selectedProfile) return;
 
-    const targetProfileId = selectedProfile.profile_id;
+    const targetId = selectedProfile.profile_id;
     setPopupVisible(false);
     setSelectedProfile(null);
 
-    // 즉시 UI 업데이트
-    setRelationMap((prev) => ({ ...prev, [targetProfileId]: "sending" }));
+    setRelationMap((prev) => ({ ...prev, [targetId]: "sending" }));
 
     const { error } = await supabase.from("follows").insert({
       follower_profile_id: myProfileId,
-      followee_profile_id: targetProfileId,
+      followee_profile_id: targetId,
       status: "pending",
     });
 
     if (error) {
       setRelationMap((prev) => {
         const next = { ...prev };
-        delete next[targetProfileId];
+        delete next[targetId];
         return next;
       });
       Alert.alert("오류", "친구 요청에 실패했어요.");
     } else {
-      setRelationMap((prev) => ({ ...prev, [targetProfileId]: "pending" }));
+      setRelationMap((prev) => ({ ...prev, [targetId]: "pending" }));
     }
   };
 
@@ -452,7 +432,10 @@ export default function SearchFriendsScreen({
           data={results}
           keyExtractor={(item) => String(item.profile_id)}
           contentContainerStyle={{
+            paddingTop: 28,
             paddingBottom: Math.max(insets.bottom, 20),
+            alignSelf: "center",
+            width: 342,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -532,8 +515,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 24,
-    marginTop: 16,
-    paddingBottom: 12,
+    marginTop: 18,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
     gap: 10,
@@ -547,65 +530,74 @@ const styles = StyleSheet.create({
     padding: 0,
   },
 
-  /* 검색 결과 아이템 */
+  /* 검색 결과 리스트 아이템 */
   resultItem: {
+    width: 342,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    marginBottom: 12,
   },
   resultInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    flex: 1,
+    gap: 12,
   },
   avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: "#E8E8E8",
     overflow: "hidden",
   },
   avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   resultName: {
+    height: 23,
+    justifyContent: "center",
     fontFamily: "Pretendard-SemiBold",
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 23,
     color: "#0D0D0D",
   },
 
-  /* 친구 요청 버튼 (기본) */
+  /* 친구 요청 버튼 (파란 #5B8DEF) */
   requestButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "#4190FF",
+    backgroundColor: "#5B8DEF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   requestButtonText: {
-    fontFamily: "Pretendard-SemiBold",
-    fontSize: 14,
-    lineHeight: 18,
+    fontFamily: "Pretendard",
+    fontSize: 13,
+    fontWeight: "400",
+    letterSpacing: -0.39,
     color: "#FFFFFF",
+    textAlign: "center",
   },
 
-  /* 친구 요청됨 / 친구 버튼 (회색) */
+  /* 요청됨 / 친구 버튼 (회색 #C3C3C3) */
   statusButtonGray: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: 20,
     backgroundColor: "#C3C3C3",
+    justifyContent: "center",
+    alignItems: "center",
   },
   statusButtonTextWhite: {
-    fontFamily: "Pretendard-SemiBold",
-    fontSize: 14,
-    lineHeight: 18,
+    fontFamily: "Pretendard",
+    fontSize: 13,
+    fontWeight: "400",
+    letterSpacing: -0.39,
     color: "#FFFFFF",
+    textAlign: "center",
   },
 
   /* 빈 상태 */
@@ -629,7 +621,6 @@ const styles = StyleSheet.create({
   },
   popupContainer: {
     width: 315,
-    padding: 20,
     paddingTop: 20,
     paddingBottom: 16,
     paddingHorizontal: 16,

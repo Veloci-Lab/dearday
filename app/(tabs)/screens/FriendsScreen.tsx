@@ -1,10 +1,12 @@
 import { supabase } from "@/utils/supabase";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -55,9 +57,9 @@ const SearchIcon = () => (
 
 const MoreIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Circle cx={12} cy={6} r={1.5} fill="#0D0D0D" />
+    <Circle cx={12} cy={5} r={1.5} fill="#0D0D0D" />
     <Circle cx={12} cy={12} r={1.5} fill="#0D0D0D" />
-    <Circle cx={12} cy={18} r={1.5} fill="#0D0D0D" />
+    <Circle cx={12} cy={19} r={1.5} fill="#0D0D0D" />
   </Svg>
 );
 
@@ -117,7 +119,7 @@ function MyIdCard({ myId }: { myId: string }) {
   );
 }
 
-/* ====== 친구 요청 아이템 ====== */
+/* ====== 친구 요청 아이템 (친구 찾기 스펙 동일) ====== */
 function FriendRequestItem({
   request,
   onAccept,
@@ -130,8 +132,8 @@ function FriendRequestItem({
   isProcessing: boolean;
 }) {
   return (
-    <View style={styles.friendRequestItem}>
-      <View style={styles.friendInfo}>
+    <View style={styles.listItem}>
+      <View style={styles.profileInfo}>
         <View style={styles.avatarPlaceholder}>
           {request.profile.avatar_url ? (
             <Image
@@ -140,7 +142,7 @@ function FriendRequestItem({
             />
           ) : null}
         </View>
-        <Text style={styles.friendName}>{request.profile.nickname}</Text>
+        <Text style={styles.profileName}>{request.profile.nickname}</Text>
       </View>
       <View style={styles.requestActions}>
         <Pressable
@@ -148,7 +150,7 @@ function FriendRequestItem({
           onPress={() => onAccept(request.follower_profile_id)}
           disabled={isProcessing}
         >
-          <Text style={styles.acceptButtonText}>수락</Text>
+          <Text style={styles.buttonText}>수락</Text>
         </Pressable>
         <Pressable
           style={[styles.rejectButton, isProcessing && { opacity: 0.5 }]}
@@ -162,7 +164,7 @@ function FriendRequestItem({
   );
 }
 
-/* ====== 친구 아이템 ====== */
+/* ====== 친구 아이템 (더보기 아이콘) ====== */
 function FriendItem({
   friend,
   onMore,
@@ -171,8 +173,8 @@ function FriendItem({
   onMore: (profileId: number) => void;
 }) {
   return (
-    <View style={styles.friendItem}>
-      <View style={styles.friendInfo}>
+    <View style={styles.listItem}>
+      <View style={styles.profileInfo}>
         <View style={styles.avatarPlaceholder}>
           {friend.profile.avatar_url ? (
             <Image
@@ -181,11 +183,12 @@ function FriendItem({
             />
           ) : null}
         </View>
-        <Text style={styles.friendName}>{friend.profile.nickname}</Text>
+        <Text style={styles.profileName}>{friend.profile.nickname}</Text>
       </View>
       <Pressable
         style={styles.moreButton}
         onPress={() => onMore(friend.profile.profile_id)}
+        hitSlop={8}
       >
         <MoreIcon />
       </Pressable>
@@ -337,7 +340,6 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
 
   const handleAccept = async (followerProfileId: number) => {
     if (!myProfileId) return;
-
     setProcessingIds((prev) => new Set(prev).add(followerProfileId));
 
     const { error } = await supabase
@@ -364,7 +366,6 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
 
   const handleReject = async (followerProfileId: number) => {
     if (!myProfileId) return;
-
     setProcessingIds((prev) => new Set(prev).add(followerProfileId));
 
     const { error } = await supabase
@@ -388,15 +389,29 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
     });
   };
 
+  /* ── 더보기: OS 네이티브 ActionSheet / Alert ── */
   const handleMore = (profileId: number) => {
-    Alert.alert("친구 관리", "어떤 작업을 하시겠어요?", [
-      {
-        text: "친구 삭제",
-        style: "destructive",
-        onPress: () => handleRemoveFriend(profileId),
-      },
-      { text: "취소", style: "cancel" },
-    ]);
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["취소", "삭제하기"],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) handleRemoveFriend(profileId);
+        },
+      );
+    } else {
+      Alert.alert("친구 관리", undefined, [
+        {
+          text: "삭제하기",
+          style: "destructive",
+          onPress: () => handleRemoveFriend(profileId),
+        },
+        { text: "취소", style: "cancel" },
+      ]);
+    }
   };
 
   const handleRemoveFriend = async (targetProfileId: number) => {
@@ -427,7 +442,6 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
   const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
   const paddingBottom = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
 
-  // 검색 화면
   if (showSearch) {
     return <SearchFriendsScreen onBack={handleBackFromSearch} />;
   }
@@ -479,15 +493,17 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
   return (
     <View style={styles.container}>
       <FriendsHeader onBack={onBack} />
-
-      {/* 헤더 아래 구분선 */}
       <View style={styles.headerDivider} />
 
       <FlatList
         data={friends}
         keyExtractor={(item) => String(item.profile.profile_id)}
         ListHeaderComponent={renderHeader}
-        contentContainerStyle={{ paddingBottom }}
+        contentContainerStyle={{
+          paddingBottom,
+          alignSelf: "center",
+          width: 342,
+        }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <FriendItem friend={item} onMore={handleMore} />
@@ -550,13 +566,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F2F2",
   },
 
-  /* 검색바 (Pressable) */
+  /* 검색바 */
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 24,
-    marginTop: 12,
-    paddingBottom: 12,
+    marginTop: 18,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
     gap: 10,
@@ -574,7 +589,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: 24,
     marginTop: 20,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -597,7 +611,6 @@ const styles = StyleSheet.create({
   /* 섹션 */
   sectionContainer: {
     marginTop: 28,
-    paddingHorizontal: 24,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -618,76 +631,81 @@ const styles = StyleSheet.create({
     color: "#4190FF",
   },
 
-  /* 친구 요청 아이템 */
-  friendRequestItem: {
+  /* 공통 리스트 아이템 (342px, space-between, center) */
+  listItem: {
+    width: 342,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    marginBottom: 12,
   },
+  profileInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  avatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#E8E8E8",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  profileName: {
+    height: 23,
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 16,
+    lineHeight: 23,
+    color: "#0D0D0D",
+  },
+
+  /* 수락/거절 버튼 */
   requestActions: {
     flexDirection: "row",
     gap: 8,
   },
   acceptButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "#4190FF",
-  },
-  acceptButtonText: {
-    fontFamily: "Pretendard-SemiBold",
-    fontSize: 14,
-    lineHeight: 18,
-    color: "#FFFFFF",
+    backgroundColor: "#5B8DEF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   rejectButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: 20,
     backgroundColor: "#F0F0F0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonText: {
+    fontFamily: "Pretendard",
+    fontSize: 13,
+    fontWeight: "400",
+    letterSpacing: -0.39,
+    color: "#FFFFFF",
+    textAlign: "center",
   },
   rejectButtonText: {
     fontFamily: "Pretendard",
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    fontWeight: "400",
+    letterSpacing: -0.39,
     color: "#626262",
+    textAlign: "center",
   },
 
-  /* 친구 아이템 */
-  friendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  friendInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#E8E8E8",
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  friendName: {
-    fontFamily: "Pretendard-SemiBold",
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#0D0D0D",
-  },
+  /* 더보기 아이콘 */
   moreButton: {
-    width: 32,
-    height: 32,
+    width: 24,
+    height: 24,
     justifyContent: "center",
     alignItems: "center",
   },
