@@ -106,11 +106,14 @@ export default function FeedScreen() {
     date: string;
     initialPhotoId: string;
     questionText: string;
+    mode: "social" | "friend";
   }>();
 
   const [question, setQuestion] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [feedCards, setFeedCards] = useState<FeedCardData[]>([]);
+  const [myProfileId, setMyProfileId] = useState<number | null>(null);
+  const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
 
   useEffect(() => {
     // params에서 질문 텍스트가 있으면 사용
@@ -123,6 +126,52 @@ export default function FeedScreen() {
       setDate(params.date);
     }
   }, [params.questionText, params.date]);
+
+  // 내 프로필 + 친구 목록 로드 (친구 모드일 때만 필요)
+  useEffect(() => {
+    const loadMyProfileAndFriends = async () => {
+      if (params.mode !== "friend") return;
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("profile_id")
+          .eq("uid", user.id)
+          .single();
+
+        if (!profileData) return;
+
+        const profileId = profileData.profile_id;
+        setMyProfileId(profileId);
+
+        const { data: asFollower } = await supabase
+          .from("follows")
+          .select("followee_profile_id")
+          .eq("follower_profile_id", profileId)
+          .eq("status", "accepted");
+
+        const { data: asFollowee } = await supabase
+          .from("follows")
+          .select("follower_profile_id")
+          .eq("followee_profile_id", profileId)
+          .eq("status", "accepted");
+
+        const friendIds = new Set<number>();
+        asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
+        asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
+
+        setFriendProfileIds([...friendIds]);
+      } catch (error) {
+        console.error("프로필/친구 로드 오류:", error);
+      }
+    };
+
+    loadMyProfileAndFriends();
+  }, [params.mode]);
 
   // params에서 질문이 없으면 서버에서 가져오기
   useEffect(() => {
@@ -151,9 +200,13 @@ export default function FeedScreen() {
   useEffect(() => {
     const fetchFeedPhotos = async () => {
       if (!params.date) return;
+      if (params.mode === "friend" && friendProfileIds.length === 0) {
+        setFeedCards([]);
+        return;
+      }
 
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("answers")
           .select(
             `
@@ -169,12 +222,19 @@ export default function FeedScreen() {
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
 
+        if (params.mode === "friend") {
+          query = query.in("owner_profile_id", friendProfileIds);
+        }
+
+        const { data, error } = await query;
+
         if (!error && data) {
           const cards: FeedCardData[] = data.map((item: any) => ({
             id: item.answer_id,
             imageUrl: item.photo_url,
             nickname: item.profiles?.nickname || "익명",
             createdAt: formatTimeAgo(item.created_at),
+            ownerProfileId: item.owner_profile_id,
           }));
           setFeedCards(cards);
         }
@@ -184,7 +244,7 @@ export default function FeedScreen() {
     };
 
     fetchFeedPhotos();
-  }, [params.date]);
+  }, [params.date, params.mode, friendProfileIds, myProfileId]);
 
   // 헤더 높이
   const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
@@ -225,7 +285,19 @@ export default function FeedScreen() {
         showsVerticalScrollIndicator={false}
       >
         {feedCards.map((card) => (
-          <FeedCard key={card.id} data={card} />
+          <FeedCard
+            key={card.id}
+            data={card}
+            onPressNickname={(item) => {
+              router.push({
+                pathname: "/social/user/[id]",
+                params: {
+                  id: String(item.ownerProfileId),
+                  nickname: item.nickname,
+                },
+              });
+            }}
+          />
         ))}
       </ScrollView>
 

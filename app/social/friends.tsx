@@ -200,12 +200,14 @@ function FriendRequestItem({
 function FriendItem({
   friend,
   onMore,
+  onPress,
 }: {
   friend: FriendRelation;
   onMore: (friend: FriendRelation) => void;
+  onPress: (friend: FriendRelation) => void;
 }) {
   return (
-    <View style={styles.listItem}>
+    <Pressable style={styles.listItem} onPress={() => onPress(friend)}>
       <View style={styles.profileInfo}>
         <View style={styles.avatarPlaceholder}>
           {friend.profile.avatar_url ? (
@@ -224,7 +226,7 @@ function FriendItem({
       >
         <MoreIcon />
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -570,7 +572,19 @@ export default function FriendsScreen() {
         }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <FriendItem friend={item} onMore={handleMore} />
+          <FriendItem
+            friend={item}
+            onMore={handleMore}
+            onPress={(friend) => {
+              router.push({
+                pathname: "/social/user/[id]",
+                params: {
+                  id: String(friend.profile.profile_id),
+                  nickname: friend.profile.nickname,
+                },
+              });
+            }}
+          />
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

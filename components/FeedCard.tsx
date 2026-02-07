@@ -6,14 +6,20 @@ export interface FeedCardData {
   imageUrl: string;
   nickname: string;
   createdAt: string; // "18시 49분" 형식으로 변환된 문자열
+  ownerProfileId: number;
 }
 
 interface FeedCardProps {
   data: FeedCardData;
   onPress?: () => void;
+  onPressNickname?: (data: FeedCardData) => void;
 }
 
-export default function FeedCard({ data, onPress }: FeedCardProps) {
+export default function FeedCard({
+  data,
+  onPress,
+  onPressNickname,
+}: FeedCardProps) {
   return (
     <Pressable style={styles.container} onPress={onPress}>
       {/* 이미지 영역 */}
@@ -22,7 +28,9 @@ export default function FeedCard({ data, onPress }: FeedCardProps) {
       {/* 정보 영역 */}
       <View style={styles.infoContainer}>
         <View style={styles.userInfo}>
-          <Text style={styles.nickname}>{data.nickname}</Text>
+          <Pressable onPress={() => onPressNickname?.(data)} hitSlop={4}>
+            <Text style={styles.nickname}>{data.nickname}</Text>
+          </Pressable>
           <Text style={styles.createdAt}>{data.createdAt}</Text>
         </View>
         {/* 이모지 영역은 추후 추가 */}
