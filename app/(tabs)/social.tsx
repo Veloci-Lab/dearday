@@ -476,11 +476,6 @@ export default function SocialScreen() {
     }
   };
 
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
   // 선택된 날짜의 사진 가져오기
   useEffect(() => {
     const doFetch = async () => {
@@ -509,13 +504,9 @@ export default function SocialScreen() {
           // 친구 탭: 친구의 사진만
           if (friendProfileIds.length > 0) {
             const friendSet = new Set(friendProfileIds.map(String));
-<<<<<<< HEAD
-            setFriendPhotos(mapped.filter((p) => friendSet.has(p.user_id)));
-=======
             setFriendPhotos(
               mapped.filter((p) => p.user_id && friendSet.has(p.user_id)),
             );
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
           } else {
             setFriendPhotos([]);
           }
@@ -538,10 +529,6 @@ export default function SocialScreen() {
 
   const currentPhotos = activeTab === "social" ? socialPhotos : friendPhotos;
 
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
   const currentQuestion =
     questionMap[toDateString(selectedDate)]?.question_text?.replace(
       /\\n/g,
@@ -562,14 +549,6 @@ export default function SocialScreen() {
     extrapolate: "clamp",
   });
 
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-  if (showFriends) {
-    return <FriendsScreen onBack={() => setShowFriends(false)} />;
-  }
-=======
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
   // 친구 목록 새로고침 함수
   const refreshFriendIds = async () => {
     if (!myProfileId) return;
@@ -608,11 +587,7 @@ export default function SocialScreen() {
     const dateStr = toDateString(selectedDate);
     const questionText = questionMap[dateStr]?.question_text || "";
     router.push({
-<<<<<<< HEAD
-      pathname: "/feed",
-=======
       pathname: "/social/feed",
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
       params: {
         date: dateStr,
         initialPhotoId: photo.id,
@@ -620,10 +595,6 @@ export default function SocialScreen() {
       },
     });
   };
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
 
   return (
     <View style={styles.container}>
@@ -717,15 +688,7 @@ export default function SocialScreen() {
           <Text style={styles.headerTitle}>소셜</Text>
           <Pressable
             style={styles.headerIconWrapper}
-<<<<<<< HEAD
-            onPress={() => router.push("/friends")}
-=======
-<<<<<<< Updated upstream
-            onPress={() => setShowFriends(true)}
-=======
             onPress={() => router.push("/social/friends")}
->>>>>>> Stashed changes
->>>>>>> 19c3008 (CHORE: social 폴더 생성, 통합)
           >
             <PersonIcon hasNotification={false} />
           </Pressable>
