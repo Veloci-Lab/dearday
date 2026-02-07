@@ -1,6 +1,17 @@
+import PhotoGrid, { PhotoGridItem } from "@/components/PhotoGrid";
 import Toggle from "@/components/Toggle";
 import { supabase } from "@/utils/supabase";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   Dimensions,
@@ -13,7 +24,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
-import FriendsScreen from "./screens/FriendsScreen";
 
 /* ====== 상수 ====== */
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -108,6 +118,41 @@ const PersonIcon = ({
     )}
   </Svg>
 );
+
+/* ====== 자물쇠 아이콘 ====== */
+const LockIcon = () => (
+  <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
+    <Path
+      d="M20.8537 16.1538C6.89364 16.1538 6.05376 16.1538 6.00323 32.821C5.99753 34.7021 7.52501 36.231 9.40619 36.231H31.5938C33.475 36.231 35.0024 34.7021 34.9969 32.821C34.9488 16.1538 34.1489 16.1538 20.8537 16.1538Z"
+      fill="#929292"
+    />
+    <Path
+      d="M12.6924 20.6156V12.8077C12.6924 8.49563 16.188 5 20.5001 5C24.8121 5 28.3078 8.49563 28.3078 12.8077V20.6156"
+      stroke="#929292"
+      strokeWidth={2.72496}
+    />
+  </Svg>
+);
+
+/* ====== 잠금 오버레이 ====== */
+function LockedOverlay() {
+  return (
+    <View style={styles.lockedContainer}>
+      <BlurView intensity={10} tint="light" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={["rgba(255,255,255,0)", "#FFFFFF"]}
+        locations={[0, 0.8641]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.lockedContent}>
+        <LockIcon />
+        <Text style={styles.lockedText}>
+          오늘의 사진을 올려서 잠금해제하세요!
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 /* ====== 월 네비게이션 ====== */
 interface MonthNavProps {
@@ -312,7 +357,57 @@ export default function SocialScreen() {
   );
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("social");
-  const [showFriends, setShowFriends] = useState(false);
+  const [socialPhotos, setSocialPhotos] = useState<PhotoGridItem[]>([]);
+  const [friendPhotos, setFriendPhotos] = useState<PhotoGridItem[]>([]);
+  const [myProfileId, setMyProfileId] = useState<number | null>(null);
+  const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
+  const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
+
+  // 내 프로필 + 친구 목록 로드
+  useEffect(() => {
+    const loadMyProfileAndFriends = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("profile_id")
+          .eq("uid", user.id)
+          .single();
+
+        if (!profileData) return;
+
+        const profileId = profileData.profile_id;
+        setMyProfileId(profileId);
+
+        // 친구 목록: 양방향 accepted (FriendsScreen과 동일)
+        const { data: asFollower } = await supabase
+          .from("follows")
+          .select("followee_profile_id")
+          .eq("follower_profile_id", profileId)
+          .eq("status", "accepted");
+
+        const { data: asFollowee } = await supabase
+          .from("follows")
+          .select("follower_profile_id")
+          .eq("followee_profile_id", profileId)
+          .eq("status", "accepted");
+
+        const friendIds = new Set<number>();
+        asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
+        asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
+
+        setFriendProfileIds([...friendIds]);
+      } catch (error) {
+        console.error("프로필/친구 로드 오류:", error);
+      }
+    };
+
+    loadMyProfileAndFriends();
+  }, []);
 
   const daysInMonth = useMemo(
     () => getDaysInMonth(currentYear, currentMonth),
@@ -381,6 +476,57 @@ export default function SocialScreen() {
     }
   };
 
+  // 선택된 날짜의 사진 가져오기
+  useEffect(() => {
+    const doFetch = async () => {
+      const dateStr = toDateString(selectedDate);
+
+      try {
+        // 모든 사용자의 사진
+        const { data: allPhotos, error } = await supabase
+          .from("answers")
+          .select("answer_id, owner_profile_id, photo_url")
+          .eq("question_date", dateStr)
+          .not("photo_url", "is", null)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false });
+
+        if (!error && allPhotos) {
+          const mapped: PhotoGridItem[] = allPhotos.map((item: any) => ({
+            id: item.answer_id,
+            image_url: item.photo_url,
+            user_id: String(item.owner_profile_id),
+          }));
+
+          // 소셜 탭: 전체
+          setSocialPhotos(mapped);
+
+          // 친구 탭: 친구의 사진만
+          if (friendProfileIds.length > 0) {
+            const friendSet = new Set(friendProfileIds.map(String));
+            setFriendPhotos(mapped.filter((p) => friendSet.has(p.user_id)));
+          } else {
+            setFriendPhotos([]);
+          }
+
+          // 선택된 날짜에 내 업로드 여부 확인
+          if (myProfileId) {
+            const myPhoto = allPhotos.find(
+              (item: any) => item.owner_profile_id === myProfileId,
+            );
+            setHasUploadedForDate(!!myPhoto);
+          }
+        }
+      } catch (error) {
+        console.error("사진 로드 오류:", error);
+      }
+    };
+
+    doFetch();
+  }, [selectedDate, friendProfileIds, myProfileId]);
+
+  const currentPhotos = activeTab === "social" ? socialPhotos : friendPhotos;
+
   const currentQuestion =
     questionMap[toDateString(selectedDate)]?.question_text?.replace(
       /\\n/g,
@@ -401,9 +547,52 @@ export default function SocialScreen() {
     extrapolate: "clamp",
   });
 
-  if (showFriends) {
-    return <FriendsScreen onBack={() => setShowFriends(false)} />;
-  }
+  // 친구 목록 새로고침 함수
+  const refreshFriendIds = async () => {
+    if (!myProfileId) return;
+    try {
+      const { data: asFollower } = await supabase
+        .from("follows")
+        .select("followee_profile_id")
+        .eq("follower_profile_id", myProfileId)
+        .eq("status", "accepted");
+
+      const { data: asFollowee } = await supabase
+        .from("follows")
+        .select("follower_profile_id")
+        .eq("followee_profile_id", myProfileId)
+        .eq("status", "accepted");
+
+      const friendIds = new Set<number>();
+      asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
+      asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
+      setFriendProfileIds([...friendIds]);
+    } catch (error) {
+      console.error("친구 목록 새로고침 오류:", error);
+    }
+  };
+
+  // 화면에 포커스될 때마다 친구 목록 새로고침 (친구 화면에서 돌아왔을 때)
+  useFocusEffect(
+    useCallback(() => {
+      if (myProfileId) {
+        refreshFriendIds();
+      }
+    }, [myProfileId]),
+  );
+
+  const handlePhotoPress = (photo: PhotoGridItem) => {
+    const dateStr = toDateString(selectedDate);
+    const questionText = questionMap[dateStr]?.question_text || "";
+    router.push({
+      pathname: "/feed",
+      params: {
+        date: dateStr,
+        initialPhotoId: photo.id,
+        questionText: encodeURIComponent(questionText),
+      },
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -446,15 +635,40 @@ export default function SocialScreen() {
           isLoading={isLoadingQuestion}
         />
 
-        <View style={styles.toggleContainer}>
-          <Toggle
-            options={SOCIAL_TOGGLE_OPTIONS}
-            activeKey={activeTab}
-            onChangeKey={(key) => setActiveTab(key as TabType)}
-          />
-        </View>
-
-        {/* TODO: 사진 그리드 (토글에서 21px 아래, 양옆 11px) */}
+        {!hasUploadedForDate ? (
+          <View style={styles.lockedSection}>
+            <View style={styles.toggleContainer}>
+              <Toggle
+                options={SOCIAL_TOGGLE_OPTIONS}
+                activeKey={activeTab}
+                onChangeKey={(key) => setActiveTab(key as TabType)}
+              />
+            </View>
+            <View style={styles.photoGridContainer}>
+              <PhotoGrid
+                photos={currentPhotos}
+                onPressPhoto={handlePhotoPress}
+              />
+            </View>
+            <LockedOverlay />
+          </View>
+        ) : (
+          <>
+            <View style={styles.toggleContainer}>
+              <Toggle
+                options={SOCIAL_TOGGLE_OPTIONS}
+                activeKey={activeTab}
+                onChangeKey={(key) => setActiveTab(key as TabType)}
+              />
+            </View>
+            <View style={styles.photoGridContainer}>
+              <PhotoGrid
+                photos={currentPhotos}
+                onPressPhoto={handlePhotoPress}
+              />
+            </View>
+          </>
+        )}
       </Animated.ScrollView>
 
       {/* 헤더: 상단 고정 오버레이, 스크롤에 따라 투명 → 흰색 */}
@@ -472,7 +686,7 @@ export default function SocialScreen() {
           <Text style={styles.headerTitle}>소셜</Text>
           <Pressable
             style={styles.headerIconWrapper}
-            onPress={() => setShowFriends(true)}
+            onPress={() => router.push("/friends")}
           >
             <PersonIcon hasNotification={false} />
           </Pressable>
@@ -658,5 +872,43 @@ const styles = StyleSheet.create({
   toggleContainer: {
     alignItems: "center",
     marginTop: 38,
+    zIndex: 2,
+  },
+
+  /* 사진 그리드 */
+  photoGridContainer: {
+    marginTop: 21,
+  },
+
+  /* 잠금 섹션 (토글 + 그리드 + 오버레이) */
+  lockedSection: {
+    position: "relative",
+    minHeight: 439,
+    overflow: "hidden",
+  },
+
+  /* 잠금 오버레이 */
+  lockedContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  lockedContent: {
+    alignItems: "center",
+    gap: 16,
+  },
+  lockedText: {
+    fontFamily: "Pretendard",
+    fontSize: 17,
+    fontWeight: "400",
+    lineHeight: 20,
+    letterSpacing: -0.51,
+    color: "#0D0D0D",
+    textAlign: "center",
   },
 });

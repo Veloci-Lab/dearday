@@ -1,4 +1,6 @@
+import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
+import { router, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
@@ -6,6 +8,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,28 +17,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import SearchFriendsScreen from "./SearchFriendsScreen";
 
 /* ====== SVG 아이콘 ====== */
-const BackArrow = () => (
-  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 12H5"
-      stroke="#0D0D0D"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M12 19L5 12L12 5"
-      stroke="#0D0D0D"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
 const SearchIcon = () => (
   <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
     <Path
@@ -82,27 +65,76 @@ interface FriendRelation {
   profile: FriendProfile;
 }
 
-/* ====== 헤더 ====== */
-function FriendsHeader({ onBack }: { onBack: () => void }) {
-  const insets = useSafeAreaInsets();
+/* ====== 확인 팝업 ====== */
+function ConfirmPopup({
+  visible,
+  profile,
+  title,
+  description,
+  confirmText,
+  onCancel,
+  onConfirm,
+}: {
+  visible: boolean;
+  profile: FriendProfile | null;
+  title: string;
+  description: string;
+  confirmText: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!profile) return null;
 
   return (
-    <View style={[styles.headerContainer, { paddingTop: insets.top + 18 }]}>
-      <View style={styles.headerContent}>
-        <Pressable style={styles.headerIconWrapper} onPress={onBack}>
-          <BackArrow />
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <Pressable style={styles.popupOverlay} onPress={onCancel}>
+        <Pressable style={styles.popupContainer} onPress={() => {}}>
+          {/* 프로필 카드 */}
+          <View style={styles.popupProfileCard}>
+            <View style={styles.popupAvatar}>
+              {profile.avatar_url ? (
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={styles.popupAvatarImage}
+                />
+              ) : null}
+            </View>
+            <Text style={styles.popupProfileName}>{profile.nickname}</Text>
+          </View>
+
+          {/* 텍스트 영역 */}
+          <View style={styles.popupTextArea}>
+            <Text style={styles.popupTitle}>{title}</Text>
+            <Text style={styles.popupDescription}>{description}</Text>
+          </View>
+
+          {/* 버튼 영역 */}
+          <View style={styles.popupButtonRow}>
+            <Pressable style={styles.popupCancelButton} onPress={onCancel}>
+              <Text style={styles.popupCancelButtonText}>취소</Text>
+            </Pressable>
+            <Pressable style={styles.popupConfirmButton} onPress={onConfirm}>
+              <Text style={styles.popupConfirmButtonText}>{confirmText}</Text>
+            </Pressable>
+          </View>
         </Pressable>
-        <Text style={styles.headerTitle}>친구들</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-    </View>
+      </Pressable>
+    </Modal>
   );
 }
 
 /* ====== 검색바 (Pressable) ====== */
-function SearchBarButton({ onPress }: { onPress: () => void }) {
+function SearchBarButton() {
   return (
-    <Pressable style={styles.searchContainer} onPress={onPress}>
+    <Pressable
+      style={styles.searchContainer}
+      onPress={() => router.push("/search-friends")}
+    >
       <SearchIcon />
       <Text style={styles.searchPlaceholder}>친구 찾기</Text>
     </Pressable>
@@ -119,7 +151,7 @@ function MyIdCard({ myId }: { myId: string }) {
   );
 }
 
-/* ====== 친구 요청 아이템 (친구 찾기 스펙 동일) ====== */
+/* ====== 친구 요청 아이템 ====== */
 function FriendRequestItem({
   request,
   onAccept,
@@ -128,7 +160,7 @@ function FriendRequestItem({
 }: {
   request: FriendRequest;
   onAccept: (profileId: number) => void;
-  onReject: (profileId: number) => void;
+  onReject: (request: FriendRequest) => void;
   isProcessing: boolean;
 }) {
   return (
@@ -154,7 +186,7 @@ function FriendRequestItem({
         </Pressable>
         <Pressable
           style={[styles.rejectButton, isProcessing && { opacity: 0.5 }]}
-          onPress={() => onReject(request.follower_profile_id)}
+          onPress={() => onReject(request)}
           disabled={isProcessing}
         >
           <Text style={styles.rejectButtonText}>거절</Text>
@@ -170,7 +202,7 @@ function FriendItem({
   onMore,
 }: {
   friend: FriendRelation;
-  onMore: (profileId: number) => void;
+  onMore: (friend: FriendRelation) => void;
 }) {
   return (
     <View style={styles.listItem}>
@@ -187,7 +219,7 @@ function FriendItem({
       </View>
       <Pressable
         style={styles.moreButton}
-        onPress={() => onMore(friend.profile.profile_id)}
+        onPress={() => onMore(friend)}
         hitSlop={8}
       >
         <MoreIcon />
@@ -197,7 +229,9 @@ function FriendItem({
 }
 
 /* ====== 친구 화면 ====== */
-export default function FriendsScreen({ onBack }: { onBack: () => void }) {
+export default function FriendsScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [myNickname, setMyNickname] = useState("");
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
@@ -205,7 +239,14 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
   const [friends, setFriends] = useState<FriendRelation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
-  const [showSearch, setShowSearch] = useState(false);
+
+  // 팝업 상태
+  const [rejectPopupVisible, setRejectPopupVisible] = useState(false);
+  const [deletePopupVisible, setDeletePopupVisible] = useState(false);
+  const [targetRequest, setTargetRequest] = useState<FriendRequest | null>(
+    null,
+  );
+  const [targetFriend, setTargetFriend] = useState<FriendRelation | null>(null);
 
   const fetchMyProfile = useCallback(async () => {
     const {
@@ -330,14 +371,26 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
     loadData();
   }, [loadData]);
 
-  const handleBackFromSearch = () => {
-    setShowSearch(false);
-    if (myProfileId) {
-      fetchFriendRequests(myProfileId);
-      fetchFriends(myProfileId);
-    }
-  };
+  useEffect(() => {
+    navigation.setOptions({
+      ...commonHeaderOptions,
+      headerShown: true,
+      headerShadowVisible: true,
+      headerTitle: () => <Text style={styles.headerTitle}>친구들</Text>,
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()}>
+          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
+              fill="#0D0D0D"
+            />
+          </Svg>
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
+  /* ── 수락 ── */
   const handleAccept = async (followerProfileId: number) => {
     if (!myProfileId) return;
     setProcessingIds((prev) => new Set(prev).add(followerProfileId));
@@ -364,13 +417,25 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
     });
   };
 
-  const handleReject = async (followerProfileId: number) => {
-    if (!myProfileId) return;
+  /* ── 거절 버튼 → 팝업 열기 ── */
+  const handleRejectPress = (request: FriendRequest) => {
+    setTargetRequest(request);
+    setRejectPopupVisible(true);
+  };
+
+  /* ── 거절 확인 ── */
+  const handleConfirmReject = async () => {
+    if (!myProfileId || !targetRequest) return;
+
+    const followerProfileId = targetRequest.follower_profile_id;
+    setRejectPopupVisible(false);
+    setTargetRequest(null);
+
     setProcessingIds((prev) => new Set(prev).add(followerProfileId));
 
     const { error } = await supabase
       .from("follows")
-      .update({ status: "rejected" })
+      .delete()
       .eq("follower_profile_id", followerProfileId)
       .eq("followee_profile_id", myProfileId);
 
@@ -389,8 +454,8 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
     });
   };
 
-  /* ── 더보기: OS 네이티브 ActionSheet / Alert ── */
-  const handleMore = (profileId: number) => {
+  /* ── 더보기 → OS 기본 액션시트 표시 ── */
+  const handleMore = (friend: FriendRelation) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -399,23 +464,35 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
-          if (buttonIndex === 1) handleRemoveFriend(profileId);
+          if (buttonIndex === 1) {
+            setTargetFriend(friend);
+            setDeletePopupVisible(true);
+          }
         },
       );
     } else {
-      Alert.alert("친구 관리", undefined, [
+      // Android
+      Alert.alert("", "", [
+        { text: "취소", style: "cancel" },
         {
           text: "삭제하기",
           style: "destructive",
-          onPress: () => handleRemoveFriend(profileId),
+          onPress: () => {
+            setTargetFriend(friend);
+            setDeletePopupVisible(true);
+          },
         },
-        { text: "취소", style: "cancel" },
       ]);
     }
   };
 
-  const handleRemoveFriend = async (targetProfileId: number) => {
-    if (!myProfileId) return;
+  /* ── 삭제 확인 ── */
+  const handleConfirmDelete = async () => {
+    if (!myProfileId || !targetFriend) return;
+
+    const targetProfileId = targetFriend.profile.profile_id;
+    setDeletePopupVisible(false);
+    setTargetFriend(null);
 
     const { error: err1 } = await supabase
       .from("follows")
@@ -438,17 +515,9 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const TAB_BAR_HEIGHT = 72;
-  const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
-  const paddingBottom = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
-
-  if (showSearch) {
-    return <SearchFriendsScreen onBack={handleBackFromSearch} />;
-  }
-
   const renderHeader = () => (
     <View>
-      <SearchBarButton onPress={() => setShowSearch(true)} />
+      <SearchBarButton />
       <MyIdCard myId={myNickname} />
 
       {friendRequests.length > 0 && (
@@ -462,7 +531,7 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
               key={request.follower_profile_id}
               request={request}
               onAccept={handleAccept}
-              onReject={handleReject}
+              onReject={handleRejectPress}
               isProcessing={processingIds.has(request.follower_profile_id)}
             />
           ))}
@@ -481,8 +550,6 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <FriendsHeader onBack={onBack} />
-        <View style={styles.headerDivider} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#4190FF" />
         </View>
@@ -492,15 +559,12 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <View style={styles.container}>
-      <FriendsHeader onBack={onBack} />
-      <View style={styles.headerDivider} />
-
       <FlatList
         data={friends}
         keyExtractor={(item) => String(item.profile.profile_id)}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{
-          paddingBottom,
+          paddingBottom: Math.max(insets.bottom, 20),
           alignSelf: "center",
           width: 342,
         }}
@@ -514,6 +578,34 @@ export default function FriendsScreen({ onBack }: { onBack: () => void }) {
           </View>
         }
       />
+
+      {/* 친구 요청 거절 팝업 */}
+      <ConfirmPopup
+        visible={rejectPopupVisible}
+        profile={targetRequest?.profile ?? null}
+        title="친구 요청을 거절"
+        description={`${targetRequest?.profile.nickname ?? ""}님의 친구 요청을 거절하시겠어요?`}
+        confirmText="거절하기"
+        onCancel={() => {
+          setRejectPopupVisible(false);
+          setTargetRequest(null);
+        }}
+        onConfirm={handleConfirmReject}
+      />
+
+      {/* 친구 삭제 팝업 */}
+      <ConfirmPopup
+        visible={deletePopupVisible}
+        profile={targetFriend?.profile ?? null}
+        title="친구 삭제"
+        description={`${targetFriend?.profile.nickname ?? ""}님을 친구에서 삭제하시겠어요?`}
+        confirmText="삭제하기"
+        onCancel={() => {
+          setDeletePopupVisible(false);
+          setTargetFriend(null);
+        }}
+        onConfirm={handleConfirmDelete}
+      />
     </View>
   );
 }
@@ -524,46 +616,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  headerTitle: {
+    fontSize: 17,
+    fontFamily: "Pretendard-Bold",
+    fontWeight: "400",
+    color: "#0D0D0D",
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-
-  /* 헤더 */
-  headerContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FEFEFE",
-  },
-  headerContent: {
-    width: 342,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerTitle: {
-    fontFamily: "Pretendard-SemiBold",
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.51,
-    color: "#0D0D0D",
-    textAlign: "center",
-  },
-  headerIconWrapper: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerSpacer: {
-    width: 24,
-  },
-  headerDivider: {
-    height: 1,
-    backgroundColor: "#F2F2F2",
   },
 
   /* 검색바 */
@@ -631,7 +693,7 @@ const styles = StyleSheet.create({
     color: "#4190FF",
   },
 
-  /* 공통 리스트 아이템 (342px, space-between, center) */
+  /* 공통 리스트 아이템 */
   listItem: {
     width: 342,
     flexDirection: "row",
@@ -720,5 +782,109 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     color: "#A0A0A0",
+  },
+
+  /* ====== 팝업 ====== */
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popupContainer: {
+    width: 315,
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    alignItems: "center",
+    gap: 15,
+  },
+
+  /* 프로필 카드 */
+  popupProfileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    alignSelf: "stretch",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "#F5F5F5",
+  },
+  popupAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E8E8E8",
+    overflow: "hidden",
+  },
+  popupAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  popupProfileName: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#0D0D0D",
+  },
+
+  /* 텍스트 영역 */
+  popupTextArea: {
+    alignSelf: "stretch",
+    gap: 5,
+  },
+  popupTitle: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 17,
+    lineHeight: 20,
+    letterSpacing: -0.51,
+    color: "#0D0D0D",
+  },
+  popupDescription: {
+    fontFamily: "Pretendard",
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: -0.39,
+    color: "#929292",
+  },
+
+  /* 버튼 영역 */
+  popupButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  popupCancelButton: {
+    width: 134,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#0D0D0D",
+  },
+  popupCancelButtonText: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#0D0D0D",
+  },
+  popupConfirmButton: {
+    width: 134,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "#F4A49D",
+  },
+  popupConfirmButtonText: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#FFFFFF",
   },
 });

@@ -1,4 +1,6 @@
+import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
+import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,25 +18,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 /* ====== SVG 아이콘 ====== */
-const BackArrow = () => (
-  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 12H5"
-      stroke="#0D0D0D"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M12 19L5 12L12 5"
-      stroke="#0D0D0D"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
 const SearchIcon = () => (
   <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
     <Path
@@ -81,23 +64,6 @@ interface SearchResult {
 }
 
 type RequestStatus = "none" | "pending" | "accepted" | "sending";
-
-/* ====== 헤더 ====== */
-function SearchHeader({ onBack }: { onBack: () => void }) {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View style={[styles.headerContainer, { paddingTop: insets.top + 18 }]}>
-      <View style={styles.headerContent}>
-        <Pressable style={styles.headerIconWrapper} onPress={onBack}>
-          <BackArrow />
-        </Pressable>
-        <Text style={styles.headerTitle}>친구 찾기</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-    </View>
-  );
-}
 
 /* ====== 친구 요청 확인 팝업 ====== */
 function FriendRequestPopup({
@@ -215,11 +181,9 @@ function SearchResultItem({
 }
 
 /* ====== 친구 찾기 화면 ====== */
-export default function SearchFriendsScreen({
-  onBack,
-}: {
-  onBack: () => void;
-}) {
+export default function SearchFriendsScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const [searchText, setSearchText] = useState("");
@@ -260,6 +224,25 @@ export default function SearchFriendsScreen({
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 300);
   }, []);
+
+  useEffect(() => {
+    navigation.setOptions({
+      ...commonHeaderOptions,
+      headerShown: true,
+      headerShadowVisible: true,
+      headerTitle: () => <Text style={styles.headerTitle}>친구 찾기</Text>,
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()}>
+          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
+              fill="#0D0D0D"
+            />
+          </Svg>
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   /* ── 검색 (디바운스 400ms) ── */
   useEffect(() => {
@@ -397,11 +380,6 @@ export default function SearchFriendsScreen({
 
   return (
     <View style={styles.container}>
-      <SearchHeader onBack={onBack} />
-
-      {/* 헤더 아래 구분선 */}
-      <View style={styles.headerDivider} />
-
       {/* 검색바 */}
       <View style={styles.searchContainer}>
         <SearchIcon />
@@ -473,41 +451,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-
-  /* 헤더 */
-  headerContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FEFEFE",
-  },
-  headerContent: {
-    width: 342,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   headerTitle: {
-    fontFamily: "Pretendard-SemiBold",
     fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.51,
+    fontFamily: "Pretendard-Bold",
+    fontWeight: "400",
     color: "#0D0D0D",
-    textAlign: "center",
-  },
-  headerIconWrapper: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerSpacer: {
-    width: 24,
-  },
-  headerDivider: {
-    height: 1,
-    backgroundColor: "#F2F2F2",
   },
 
   /* 검색바 */
