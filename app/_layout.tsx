@@ -50,7 +50,7 @@ export default function RootLayout() {
         if (!url) return;
         if (isLoggedIn) router.push(url as any);
         else setPendingRedirectUrl(url);
-      }
+      },
     );
 
     logIn();
@@ -101,10 +101,7 @@ export default function RootLayout() {
               name="notifications"
               options={{ headerShown: false }}
             />
-            <Stack.Screen
-              name="settings"
-              options={{ headerShown: false }}  
-            />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen
               name="photo-organizer"
               options={{ headerShown: false }}
@@ -126,6 +123,8 @@ export default function RootLayout() {
               name="category/[id]"
               options={{ headerShown: false }}
             />
+            <Stack.Screen name="feed" options={{ headerShown: false }} />
+            <Stack.Screen name="friends" options={{ title: "친구" }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>
