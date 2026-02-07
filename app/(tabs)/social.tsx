@@ -592,6 +592,7 @@ export default function SocialScreen() {
         date: dateStr,
         initialPhotoId: photo.id,
         questionText: encodeURIComponent(questionText),
+        mode: activeTab,
       },
     });
   };
