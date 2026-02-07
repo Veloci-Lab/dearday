@@ -1,11 +1,5 @@
 import React, { useMemo } from "react";
-import {
-  Dimensions,
-  Image,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Dimensions, Image, Pressable, StyleSheet, View } from "react-native";
 
 /* ====== 타입 ====== */
 export interface PhotoGridItem {
@@ -48,7 +42,10 @@ function LargeLeftRow({
   return (
     <View style={gridStyles.row}>
       <Pressable
-        style={[gridStyles.largeImage, { width: LARGE_WIDTH, height: LARGE_HEIGHT }]}
+        style={[
+          gridStyles.largeImage,
+          { width: LARGE_WIDTH, height: LARGE_HEIGHT },
+        ]}
         onPress={() => onPressPhoto?.(large)}
       >
         <Image
@@ -59,7 +56,10 @@ function LargeLeftRow({
       </Pressable>
       <View style={gridStyles.smallColumn}>
         <Pressable
-          style={[gridStyles.smallImage, { width: COL_WIDTH, height: SMALL_HEIGHT }]}
+          style={[
+            gridStyles.smallImage,
+            { width: COL_WIDTH, height: SMALL_HEIGHT },
+          ]}
           onPress={() => onPressPhoto?.(small1)}
         >
           <Image
@@ -69,7 +69,10 @@ function LargeLeftRow({
           />
         </Pressable>
         <Pressable
-          style={[gridStyles.smallImage, { width: COL_WIDTH, height: SMALL_HEIGHT }]}
+          style={[
+            gridStyles.smallImage,
+            { width: COL_WIDTH, height: SMALL_HEIGHT },
+          ]}
           onPress={() => onPressPhoto?.(small2)}
         >
           <Image
@@ -96,8 +99,13 @@ function ThreeEqualRow({
       {photos.map((photo) => (
         <Pressable
           key={photo.id}
-          style={[gridStyles.equalImage, { width: COL_WIDTH, height: COL_WIDTH }]}
-          onPress={() => onPressPhoto?.(photo)}
+          style={[
+            gridStyles.equalImage,
+            { width: COL_WIDTH, height: COL_WIDTH },
+          ]}
+          onPress={() => {
+            onPressPhoto?.(photo);
+          }}
         >
           <Image
             source={{ uri: photo.image_url }}
@@ -124,7 +132,10 @@ function LargeRightRow({
     <View style={gridStyles.row}>
       <View style={gridStyles.smallColumn}>
         <Pressable
-          style={[gridStyles.smallImage, { width: COL_WIDTH, height: SMALL_HEIGHT }]}
+          style={[
+            gridStyles.smallImage,
+            { width: COL_WIDTH, height: SMALL_HEIGHT },
+          ]}
           onPress={() => onPressPhoto?.(small1)}
         >
           <Image
@@ -134,7 +145,10 @@ function LargeRightRow({
           />
         </Pressable>
         <Pressable
-          style={[gridStyles.smallImage, { width: COL_WIDTH, height: SMALL_HEIGHT }]}
+          style={[
+            gridStyles.smallImage,
+            { width: COL_WIDTH, height: SMALL_HEIGHT },
+          ]}
           onPress={() => onPressPhoto?.(small2)}
         >
           <Image
@@ -145,7 +159,10 @@ function LargeRightRow({
         </Pressable>
       </View>
       <Pressable
-        style={[gridStyles.largeImage, { width: LARGE_WIDTH, height: LARGE_HEIGHT }]}
+        style={[
+          gridStyles.largeImage,
+          { width: LARGE_WIDTH, height: LARGE_HEIGHT },
+        ]}
         onPress={() => onPressPhoto?.(large)}
       >
         <Image
@@ -159,7 +176,12 @@ function LargeRightRow({
 }
 
 /* ====== 메인 컴포넌트 ====== */
-const PATTERN_ORDER: PatternType[] = ["large_left", "three_equal", "large_right", "three_equal"];
+const PATTERN_ORDER: PatternType[] = [
+  "large_left",
+  "three_equal",
+  "large_right",
+  "three_equal",
+];
 
 export default function PhotoGrid({ photos, onPressPhoto }: PhotoGridProps) {
   // 사진을 3개씩 묶어서 패턴에 할당
