@@ -581,6 +581,19 @@ export default function SocialScreen() {
     }, [myProfileId]),
   );
 
+  const handlePhotoPress = (photo: PhotoGridItem) => {
+    const dateStr = toDateString(selectedDate);
+    const questionText = questionMap[dateStr]?.question_text || "";
+    router.push({
+      pathname: "/feed",
+      params: {
+        date: dateStr,
+        initialPhotoId: photo.id,
+        questionText: encodeURIComponent(questionText),
+      },
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Animated.ScrollView
@@ -632,7 +645,10 @@ export default function SocialScreen() {
               />
             </View>
             <View style={styles.photoGridContainer}>
-              <PhotoGrid photos={currentPhotos} />
+              <PhotoGrid
+                photos={currentPhotos}
+                onPressPhoto={handlePhotoPress}
+              />
             </View>
             <LockedOverlay />
           </View>
@@ -646,7 +662,10 @@ export default function SocialScreen() {
               />
             </View>
             <View style={styles.photoGridContainer}>
-              <PhotoGrid photos={currentPhotos} />
+              <PhotoGrid
+                photos={currentPhotos}
+                onPressPhoto={handlePhotoPress}
+              />
             </View>
           </>
         )}
