@@ -8,6 +8,7 @@ type AuthState = {
   hasCompletedOnboarding: boolean;
   setHasCompletedOnboarding: (v: boolean) => void;
   profileId: string | null;
+  setProfileId: (v: string | null) => void;
   logIn: () => Promise<void>;
   logOut: () => void;
   pendingRedirectUrl: string | null;
@@ -58,6 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ authLoading: false });
     }
   },
+  setProfileId: (v) => set({ profileId: v }),
   logOut: () =>
     set({
       isLoggedIn: false,
