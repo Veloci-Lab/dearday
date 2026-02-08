@@ -1,11 +1,265 @@
-import { checkNicknameAvailability, updateProfile } from "@/utils/api/profiles";
+// import { checkNicknameAvailability, updateProfile } from "@/utils/api/profiles";
+// import { commonStyles } from "@/styles/common";
+// import { useAuthStore } from "@/utils/authStore";
+// import { useRouter } from "expo-router";
+// import { useState } from "react";
+// import {
+//   ActivityIndicator,
+//   Alert,
+//   KeyboardAvoidingView,
+//   Platform,
+//   Pressable,
+//   StyleSheet,
+//   Text,
+//   TextInput,
+//   View,
+// } from "react-native";
+// import { SafeAreaView } from "react-native-safe-area-context";
+
+// export default function OnboardingScreen() {
+//   const { profileId, setHasCompletedOnboarding } = useAuthStore();
+//   const router = useRouter();
+
+//   const [nickname, setNickname] = useState("");
+//   const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
+//   const [loading, setLoading] = useState(false);
+
+//   const handleCheckNickname = async () => {
+//     const trimmed = nickname.trim();
+//     if (!trimmed) return;
+
+//     setStatus("checking");
+//     try {
+//       const isAvailable = await checkNicknameAvailability(trimmed);
+//       setStatus(isAvailable ? "available" : "unavailable");
+//     } catch (error) {
+//       console.error("닉네임 중복 확인 실패:", error);
+//       setStatus("idle");
+//     }
+//   };
+
+//   const handleComplete = async () => {
+//     if (status !== "available") {
+//       Alert.alert("알림", "닉네임 중복 확인을 먼저 완료해주세요.");
+//       return;
+//     }
+//     if (!profileId) return;
+
+//     setLoading(true);
+//     try {
+//       const trimmed = nickname.trim();
+//       await updateProfile(profileId, {
+//         nickname: trimmed,
+//         has_completed_onboarding: true
+//       });
+
+//       setHasCompletedOnboarding(true);
+//       router.replace("/(tabs)");
+//     } catch (error) {
+//       Alert.alert("오류", "닉네임 저장 중 오류가 발생했습니다.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const isCheckDisabled = !nickname.trim() || status === "checking";
+
+//   return (
+//     <SafeAreaView style={commonStyles.container}>
+//       <KeyboardAvoidingView
+//         behavior={Platform.OS === "ios" ? "padding" : "height"}
+//         style={{ flex: 1 }}
+//       >
+//         <View style={styles.content}>
+//           {/* 헤더 */}
+//           <View style={styles.header}>
+//             <Text style={styles.title}>디어데이에 오신 걸{'\n'}환영해요!</Text>
+//             <Text style={styles.subtitle}>사용할 닉네임을 입력해주세요</Text>
+//           </View>
+
+//           {/* 닉네임 입력 */}
+//           <View style={styles.inputSection}>
+//             <Text style={styles.label}>닉네임</Text>
+//             <View style={styles.inputRow}>
+//               <TextInput
+//                 style={[
+//                   styles.input,
+//                   status === "available" && { borderColor: "#5B8DEF" },
+//                   status === "unavailable" && { borderColor: "#FF5A5A" },
+//                 ]}
+//                 value={nickname}
+//                 onChangeText={(t) => {
+//                   setNickname(t);
+//                   setStatus("idle");
+//                 }}
+//                 placeholder="닉네임을 입력해주세요"
+//                 placeholderTextColor="#C3C3C3"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 returnKeyType="done"
+//               />
+//               <Pressable
+//                 onPress={handleCheckNickname}
+//                 disabled={isCheckDisabled}
+//                 style={[
+//                   styles.checkBtn,
+//                   isCheckDisabled ? styles.checkBtnDisabled : styles.checkBtnEnabled,
+//                 ]}
+//               >
+//                 {status === "checking" ? (
+//                   <ActivityIndicator size="small" color="#5B8DEF" />
+//                 ) : (
+//                   <Text
+//                     style={[
+//                       styles.checkBtnText,
+//                       isCheckDisabled ? { color: "#A3AAB8" } : { color: "#5B8DEF" },
+//                     ]}
+//                   >
+//                     중복확인
+//                   </Text>
+//                 )}
+//               </Pressable>
+//             </View>
+
+//             {status === "available" && (
+//               <Text style={styles.helperSuccess}>사용 가능한 닉네임이에요!</Text>
+//             )}
+//             {status === "unavailable" && (
+//               <Text style={styles.helperError}>이미 사용 중인 닉네임이에요.</Text>
+//             )}
+//           </View>
+//         </View>
+
+//         {/* 하단 버튼 */}
+//         <View style={styles.footer}>
+//           <Pressable
+//             onPress={handleComplete}
+//             disabled={status !== "available" || loading}
+//             style={[
+//               styles.completeBtn,
+//               (status !== "available" || loading) && styles.completeBtnDisabled,
+//             ]}
+//           >
+//             {loading ? (
+//               <ActivityIndicator size="small" color="#FFFFFF" />
+//             ) : (
+//               <Text style={styles.completeBtnText}>시작하기</Text>
+//             )}
+//           </Pressable>
+//         </View>
+//       </KeyboardAvoidingView>
+//     </SafeAreaView>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   content: {
+//     flex: 1,
+//     paddingHorizontal: 24,
+//     paddingTop: 40,
+//   },
+//   header: {
+//     marginBottom: 48,
+//   },
+//   title: {
+//     fontFamily: "Pretendard-Bold",
+//     fontSize: 24,
+//     lineHeight: 34,
+//     color: "#0F172A",
+//     marginBottom: 12,
+//   },
+//   subtitle: {
+//     fontFamily: "Pretendard-Regular",
+//     fontSize: 16,
+//     color: "#64748B",
+//   },
+//   inputSection: {
+//     marginBottom: 24,
+//   },
+//   label: {
+//     fontFamily: "Pretendard-Medium",
+//     fontSize: 14,
+//     color: "#0F172A",
+//     marginBottom: 8,
+//   },
+//   inputRow: {
+//     flexDirection: "row",
+//     gap: 8,
+//     alignItems: "center",
+//   },
+//   input: {
+//     fontFamily: "Pretendard-Regular",
+//     flex: 1,
+//     height: 52,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     borderColor: "#E2E8F0",
+//     paddingHorizontal: 16,
+//     backgroundColor: "#FFFFFF",
+//     fontSize: 16,
+//     color: "#0F172A",
+//   },
+//   checkBtn: {
+//     height: 52,
+//     paddingHorizontal: 16,
+//     borderRadius: 12,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     minWidth: 90,
+//   },
+//   checkBtnEnabled: {
+//     backgroundColor: "#EFF3FF",
+//   },
+//   checkBtnDisabled: {
+//     backgroundColor: "#F7F7F7",
+//   },
+//   checkBtnText: {
+//     fontFamily: "Pretendard-SemiBold",
+//     fontSize: 15,
+//   },
+//   helperSuccess: {
+//     fontFamily: "Pretendard-Regular",
+//     marginTop: 8,
+//     fontSize: 13,
+//     color: "#5B8DEF",
+//   },
+//   helperError: {
+//     fontFamily: "Pretendard-Regular",
+//     marginTop: 8,
+//     fontSize: 13,
+//     color: "#FF5A5A",
+//   },
+//   footer: {
+//     paddingHorizontal: 24,
+//     paddingBottom: 24,
+//   },
+//   completeBtn: {
+//     height: 56,
+//     borderRadius: 12,
+//     backgroundColor: "#5B8DEF",
+//     alignItems: "center",
+//     justifyContent: "center",
+//   },
+//   completeBtnDisabled: {
+//     backgroundColor: "#E2E8F0",
+//   },
+//   completeBtnText: {
+//     fontFamily: "Pretendard-SemiBold",
+//     fontSize: 17,
+//     color: "#FFFFFF",
+//   },
+// });
+
 import { commonStyles } from "@/styles/common";
-import { useAuthStore } from "@/utils/authStore";
+import { checkNicknameAvailability } from "@/utils/api/profiles";
+import { useOnboardingStore } from "@/utils/onboardingStore";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,12 +271,25 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function OnboardingScreen() {
-  const { profileId, setHasCompletedOnboarding } = useAuthStore();
   const router = useRouter();
+  const { setNickname: saveNickname, setAvatarUri } = useOnboardingStore();
 
   const [nickname, setNickname] = useState("");
   const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
-  const [loading, setLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
 
   const handleCheckNickname = async () => {
     const trimmed = nickname.trim();
@@ -38,31 +305,18 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleComplete = async () => {
-    if (status !== "available") {
-      Alert.alert("알림", "닉네임 중복 확인을 먼저 완료해주세요.");
-      return;
-    }
-    if (!profileId) return;
+  const handleNext = () => {
+    if (status !== "available") return;
 
-    setLoading(true);
-    try {
-      const trimmed = nickname.trim();
-      await updateProfile(profileId, {
-        nickname: trimmed,
-        has_completed_onboarding: true
-      });
+    // zustand에 임시 저장 (DB 안 건드림)
+    saveNickname(nickname.trim());
+    setAvatarUri(profileImage);
 
-      setHasCompletedOnboarding(true);
-      router.replace("/(tabs)");
-    } catch (error) {
-      Alert.alert("오류", "닉네임 저장 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-    }
+    router.push("/onboarding/step1");
   };
 
   const isCheckDisabled = !nickname.trim() || status === "checking";
+  const isNextDisabled = status !== "available";
 
   return (
     <SafeAreaView style={commonStyles.container}>
@@ -71,15 +325,33 @@ export default function OnboardingScreen() {
         style={{ flex: 1 }}
       >
         <View style={styles.content}>
+          {/* 프로그레스 바 */}
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: "50%" }]} />
+          </View>
+
           {/* 헤더 */}
           <View style={styles.header}>
-            <Text style={styles.title}>디어데이에 오신 걸{'\n'}환영해요!</Text>
-            <Text style={styles.subtitle}>사용할 닉네임을 입력해주세요</Text>
+            <Text style={styles.title}>
+              디어데이에 오신 걸 환영해요.{"\n"}사용할 프로필을 설정해주세요!
+            </Text>
+            <Text style={styles.subtitle}>나중에 다시 바꿀 수 있어요.</Text>
           </View>
+
+          {/* 프로필 이미지 */}
+          <Pressable onPress={handlePickImage} style={styles.imageWrapper}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.profilePlaceholder} />
+            )}
+            <View style={styles.cameraIcon}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </View>
+          </Pressable>
 
           {/* 닉네임 입력 */}
           <View style={styles.inputSection}>
-            <Text style={styles.label}>닉네임</Text>
             <View style={styles.inputRow}>
               <TextInput
                 style={[
@@ -103,7 +375,11 @@ export default function OnboardingScreen() {
                 disabled={isCheckDisabled}
                 style={[
                   styles.checkBtn,
-                  isCheckDisabled ? styles.checkBtnDisabled : styles.checkBtnEnabled,
+                  status === "available"
+                    ? styles.checkBtnActive
+                    : isCheckDisabled
+                    ? styles.checkBtnDisabled
+                    : styles.checkBtnEnabled,
                 ]}
               >
                 {status === "checking" ? (
@@ -112,7 +388,11 @@ export default function OnboardingScreen() {
                   <Text
                     style={[
                       styles.checkBtnText,
-                      isCheckDisabled ? { color: "#A3AAB8" } : { color: "#5B8DEF" },
+                      status === "available"
+                        ? { color: "#FFFFFF" }
+                        : isCheckDisabled
+                        ? { color: "#C3C3C3" }
+                        : { color: "#5B8DEF" },
                     ]}
                   >
                     중복확인
@@ -133,18 +413,21 @@ export default function OnboardingScreen() {
         {/* 하단 버튼 */}
         <View style={styles.footer}>
           <Pressable
-            onPress={handleComplete}
-            disabled={status !== "available" || loading}
+            onPress={handleNext}
+            disabled={isNextDisabled}
             style={[
-              styles.completeBtn,
-              (status !== "available" || loading) && styles.completeBtnDisabled,
+              styles.nextBtn,
+              isNextDisabled && styles.nextBtnDisabled,
             ]}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.completeBtnText}>시작하기</Text>
-            )}
+            <Text
+              style={[
+                styles.nextBtnText,
+                isNextDisabled && { color: "#C3C3C3" },
+              ]}
+            >
+              다음
+            </Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -155,32 +438,67 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingHorizontal: 21,
+    paddingTop: 16,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 2,
+    marginBottom: 32,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#5B8DEF",
+    borderRadius: 2,
   },
   header: {
-    marginBottom: 48,
+    marginBottom: 32,
   },
   title: {
-    fontFamily: "Pretendard-Bold",
-    fontSize: 24,
-    lineHeight: 34,
+    fontFamily: "Pretendard",
+    fontSize: 20,
+    lineHeight: 28,
+    fontStyle: "normal",
+    fontWeight: 700,
     color: "#0F172A",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subtitle: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 16,
-    color: "#64748B",
+    fontSize: 15,
+    color: "#929292",
+  },
+  imageWrapper: {
+    alignSelf: "center",
+    marginBottom: 32,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  profilePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#E2E8F0",
+  },
+  cameraIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#5B8DEF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   inputSection: {
     marginBottom: 24,
-  },
-  label: {
-    fontFamily: "Pretendard-Medium",
-    fontSize: 14,
-    color: "#0F172A",
-    marginBottom: 8,
   },
   inputRow: {
     flexDirection: "row",
@@ -196,7 +514,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     paddingHorizontal: 16,
     backgroundColor: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 15,
     color: "#0F172A",
   },
   checkBtn: {
@@ -211,7 +529,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF3FF",
   },
   checkBtnDisabled: {
-    backgroundColor: "#F7F7F7",
+    backgroundColor: "#F2F2F2",
+  },
+  checkBtnActive: {
+    backgroundColor: "#5B8DEF",
   },
   checkBtnText: {
     fontFamily: "Pretendard-SemiBold",
@@ -231,20 +552,19 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
   },
-  completeBtn: {
+  nextBtn: {
     height: 56,
     borderRadius: 12,
     backgroundColor: "#5B8DEF",
     alignItems: "center",
     justifyContent: "center",
   },
-  completeBtnDisabled: {
-    backgroundColor: "#E2E8F0",
+  nextBtnDisabled: {
+    backgroundColor: "#F2F2F2",
   },
-  completeBtnText: {
-    fontFamily: "Pretendard-SemiBold",
+  nextBtnText: {
+    fontFamily: "Pretendard",
     fontSize: 17,
     color: "#FFFFFF",
   },
