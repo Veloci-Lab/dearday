@@ -177,7 +177,7 @@ const calculateDaysSince = (startDate: string): number => {
   return diffDays + 1;
 };
 
-const DDLogo = require("@/assets/images/backgrounds/DD_기본.png");
+const DDLogo = require("@/assets/images/DD/DD_기본.png");
 
 /* ------ 헤더 ------- */
 function HomeHeader({ hasUnread }: { hasUnread: boolean }) {

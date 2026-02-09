@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
-const DDSleep = require("@/assets/images/backgrounds/DD_잠.png");
+const DDSleep = require("@/assets/images/DD/DD_잠.png");
 
 /* ====== SVG 아이콘 ====== */
 const SearchIcon = () => (

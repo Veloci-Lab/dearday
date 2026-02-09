@@ -134,9 +134,9 @@ const LockIcon = () => (
   </Svg>
 );
 
-const DDLogo = require("@/assets/images/backgrounds/DD_쭈글_블러.png");
-const DDSurprised = require("@/assets/images/backgrounds/DD_놀람.png");
-const DDSleep = require("@/assets/images/backgrounds/DD_잠.png");
+const DDLogo = require("@/assets/images/DD/DD_쭈글_블러.png");
+const DDSurprised = require("@/assets/images/DD/DD_놀람.png");
+const DDSleep = require("@/assets/images/DD/DD_잠.png");
 
 /* ====== 피드 끝 표시 ====== */
 function EndOfFeed() {
