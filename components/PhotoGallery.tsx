@@ -49,7 +49,7 @@ export default function PhotoGallery() {
             memo,
             created_at,
             categories (name)
-          `
+          `,
           )
           .eq("profile_id", profileId)
           .order("created_at", { ascending: false });
@@ -70,7 +70,9 @@ export default function PhotoGallery() {
       } catch (err) {
         console.error("Error fetching photos:", err);
         setError(
-          err instanceof Error ? err.message : "사진을 불러오는데 실패했습니다."
+          err instanceof Error
+            ? err.message
+            : "사진을 불러오는데 실패했습니다.",
         );
       } finally {
         setLoading(false);
@@ -89,7 +91,7 @@ export default function PhotoGallery() {
         dateISO: p.category || "", // 카테고리를 dateISO 자리에 표시
         place: p.isRecorded ? "기록" : "", // 기록 여부 표시
       })),
-    [photos]
+    [photos],
   );
 
   const handlePressItem = (item: FeedItem) => {
@@ -125,7 +127,7 @@ export default function PhotoGallery() {
   if (photos.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ color: "#8E8E93", fontSize: 16 }}>
+        <Text style={{ color: "#626262", fontSize: 15, textAlign: "center" }}>
           아직 사진이 없어요
         </Text>
       </View>

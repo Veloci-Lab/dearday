@@ -18,6 +18,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
+const DDSleep = require("@/assets/images/backgrounds/DD_잠.png");
+
 /* ====== SVG 아이콘 ====== */
 const SearchIcon = () => (
   <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
@@ -588,7 +590,8 @@ export default function FriendsScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>아직 친구가 없어요</Text>
+            <Text style={styles.emptyText}>아직 친구가 없어요.</Text>
+            <Image source={DDSleep} style={styles.emptyImage} />
           </View>
         }
       />
@@ -789,13 +792,21 @@ const styles = StyleSheet.create({
   /* 빈 상태 */
   emptyContainer: {
     alignItems: "center",
-    paddingTop: 40,
+    paddingTop: 110,
+    gap: 26,
   },
   emptyText: {
     fontFamily: "Pretendard",
     fontSize: 15,
+    fontWeight: "400",
     lineHeight: 20,
-    color: "#A0A0A0",
+    letterSpacing: -0.51,
+    color: "#626262",
+    textAlign: "center",
+  },
+  emptyImage: {
+    width: 118,
+    height: 118,
   },
 
   /* ====== 팝업 ====== */

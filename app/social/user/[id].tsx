@@ -20,6 +20,19 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+const DDSurprised = require("@/assets/images/backgrounds/DD_놀람.png");
+const DDBored = require("@/assets/images/backgrounds/DD_지루.png");
+
+/* ====== 피드 끝 표시 ====== */
+function EndOfFeed() {
+  return (
+    <View style={styles.endOfFeedContainer}>
+      <Text style={styles.endOfFeedText}>끝까지 오실 줄은 몰랐어요!</Text>
+      <Image source={DDSurprised} style={styles.endOfFeedImage} />
+    </View>
+  );
+}
+
 /* ====== 탭 옵션 ====== */
 const TAB_OPTIONS = [
   { key: "grid", label: "그리드" },
@@ -349,9 +362,8 @@ export default function UserFeedScreen() {
                 <PhotoGrid photos={photos} />
               ) : (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    아직 공개된 사진이 없어요
-                  </Text>
+                  <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
+                  <Image source={DDBored} style={styles.emptyImage} />
                 </View>
               )}
             </>
@@ -359,19 +371,14 @@ export default function UserFeedScreen() {
 
           {activeTab === "question" && (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>아직 공개된 질문이 없어요</Text>
+              <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
+              <Image source={DDBored} style={styles.emptyImage} />
             </View>
           )}
         </View>
 
-        {/* 캐릭터 이미지 */}
-        <View style={styles.characterContainer}>
-          <Image
-            source={require("@/assets/images/icons/character.png")}
-            style={styles.characterImage}
-            resizeMode="contain"
-          />
-        </View>
+        {/* 피드 끝 표시 - 사진이 있을 때만 */}
+        {activeTab === "grid" && photos.length > 0 && <EndOfFeed />}
       </ScrollView>
     </View>
   );
@@ -413,19 +420,38 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: "center",
     paddingTop: 80,
+    gap: 26,
   },
   emptyText: {
     fontFamily: "Pretendard",
-    fontSize: 15,
+    fontSize: 17,
+    fontWeight: "400",
     lineHeight: 20,
-    color: "#A0A0A0",
+    letterSpacing: -0.51,
+    color: "#929292",
+    textAlign: "center",
   },
-  characterContainer: {
+  emptyImage: {
+    width: 120,
+    height: 120,
+  },
+  endOfFeedContainer: {
     alignItems: "center",
-    marginTop: 71,
-    marginBottom: 71,
+    paddingTop: 80,
+    paddingBottom: 80,
+    gap: 16,
   },
-  characterImage: {
-    height: 95,
+  endOfFeedText: {
+    fontFamily: "Pretendard",
+    fontSize: 15,
+    fontWeight: "400",
+    lineHeight: 20,
+    letterSpacing: -0.51,
+    color: "#626262",
+    textAlign: "center",
+  },
+  endOfFeedImage: {
+    width: 118,
+    height: 118,
   },
 });
