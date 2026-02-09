@@ -20,8 +20,8 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-const DDSurprised = require("@/assets/images/backgrounds/DD_놀람.png");
-const DDBored = require("@/assets/images/backgrounds/DD_지루.png");
+const DDSurprised = require("@/assets/images/DD/DD_놀람.png");
+const DDBored = require("@/assets/images/DD/DD_지루.png");
 
 /* ====== 피드 끝 표시 ====== */
 function EndOfFeed() {
