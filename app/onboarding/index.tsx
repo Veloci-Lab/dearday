@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontFamily: "Pretendard",
+    fontFamily: "Pretendard-Bold",
     fontSize: 20,
     lineHeight: 28,
     fontStyle: "normal",
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F2F2",
   },
   nextBtnText: {
-    fontFamily: "Pretendard",
+    fontFamily: "Pretendard-Regular",
     fontSize: 17,
     color: "#FFFFFF",
   },
