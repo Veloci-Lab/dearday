@@ -674,6 +674,7 @@ const styles = StyleSheet.create({
 
   emptyText: {
     marginTop: 16,
+    fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#626262",
     fontWeight: "400",
