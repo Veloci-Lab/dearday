@@ -257,7 +257,7 @@ function EmptyNotifications() {
       <View style={styles.centerBlock}>
         <Text style={styles.emptyText}>알림을 기다리고 있어요.</Text>
         <Image
-          source={require("../assets/images/icons/character.png")}
+          source={require("../assets/images/main_character/ver_sad.png")}
           style={styles.character}
         />
       </View>
@@ -667,17 +667,19 @@ const styles = StyleSheet.create({
   },
 
   character: {
-    width: 96,
-    height: 96,
+    width: 118,
+    height: 118,
+    marginTop: 26,
   },
 
   emptyText: {
     marginTop: 16,
+    fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#626262",
     fontWeight: "400",
     lineHeight: 20,
-    marginBottom: 16,
+    letterSpacing: -0.45,
   },
   unreadDot: {
     position: "absolute",
