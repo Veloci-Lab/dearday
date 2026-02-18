@@ -1,9 +1,12 @@
+import EmojiPickerSheet, { EmojiOption } from "@/components/EmojiPickerSheet";
 import FeedCard, { FeedCardData } from "@/components/FeedCard";
 import { supabase } from "@/utils/supabase";
+import BottomSheet from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 
@@ -114,7 +117,39 @@ export default function FeedScreen() {
   const [feedCards, setFeedCards] = useState<FeedCardData[]>([]);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
+  const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
 
+  // BottomSheet ref
+  const emojiSheetRef = useRef<BottomSheet>(null);
+
+  // 이모지 추가 버튼 핸들러
+  const handlePressAddReaction = useCallback((answerId: number) => {
+    setSelectedAnswerId(answerId);
+    emojiSheetRef.current?.expand();
+  }, []);
+
+  // 이모지 선택 핸들러
+  const handleSelectEmoji = useCallback(
+    async (emoji: EmojiOption) => {
+      if (!selectedAnswerId || !myProfileId) {
+        console.log("선택된 답변 또는 프로필 ID 없음");
+        emojiSheetRef.current?.close();
+        return;
+      }
+
+      try {
+        // TODO: 실제 리액션 추가 로직 구현
+        console.log(
+          `이모지 추가: answerId=${selectedAnswerId}, emoji=${emoji.emoji}`,
+        );
+
+        emojiSheetRef.current?.close();
+      } catch (error) {
+        console.error("리액션 추가 오류:", error);
+      }
+    },
+    [selectedAnswerId, myProfileId],
+  );
   useEffect(() => {
     // params에서 질문 텍스트가 있으면 사용
     if (params.questionText) {
@@ -250,7 +285,7 @@ export default function FeedScreen() {
   const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       {/* 헤더 */}
       <View
@@ -297,6 +332,7 @@ export default function FeedScreen() {
                 },
               });
             }}
+            onPressAddReaction={() => handlePressAddReaction(card.id)}
           />
         ))}
       </ScrollView>
@@ -305,7 +341,14 @@ export default function FeedScreen() {
       <View style={[styles.questionArea, { top: HEADER_HEIGHT }]}>
         {date && question && <QuestionPill date={date} question={question} />}
       </View>
-    </View>
+
+      {/* 이모지 피커 BottomSheet */}
+      <EmojiPickerSheet
+        ref={emojiSheetRef}
+        onSelectEmoji={handleSelectEmoji}
+        onClose={() => setSelectedAnswerId(null)}
+      />
+    </GestureHandlerRootView>
   );
 }
 

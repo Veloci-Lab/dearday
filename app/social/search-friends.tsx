@@ -136,10 +136,12 @@ function SearchResultItem({
   profile,
   status,
   onRequest,
+  onProfilePress,
 }: {
   profile: SearchResult;
   status: RequestStatus;
   onRequest: (profile: SearchResult) => void;
+  onProfilePress: (profile: SearchResult) => void;
 }) {
   const isDisabled = status !== "none";
 
@@ -164,7 +166,10 @@ function SearchResultItem({
   })();
 
   return (
-    <View style={styles.resultItem}>
+    <Pressable
+      style={styles.resultItem}
+      onPress={() => onProfilePress(profile)}
+    >
       <View style={styles.resultInfo}>
         <View style={styles.avatarPlaceholder}>
           {profile.avatar_url ? (
@@ -183,7 +188,7 @@ function SearchResultItem({
       >
         <Text style={textStyle}>{label}</Text>
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -436,6 +441,15 @@ export default function SearchFriendsScreen() {
               profile={item}
               status={relationMap[item.profile_id] ?? "none"}
               onRequest={handleRequestPress}
+              onProfilePress={(profile) => {
+                router.push({
+                  pathname: "/social/user/[id]",
+                  params: {
+                    id: String(profile.profile_id),
+                    nickname: profile.nickname,
+                  },
+                });
+              }}
             />
           )}
           ListEmptyComponent={
