@@ -1,6 +1,7 @@
 import PhotoGrid, { PhotoGridItem } from "@/components/PhotoGrid";
 import Toggle from "@/components/Toggle";
 import { supabase } from "@/utils/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,6 +29,7 @@ import Svg, { Path, Rect } from "react-native-svg";
 /* ====== 상수 ====== */
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SEEN_FRIENDS_KEY = "@seen_friend_ids";
 
 // 앱 출시일 (어제 날짜)
 const getAppLaunchDate = (): Date => {
@@ -278,10 +280,22 @@ interface DayScrollerProps {
   days: Date[];
   selectedDate: Date;
   onSelectDate: (d: Date) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  canGoNext: boolean;
 }
 
-function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
+function DayScroller({
+  days,
+  selectedDate,
+  onSelectDate,
+  onPrevMonth,
+  onNextMonth,
+  canGoNext,
+}: DayScrollerProps) {
   const flatListRef = useRef<FlatList>(null);
+  const contentWidthRef = useRef(0);
+  const layoutWidthRef = useRef(0);
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -307,6 +321,28 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
     return normalized < APP_LAUNCH_DATE || normalized > today;
   };
 
+  // 스크롤 드래그 종료 시 경계 감지 (오버스크롤 거리 기준)
+  const handleScrollEndDrag = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const offsetX = contentOffset.x;
+    const maxOffsetX = contentSize.width - layoutMeasurement.width;
+
+    // 오버스크롤 임계값 (50px 이상 당기면 월 변경)
+    const THRESHOLD = 50;
+
+    // 왼쪽으로 오버스크롤 (음수 offset = 이전 달로)
+    if (offsetX < -THRESHOLD) {
+      onPrevMonth();
+      return;
+    }
+
+    // 오른쪽으로 오버스크롤 (최대값 초과 = 다음 달로)
+    if (offsetX > maxOffsetX + THRESHOLD && canGoNext) {
+      onNextMonth();
+      return;
+    }
+  };
+
   return (
     <FlatList
       ref={flatListRef}
@@ -321,6 +357,8 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
         offset: (69 + 7) * index,
         index,
       })}
+      onScrollEndDrag={handleScrollEndDrag}
+      scrollEventThrottle={16}
       onScrollToIndexFailed={(info) => {
         flatListRef.current?.scrollToOffset({
           offset: info.averageItemLength * info.index,
@@ -389,6 +427,59 @@ export default function SocialScreen() {
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
+  const [hasFriendNotification, setHasFriendNotification] = useState(false);
+  const [shuffleKey, setShuffleKey] = useState(0); // 그리드 랜덤 재배치용
+
+  // 친구 알림 확인 함수 (pending 요청 + 새 친구)
+  const checkFriendNotification = async (profileId: number) => {
+    try {
+      // 1. pending 친구 요청 확인 (내가 받은 요청)
+      const { data: pendingRequests } = await supabase
+        .from("follows")
+        .select("follower_profile_id")
+        .eq("followee_profile_id", profileId)
+        .eq("status", "pending");
+
+      if ((pendingRequests?.length ?? 0) > 0) {
+        setHasFriendNotification(true);
+        return;
+      }
+
+      // 2. 새 친구 확인 (공개 계정에서 나를 팔로우한 사람 중 아직 안 본 사람)
+      const { data: asFollowee } = await supabase
+        .from("follows")
+        .select("follower_profile_id")
+        .eq("followee_profile_id", profileId)
+        .eq("status", "accepted");
+
+      if (asFollowee && asFollowee.length > 0) {
+        // 저장된 "본" 친구 ID 목록 가져오기
+        let seenFriendIds: Set<number> = new Set();
+        try {
+          const stored = await AsyncStorage.getItem(SEEN_FRIENDS_KEY);
+          if (stored) {
+            seenFriendIds = new Set(JSON.parse(stored));
+          }
+        } catch (e) {
+          console.error("AsyncStorage 읽기 오류:", e);
+        }
+
+        // 안 본 친구가 있는지 확인
+        const hasNewFriend = asFollowee.some(
+          (r: any) => !seenFriendIds.has(r.follower_profile_id),
+        );
+
+        if (hasNewFriend) {
+          setHasFriendNotification(true);
+          return;
+        }
+      }
+
+      setHasFriendNotification(false);
+    } catch (error) {
+      console.error("친구 알림 확인 오류:", error);
+    }
+  };
 
   // 내 프로필 + 친구 목록 로드
   useEffect(() => {
@@ -428,6 +519,9 @@ export default function SocialScreen() {
         asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
 
         setFriendProfileIds([...friendIds]);
+
+        // 친구 알림 확인 (pending + 새 친구)
+        await checkFriendNotification(profileId);
       } catch (error) {
         console.error("프로필/친구 로드 오류:", error);
       }
@@ -466,6 +560,12 @@ export default function SocialScreen() {
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
+    setShuffleKey((k) => k + 1); // 날짜 변경 시 그리드 재배치
+  };
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key as TabType);
+    setShuffleKey((k) => k + 1); // 탭 변경 시 그리드 재배치
   };
 
   useEffect(() => {
@@ -509,10 +609,17 @@ export default function SocialScreen() {
       const dateStr = toDateString(selectedDate);
 
       try {
-        // 모든 사용자의 사진
+        // 모든 사용자의 사진 (프로필 정보 포함)
         const { data: allPhotos, error } = await supabase
           .from("answers")
-          .select("answer_id, owner_profile_id, photo_url")
+          .select(
+            `
+            answer_id, 
+            owner_profile_id, 
+            photo_url,
+            profiles:owner_profile_id (is_public)
+          `,
+          )
           .eq("question_date", dateStr)
           .not("photo_url", "is", null)
           .is("deleted_at", null)
@@ -523,10 +630,11 @@ export default function SocialScreen() {
             id: item.answer_id,
             image_url: item.photo_url,
             user_id: String(item.owner_profile_id),
+            is_public: item.profiles?.is_public ?? false,
           }));
 
-          // 소셜 탭: 전체
-          setSocialPhotos(mapped);
+          // 소셜 탭: 공개 계정만
+          setSocialPhotos(mapped.filter((p) => p.is_public === true));
 
           // 친구 탭: 친구의 사진만
           if (friendProfileIds.length > 0) {
@@ -596,6 +704,9 @@ export default function SocialScreen() {
       asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
       asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
       setFriendProfileIds([...friendIds]);
+
+      // 친구 알림 확인 (pending + 새 친구)
+      await checkFriendNotification(myProfileId);
     } catch (error) {
       console.error("친구 목록 새로고침 오류:", error);
     }
@@ -658,6 +769,9 @@ export default function SocialScreen() {
           days={daysInMonth}
           selectedDate={selectedDate}
           onSelectDate={handleSelectDate}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
+          canGoNext={canGoNext}
         />
 
         <QuestionDisplay
@@ -671,13 +785,15 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <View style={styles.photoGridContainer}>
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
+                randomize
+                shuffleKey={shuffleKey}
               />
             </View>
             <LockedOverlay />
@@ -688,13 +804,15 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <View style={styles.photoGridContainer}>
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
+                randomize
+                shuffleKey={shuffleKey}
               />
             </View>
             <EndOfFeed />
@@ -705,7 +823,7 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <EmptyFriends />
@@ -716,13 +834,15 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <View style={styles.photoGridContainer}>
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
+                randomize
+                shuffleKey={shuffleKey}
               />
             </View>
           </>
@@ -746,7 +866,7 @@ export default function SocialScreen() {
             style={styles.headerIconWrapper}
             onPress={() => router.push("/social/friends")}
           >
-            <PersonIcon hasNotification={false} />
+            <PersonIcon hasNotification={hasFriendNotification} />
           </Pressable>
         </View>
       </Animated.View>

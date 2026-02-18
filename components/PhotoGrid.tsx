@@ -8,11 +8,14 @@ export interface PhotoGridItem {
   user_id?: string;
   username?: string;
   profile_image_url?: string;
+  is_public?: boolean;
 }
 
 interface PhotoGridProps {
   photos: PhotoGridItem[];
   onPressPhoto?: (photo: PhotoGridItem) => void;
+  randomize?: boolean; // 랜덤 패턴 & 순서 섞기 활성화
+  shuffleKey?: number; // 변경 시 재섞기 트리거
 }
 
 /* ====== 레이아웃 상수 ====== */
@@ -183,27 +186,58 @@ const PATTERN_ORDER: PatternType[] = [
   "three_equal",
 ];
 
-export default function PhotoGrid({ photos, onPressPhoto }: PhotoGridProps) {
+const ALL_PATTERNS: PatternType[] = [
+  "large_left",
+  "three_equal",
+  "large_right",
+];
+
+// 배열 섞기 (Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// 랜덤 패턴 선택
+function getRandomPattern(): PatternType {
+  return ALL_PATTERNS[Math.floor(Math.random() * ALL_PATTERNS.length)];
+}
+
+export default function PhotoGrid({
+  photos,
+  onPressPhoto,
+  randomize = false,
+  shuffleKey = 0,
+}: PhotoGridProps) {
   // 사진을 3개씩 묶어서 패턴에 할당
   const rows = useMemo(() => {
+    // 랜덤 모드면 사진 순서 섞기
+    const photoList = randomize ? shuffleArray(photos) : photos;
+
     const result: { pattern: PatternType; photos: PhotoGridItem[] }[] = [];
     let patternIdx = 0;
 
-    for (let i = 0; i + 2 < photos.length; i += 3) {
-      const chunk = photos.slice(i, i + 3);
+    for (let i = 0; i + 2 < photoList.length; i += 3) {
+      const chunk = photoList.slice(i, i + 3);
       if (chunk.length < 3) break;
 
       result.push({
-        pattern: PATTERN_ORDER[patternIdx % PATTERN_ORDER.length],
+        pattern: randomize
+          ? getRandomPattern()
+          : PATTERN_ORDER[patternIdx % PATTERN_ORDER.length],
         photos: chunk,
       });
       patternIdx++;
     }
 
     // 남은 사진이 있으면 마지막 행에 추가 (1~2개)
-    const remaining = photos.length % 3;
+    const remaining = photoList.length % 3;
     if (remaining > 0) {
-      const leftover = photos.slice(photos.length - remaining);
+      const leftover = photoList.slice(photoList.length - remaining);
       result.push({
         pattern: "three_equal",
         photos: leftover,
@@ -211,7 +245,7 @@ export default function PhotoGrid({ photos, onPressPhoto }: PhotoGridProps) {
     }
 
     return result;
-  }, [photos]);
+  }, [photos, randomize, shuffleKey]);
 
   if (photos.length === 0) return null;
 
