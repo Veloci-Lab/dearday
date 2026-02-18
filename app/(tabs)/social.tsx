@@ -280,10 +280,22 @@ interface DayScrollerProps {
   days: Date[];
   selectedDate: Date;
   onSelectDate: (d: Date) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  canGoNext: boolean;
 }
 
-function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
+function DayScroller({
+  days,
+  selectedDate,
+  onSelectDate,
+  onPrevMonth,
+  onNextMonth,
+  canGoNext,
+}: DayScrollerProps) {
   const flatListRef = useRef<FlatList>(null);
+  const contentWidthRef = useRef(0);
+  const layoutWidthRef = useRef(0);
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -309,6 +321,28 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
     return normalized < APP_LAUNCH_DATE || normalized > today;
   };
 
+  // 스크롤 드래그 종료 시 경계 감지 (오버스크롤 거리 기준)
+  const handleScrollEndDrag = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const offsetX = contentOffset.x;
+    const maxOffsetX = contentSize.width - layoutMeasurement.width;
+
+    // 오버스크롤 임계값 (50px 이상 당기면 월 변경)
+    const THRESHOLD = 50;
+
+    // 왼쪽으로 오버스크롤 (음수 offset = 이전 달로)
+    if (offsetX < -THRESHOLD) {
+      onPrevMonth();
+      return;
+    }
+
+    // 오른쪽으로 오버스크롤 (최대값 초과 = 다음 달로)
+    if (offsetX > maxOffsetX + THRESHOLD && canGoNext) {
+      onNextMonth();
+      return;
+    }
+  };
+
   return (
     <FlatList
       ref={flatListRef}
@@ -323,6 +357,8 @@ function DayScroller({ days, selectedDate, onSelectDate }: DayScrollerProps) {
         offset: (69 + 7) * index,
         index,
       })}
+      onScrollEndDrag={handleScrollEndDrag}
+      scrollEventThrottle={16}
       onScrollToIndexFailed={(info) => {
         flatListRef.current?.scrollToOffset({
           offset: info.averageItemLength * info.index,
@@ -726,6 +762,9 @@ export default function SocialScreen() {
           days={daysInMonth}
           selectedDate={selectedDate}
           onSelectDate={handleSelectDate}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
+          canGoNext={canGoNext}
         />
 
         <QuestionDisplay
