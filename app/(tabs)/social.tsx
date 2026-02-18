@@ -1,6 +1,7 @@
 import PhotoGrid, { PhotoGridItem } from "@/components/PhotoGrid";
 import Toggle from "@/components/Toggle";
 import { supabase } from "@/utils/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,6 +29,7 @@ import Svg, { Path, Rect } from "react-native-svg";
 /* ====== 상수 ====== */
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SEEN_FRIENDS_KEY = "@seen_friend_ids";
 
 // 앱 출시일 (어제 날짜)
 const getAppLaunchDate = (): Date => {
@@ -389,6 +391,58 @@ export default function SocialScreen() {
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
+  const [hasFriendNotification, setHasFriendNotification] = useState(false);
+
+  // 친구 알림 확인 함수 (pending 요청 + 새 친구)
+  const checkFriendNotification = async (profileId: number) => {
+    try {
+      // 1. pending 친구 요청 확인 (내가 받은 요청)
+      const { data: pendingRequests } = await supabase
+        .from("follows")
+        .select("follower_profile_id")
+        .eq("followee_profile_id", profileId)
+        .eq("status", "pending");
+
+      if ((pendingRequests?.length ?? 0) > 0) {
+        setHasFriendNotification(true);
+        return;
+      }
+
+      // 2. 새 친구 확인 (공개 계정에서 나를 팔로우한 사람 중 아직 안 본 사람)
+      const { data: asFollowee } = await supabase
+        .from("follows")
+        .select("follower_profile_id")
+        .eq("followee_profile_id", profileId)
+        .eq("status", "accepted");
+
+      if (asFollowee && asFollowee.length > 0) {
+        // 저장된 "본" 친구 ID 목록 가져오기
+        let seenFriendIds: Set<number> = new Set();
+        try {
+          const stored = await AsyncStorage.getItem(SEEN_FRIENDS_KEY);
+          if (stored) {
+            seenFriendIds = new Set(JSON.parse(stored));
+          }
+        } catch (e) {
+          console.error("AsyncStorage 읽기 오류:", e);
+        }
+
+        // 안 본 친구가 있는지 확인
+        const hasNewFriend = asFollowee.some(
+          (r: any) => !seenFriendIds.has(r.follower_profile_id),
+        );
+
+        if (hasNewFriend) {
+          setHasFriendNotification(true);
+          return;
+        }
+      }
+
+      setHasFriendNotification(false);
+    } catch (error) {
+      console.error("친구 알림 확인 오류:", error);
+    }
+  };
 
   // 내 프로필 + 친구 목록 로드
   useEffect(() => {
@@ -428,6 +482,9 @@ export default function SocialScreen() {
         asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
 
         setFriendProfileIds([...friendIds]);
+
+        // 친구 알림 확인 (pending + 새 친구)
+        await checkFriendNotification(profileId);
       } catch (error) {
         console.error("프로필/친구 로드 오류:", error);
       }
@@ -509,10 +566,17 @@ export default function SocialScreen() {
       const dateStr = toDateString(selectedDate);
 
       try {
-        // 모든 사용자의 사진
+        // 모든 사용자의 사진 (프로필 정보 포함)
         const { data: allPhotos, error } = await supabase
           .from("answers")
-          .select("answer_id, owner_profile_id, photo_url")
+          .select(
+            `
+            answer_id, 
+            owner_profile_id, 
+            photo_url,
+            profiles:owner_profile_id (is_public)
+          `,
+          )
           .eq("question_date", dateStr)
           .not("photo_url", "is", null)
           .is("deleted_at", null)
@@ -523,10 +587,11 @@ export default function SocialScreen() {
             id: item.answer_id,
             image_url: item.photo_url,
             user_id: String(item.owner_profile_id),
+            is_public: item.profiles?.is_public ?? false,
           }));
 
-          // 소셜 탭: 전체
-          setSocialPhotos(mapped);
+          // 소셜 탭: 공개 계정만
+          setSocialPhotos(mapped.filter((p) => p.is_public === true));
 
           // 친구 탭: 친구의 사진만
           if (friendProfileIds.length > 0) {
@@ -596,6 +661,9 @@ export default function SocialScreen() {
       asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
       asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
       setFriendProfileIds([...friendIds]);
+
+      // 친구 알림 확인 (pending + 새 친구)
+      await checkFriendNotification(myProfileId);
     } catch (error) {
       console.error("친구 목록 새로고침 오류:", error);
     }
@@ -746,7 +814,7 @@ export default function SocialScreen() {
             style={styles.headerIconWrapper}
             onPress={() => router.push("/social/friends")}
           >
-            <PersonIcon hasNotification={false} />
+            <PersonIcon hasNotification={hasFriendNotification} />
           </Pressable>
         </View>
       </Animated.View>

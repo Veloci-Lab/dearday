@@ -1,5 +1,6 @@
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -65,7 +66,10 @@ interface FriendRelation {
   follower_profile_id: number;
   followee_profile_id: number;
   profile: FriendProfile;
+  isNew?: boolean;
 }
+
+const SEEN_FRIENDS_KEY = "@seen_friend_ids";
 
 /* ====== 확인 팝업 ====== */
 function ConfirmPopup({
@@ -198,6 +202,13 @@ function FriendRequestItem({
   );
 }
 
+/* ====== 새 친구 배지 ====== */
+const NewBadge = () => (
+  <View style={styles.newBadge}>
+    <Text style={styles.newBadgeText}>N</Text>
+  </View>
+);
+
 /* ====== 친구 아이템 (더보기 아이콘) ====== */
 function FriendItem({
   friend,
@@ -219,7 +230,10 @@ function FriendItem({
             />
           ) : null}
         </View>
-        <Text style={styles.profileName}>{friend.profile.nickname}</Text>
+        <View style={styles.nameContainer}>
+          <Text style={styles.profileName}>{friend.profile.nickname}</Text>
+          {friend.isNew && <NewBadge />}
+        </View>
       </View>
       <Pressable
         style={styles.moreButton}
@@ -302,6 +316,17 @@ export default function FriendsScreen() {
   }, []);
 
   const fetchFriends = useCallback(async (profileId: number) => {
+    // 저장된 "본" 친구 ID 목록 가져오기
+    let seenFriendIds: Set<number> = new Set();
+    try {
+      const stored = await AsyncStorage.getItem(SEEN_FRIENDS_KEY);
+      if (stored) {
+        seenFriendIds = new Set(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error("AsyncStorage 읽기 오류:", e);
+    }
+
     const { data: asFollower, error: err1 } = await supabase
       .from("follows")
       .select(
@@ -335,28 +360,58 @@ export default function FriendsScreen() {
       .eq("status", "accepted");
 
     const combined: FriendRelation[] = [];
+    const newFriendIds: number[] = [];
 
+    // 내가 팔로우한 친구 (내가 요청을 보낸 경우 - 새 친구 표시 안함)
     if (!err1 && asFollower) {
       asFollower.forEach((row: any) => {
         combined.push({
           follower_profile_id: row.follower_profile_id,
           followee_profile_id: row.followee_profile_id,
           profile: row.profile,
+          isNew: false,
         });
       });
     }
 
+    // 나를 팔로우한 친구 (상대가 요청을 보낸 경우 - 공개계정에서 새 친구 표시)
     if (!err2 && asFollowee) {
       asFollowee.forEach((row: any) => {
+        const friendProfileId = row.follower_profile_id;
+        const isNew = !seenFriendIds.has(friendProfileId);
+        if (isNew) {
+          newFriendIds.push(friendProfileId);
+        }
         combined.push({
           follower_profile_id: row.follower_profile_id,
           followee_profile_id: row.followee_profile_id,
           profile: row.profile,
+          isNew,
         });
       });
     }
 
+    // 새 친구를 맨 위로 정렬
+    combined.sort((a, b) => {
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
+      return 0;
+    });
+
     setFriends(combined);
+
+    // 새 친구를 "본" 목록에 추가
+    if (newFriendIds.length > 0) {
+      try {
+        const updatedSeenIds = [...seenFriendIds, ...newFriendIds];
+        await AsyncStorage.setItem(
+          SEEN_FRIENDS_KEY,
+          JSON.stringify(updatedSeenIds),
+        );
+      } catch (e) {
+        console.error("AsyncStorage 쓰기 오류:", e);
+      }
+    }
   }, []);
 
   const loadData = useCallback(async () => {
@@ -514,6 +569,21 @@ export default function FriendsScreen() {
       setFriends((prev) =>
         prev.filter((f) => f.profile.profile_id !== targetProfileId),
       );
+
+      // "본" 친구 목록에서도 제거 (나중에 다시 추가하면 N 표시됨)
+      try {
+        const stored = await AsyncStorage.getItem(SEEN_FRIENDS_KEY);
+        if (stored) {
+          const seenIds: number[] = JSON.parse(stored);
+          const updatedIds = seenIds.filter((id) => id !== targetProfileId);
+          await AsyncStorage.setItem(
+            SEEN_FRIENDS_KEY,
+            JSON.stringify(updatedIds),
+          );
+        }
+      } catch (e) {
+        console.error("AsyncStorage 업데이트 오류:", e);
+      }
     } else {
       Alert.alert("오류", "친구 삭제에 실패했어요.");
     }
@@ -735,12 +805,29 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
   },
+  nameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   profileName: {
-    height: 23,
     fontFamily: "Pretendard-SemiBold",
     fontSize: 16,
     lineHeight: 23,
     color: "#0D0D0D",
+  },
+  newBadge: {
+    width: 11,
+    height: 11,
+    borderRadius: 3,
+    backgroundColor: "#FF234F",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  newBadgeText: {
+    fontFamily: "Pretendard-Bold",
+    fontSize: 8,
+    color: "#FFFFFF",
   },
 
   /* 수락/거절 버튼 */

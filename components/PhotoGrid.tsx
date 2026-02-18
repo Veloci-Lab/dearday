@@ -8,6 +8,7 @@ export interface PhotoGridItem {
   user_id?: string;
   username?: string;
   profile_image_url?: string;
+  is_public?: boolean;
 }
 
 interface PhotoGridProps {

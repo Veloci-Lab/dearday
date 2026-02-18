@@ -61,6 +61,7 @@ interface SearchResult {
   profile_id: number;
   nickname: string;
   avatar_url: string | null;
+  is_public: boolean;
 }
 
 type RequestStatus = "none" | "pending" | "accepted" | "sending";
@@ -103,9 +104,13 @@ function FriendRequestPopup({
 
           {/* 텍스트 영역 */}
           <View style={styles.popupTextArea}>
-            <Text style={styles.popupTitle}>친구 요청</Text>
+            <Text style={styles.popupTitle}>
+              {profile.is_public ? "친구 추가" : "친구 요청"}
+            </Text>
             <Text style={styles.popupDescription}>
-              {profile.nickname}님에게 친구 요청을 보낼까요?
+              {profile.is_public
+                ? `${profile.nickname}님을 친구로 추가할까요?`
+                : `${profile.nickname}님에게 친구 요청을 보낼까요?`}
             </Text>
           </View>
 
@@ -115,7 +120,9 @@ function FriendRequestPopup({
               <Text style={styles.popupCancelButtonText}>취소</Text>
             </Pressable>
             <Pressable style={styles.popupConfirmButton} onPress={onConfirm}>
-              <Text style={styles.popupConfirmButtonText}>친구 요청하기</Text>
+              <Text style={styles.popupConfirmButtonText}>
+                {profile.is_public ? "친구 추가하기" : "친구 요청하기"}
+              </Text>
             </Pressable>
           </View>
         </Pressable>
@@ -150,9 +157,9 @@ function SearchResultItem({
       case "pending":
         return "친구 요청됨";
       case "sending":
-        return "요청 중...";
+        return profile.is_public ? "추가 중..." : "요청 중...";
       default:
-        return "친구 요청";
+        return profile.is_public ? "친구 추가" : "친구 요청";
     }
   })();
 
@@ -271,7 +278,7 @@ export default function SearchFriendsScreen() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("profile_id, nickname, avatar_url")
+        .select("profile_id, nickname, avatar_url, is_public")
         .ilike("nickname", `%${query}%`)
         .neq("profile_id", myProfileId)
         .eq("is_deleted", false)
@@ -341,15 +348,19 @@ export default function SearchFriendsScreen() {
     if (!myProfileId || !selectedProfile) return;
 
     const targetId = selectedProfile.profile_id;
+    const isTargetPublic = selectedProfile.is_public;
     setPopupVisible(false);
     setSelectedProfile(null);
 
     setRelationMap((prev) => ({ ...prev, [targetId]: "sending" }));
 
+    // 공개 계정: 바로 accepted, 비공개 계정: pending
+    const newStatus = isTargetPublic ? "accepted" : "pending";
+
     const { error } = await supabase.from("follows").insert({
       follower_profile_id: myProfileId,
       followee_profile_id: targetId,
-      status: "pending",
+      status: newStatus,
     });
 
     if (error) {
@@ -358,9 +369,12 @@ export default function SearchFriendsScreen() {
         delete next[targetId];
         return next;
       });
-      Alert.alert("오류", "친구 요청에 실패했어요.");
+      Alert.alert(
+        "오류",
+        isTargetPublic ? "친구 추가에 실패했어요." : "친구 요청에 실패했어요.",
+      );
     } else {
-      setRelationMap((prev) => ({ ...prev, [targetId]: "pending" }));
+      setRelationMap((prev) => ({ ...prev, [targetId]: newStatus }));
     }
   };
 
