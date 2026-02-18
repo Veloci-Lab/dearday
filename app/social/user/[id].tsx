@@ -11,12 +11,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
@@ -367,7 +366,7 @@ export default function UserFeedScreen() {
         {/* 캐릭터 이미지 */}
         <View style={styles.characterContainer}>
           <Image
-            source={require("@/assets/images/icons/character.png")}
+            source={require("@/assets/images/DD/ver_wink.png")}
             style={styles.characterImage}
             resizeMode="contain"
           />

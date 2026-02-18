@@ -125,10 +125,7 @@ export default function OnboardingPrivacyScreen() {
 
       avatarUrl = data.publicUrl;
       console.log("avatarUrl:", avatarUrl);
-
-
       }
-
 
       // 5. profiles 테이블에 INSERT
       const { data: profile, error } = await supabase

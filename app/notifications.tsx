@@ -257,7 +257,7 @@ function EmptyNotifications() {
       <View style={styles.centerBlock}>
         <Text style={styles.emptyText}>알림을 기다리고 있어요.</Text>
         <Image
-          source={require("../assets/images/main_character/ver_sad.png")}
+          source={require("../assets/images/DD/ver_sad.png")}
           style={styles.character}
         />
       </View>

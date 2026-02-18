@@ -28,7 +28,6 @@ export const supabase = createClient(url, anon, {
     console.log('초기 세션 체크:', data.session?.user?.id);
     
     if (data.session) {
-      console.log('🔍 세션 유효성 검사 시작...');
       
       // 세션이 있으면 실제로 유효한지 테스트
       const { data: userData, error: userError } = await supabase.auth.getUser();

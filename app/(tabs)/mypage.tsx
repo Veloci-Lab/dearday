@@ -339,6 +339,15 @@ const MyPage = () => {
   
 
   /* ---------------- render parts ---------------- */
+  const ListEmptyView = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
+      <Image
+        source={require('@/assets/images/DD/ver_board.png')} // 적절한 이미지 경로로 수정하세요
+        style={styles.emptyImage}
+      />
+    </View>
+  );
   const ListFooter = () => {
     if (loading) {
       return (
@@ -472,45 +481,23 @@ const MyPage = () => {
               </View>
             </View>
 
-            {/* 탭 */}
-            <View style={styles.tabsWrapper}>
+            <View style={[
+              styles.tabsWrapper, 
+              activeTab === "grid" && styles.tabsWrapperGrid // 그리드일 때만 특별한 스타일 추가
+            ]}>
               <View style={styles.tabsContainer}>
                 <Pressable
-                  style={[
-                    styles.tabButton,
-                    activeTab === "grid" &&
-                      styles.activeTabButton,
-                  ]}
+                  style={[styles.tabButton, activeTab === "grid" && styles.activeTabButton]}
                   onPress={() => setActiveTab("grid")}
                 >
-                  <Text
-                    style={
-                      activeTab === "grid"
-                        ? styles.activeTabLabel
-                        : styles.tabLabel
-                    }
-                  >
-                    그리드
-                  </Text>
+                  <Text style={activeTab === "grid" ? styles.activeTabLabel : styles.tabLabel}>그리드</Text>
                 </Pressable>
 
                 <Pressable
-                  style={[
-                    styles.tabButton,
-                    activeTab === "question" &&
-                      styles.activeTabButton,
-                  ]}
+                  style={[styles.tabButton, activeTab === "question" && styles.activeTabButton]}
                   onPress={() => setActiveTab("question")}
                 >
-                  <Text
-                    style={
-                      activeTab === "question"
-                        ? styles.activeTabLabel
-                        : styles.tabLabel
-                    }
-                  >
-                    질문
-                  </Text>
+                  <Text style={activeTab === "question" ? styles.activeTabLabel : styles.tabLabel}>질문</Text>
                 </Pressable>
               </View>
             </View>
@@ -558,7 +545,7 @@ const MyPage = () => {
                   <L3Right2
                     items={gridItem.items}
                     width={width}
-                    onPressItem={handleGridPress}
+                    
                   />
                 );
 
@@ -632,6 +619,10 @@ const styles = StyleSheet.create({
   editButton: { padding: 8 },
 
   tabsWrapper: { paddingVertical: 20, alignItems: 'center' },
+  tabsWrapperGrid: {
+    backgroundColor: 'transparent',    
+    pointerEvents: 'box-none', 
+  },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#F1F1F1',
@@ -642,7 +633,25 @@ const styles = StyleSheet.create({
   activeTabButton: { backgroundColor: '#fff' },
   tabLabel: { fontFamily: 'Pretendard-SemiBold', color: '#929292' },
   activeTabLabel: { fontFamily: 'Pretendard-SemiBold', color: '#5B8DEF', fontWeight: '600' },
-
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 100,
+  },
+  emptyText: {
+    fontFamily: 'Pretendard-Regular',
+    fontSize: 15,
+    color: '#626262',
+    fontWeight: 400,
+    lineHeight: 20,
+    marginBottom: 20,
+    letterSpacing: -0.45,
+  },
+  emptyImage: {
+    width: 118,
+    height: 118,
+  },
   footer: { paddingVertical: 20 },
   endContainer: { paddingVertical: 40, alignItems: 'center', marginBottom: 130 },
   endText: { fontFamily: 'Pretendard-Regular', marginTop: 12, color: '#626262', fontSize: 15, fontWeight: '400' },
