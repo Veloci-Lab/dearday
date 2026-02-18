@@ -5,6 +5,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
+import LottieView from "lottie-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -706,7 +707,14 @@ export default function HomeScreen() {
                 onEdit={handleEdit}
               />
             ) : (
-              <View style={styles.logoPlaceholder} />
+              <LottieView
+                source={require("@/assets/animations/floating-deedee.json")}
+                autoPlay
+                loop={true}
+                speed={0.8}
+                resizeMode="contain"
+                style={styles.lottieAnimation}
+              />
             )}
           </View>
         </ViewShot>
@@ -867,11 +875,9 @@ const styles = StyleSheet.create({
     color: "#626262",
     textAlign: "center",
   },
-  logoPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(91, 141, 239, 0.2)",
+  lottieAnimation: {
+    width: 472,
+    height: 608,
   },
 
   // 버튼 섹션
