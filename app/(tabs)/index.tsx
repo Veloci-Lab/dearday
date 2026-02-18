@@ -177,6 +177,8 @@ const calculateDaysSince = (startDate: string): number => {
   return diffDays + 1;
 };
 
+const DDLogo = require("@/assets/images/DD/DD_기본.png");
+
 /* ------ 헤더 ------- */
 function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
   const insets = useSafeAreaInsets();
@@ -184,7 +186,7 @@ function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top + 18 }]}>
       <View style={styles.headerContent}>
-        <View style={styles.logo} />
+        <Image source={DDLogo} style={styles.logo} />
         <View style={styles.rightIcons}>
           <Pressable onPress={() => console.log("캘린더")}>
             <CalendarIcon />
@@ -766,7 +768,7 @@ const styles = StyleSheet.create({
   // 헤더 스타일
   headerContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 18,
+    paddingBottom: 12.5,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -778,10 +780,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#5B8DEF",
+    width: 35,
+    height: 35,
   },
   rightIcons: {
     flexDirection: "row",
@@ -840,6 +840,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 15,
     gap: 15,
+    paddingHorizontal: 50,
   },
   questionLabel: {
     fontFamily: "Pretendard",

@@ -134,6 +134,30 @@ const LockIcon = () => (
   </Svg>
 );
 
+const DDLogo = require("@/assets/images/DD/DD_쭈글_블러.png");
+const DDSurprised = require("@/assets/images/DD/DD_놀람.png");
+const DDSleep = require("@/assets/images/DD/DD_잠.png");
+
+/* ====== 피드 끝 표시 ====== */
+function EndOfFeed() {
+  return (
+    <View style={styles.endOfFeedContainer}>
+      <Text style={styles.endOfFeedText}>끝까지 오실 줄은 몰랐어요!</Text>
+      <Image source={DDSurprised} style={styles.endOfFeedImage} />
+    </View>
+  );
+}
+
+/* ====== 친구 없음 표시 ====== */
+function EmptyFriends() {
+  return (
+    <View style={styles.emptyFriendsContainer}>
+      <Text style={styles.emptyFriendsText}>아직 친구가 없어요.</Text>
+      <Image source={DDSleep} style={styles.emptyFriendsImage} />
+    </View>
+  );
+}
+
 /* ====== 잠금 오버레이 ====== */
 function LockedOverlay() {
   return (
@@ -144,6 +168,9 @@ function LockedOverlay() {
         locations={[0, 0.8641]}
         style={StyleSheet.absoluteFill}
       />
+      <View style={styles.logoContainer}>
+        <Image source={DDLogo} style={styles.logo} />
+      </View>
       <View style={styles.lockedContent}>
         <LockIcon />
         <Text style={styles.lockedText}>
@@ -655,6 +682,34 @@ export default function SocialScreen() {
             </View>
             <LockedOverlay />
           </View>
+        ) : currentPhotos.length > 0 ? (
+          <>
+            <View style={styles.toggleContainer}>
+              <Toggle
+                options={SOCIAL_TOGGLE_OPTIONS}
+                activeKey={activeTab}
+                onChangeKey={(key) => setActiveTab(key as TabType)}
+              />
+            </View>
+            <View style={styles.photoGridContainer}>
+              <PhotoGrid
+                photos={currentPhotos}
+                onPressPhoto={handlePhotoPress}
+              />
+            </View>
+            <EndOfFeed />
+          </>
+        ) : activeTab === "friend" ? (
+          <>
+            <View style={styles.toggleContainer}>
+              <Toggle
+                options={SOCIAL_TOGGLE_OPTIONS}
+                activeKey={activeTab}
+                onChangeKey={(key) => setActiveTab(key as TabType)}
+              />
+            </View>
+            <EmptyFriends />
+          </>
         ) : (
           <>
             <View style={styles.toggleContainer}>
@@ -903,7 +958,7 @@ const styles = StyleSheet.create({
   },
   lockedContent: {
     alignItems: "center",
-    gap: 16,
+    gap: 8,
   },
   lockedText: {
     fontFamily: "Pretendard",
@@ -913,5 +968,54 @@ const styles = StyleSheet.create({
     letterSpacing: -0.51,
     color: "#0D0D0D",
     textAlign: "center",
+  },
+  logoContainer: {
+    marginBottom: 16,
+  },
+  logo: {
+    width: 130,
+    height: 130,
+  },
+
+  /* 피드 끝 표시 */
+  endOfFeedContainer: {
+    alignItems: "center",
+    paddingTop: 80,
+    paddingBottom: 80,
+    gap: 16,
+  },
+  endOfFeedText: {
+    fontFamily: "Pretendard",
+    fontSize: 15,
+    fontWeight: "400",
+    lineHeight: 20,
+    letterSpacing: -0.51,
+    color: "#626262",
+    textAlign: "center",
+  },
+  endOfFeedImage: {
+    width: 118,
+    height: 118,
+  },
+
+  /* 친구 없음 표시 */
+  emptyFriendsContainer: {
+    alignItems: "center",
+    paddingTop: 80,
+    paddingBottom: 80,
+    gap: 26,
+  },
+  emptyFriendsText: {
+    fontFamily: "Pretendard",
+    fontSize: 15,
+    fontWeight: "400",
+    lineHeight: 20,
+    letterSpacing: -0.51,
+    color: "#626262",
+    textAlign: "center",
+  },
+  emptyFriendsImage: {
+    width: 118,
+    height: 118,
   },
 });

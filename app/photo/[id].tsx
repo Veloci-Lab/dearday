@@ -161,7 +161,7 @@ export default function PhotoDetailScreen() {
             memo,
             created_at,
             categories (name)
-          `
+          `,
           )
           .eq("id", id)
           .single();
@@ -193,7 +193,7 @@ export default function PhotoDetailScreen() {
               memo,
               created_at,
               categories (name)
-            `
+            `,
             )
             .eq("profile_id", profileId)
             .eq("category_id", photoData.category_id)
@@ -211,7 +211,7 @@ export default function PhotoDetailScreen() {
                 memo: item.memo,
                 isRecorded: !!item.memo,
                 createdAt: item.created_at,
-              })
+              }),
             );
             setSiblings(mappedSiblings);
           }
