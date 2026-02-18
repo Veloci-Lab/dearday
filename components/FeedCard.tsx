@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import ReactionBar, { ReactionItem } from "./ReactionBar";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -16,18 +17,25 @@ export interface FeedCardData {
   nickname: string;
   createdAt: string; // "18시 49분" 형식으로 변환된 문자열
   ownerProfileId: number;
+  reactions?: ReactionItem[];
 }
 
 interface FeedCardProps {
   data: FeedCardData;
   onPress?: () => void;
   onPressNickname?: (data: FeedCardData) => void;
+  onPressReaction?: (reaction: ReactionItem) => void;
+  onPressMoreReactions?: () => void;
+  onPressAddReaction?: () => void;
 }
 
 export default function FeedCard({
   data,
   onPress,
   onPressNickname,
+  onPressReaction,
+  onPressMoreReactions,
+  onPressAddReaction,
 }: FeedCardProps) {
   return (
     <Pressable style={styles.container} onPress={onPress}>
@@ -36,13 +44,21 @@ export default function FeedCard({
 
       {/* 정보 영역 */}
       <View style={styles.infoContainer}>
+        {/* 왼쪽: 닉네임 + 시간 */}
         <View style={styles.userInfo}>
           <Pressable onPress={() => onPressNickname?.(data)} hitSlop={4}>
             <Text style={styles.nickname}>{data.nickname}</Text>
           </Pressable>
           <Text style={styles.createdAt}>{data.createdAt}</Text>
         </View>
-        {/* 이모지 영역은 추후 추가 */}
+
+        {/* 오른쪽: 리액션 바 */}
+        <ReactionBar
+          reactions={data.reactions ?? []}
+          onPressReaction={onPressReaction}
+          onPressMore={onPressMoreReactions}
+          onPressAdd={onPressAddReaction}
+        />
       </View>
     </Pressable>
   );
@@ -62,11 +78,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
+    minHeight: 32,
   },
   userInfo: {
     flexDirection: "column",
     gap: 1,
+    flexShrink: 0,
+    marginRight: 36,
   },
   nickname: {
     fontFamily: "Pretendard-SemiBold",
