@@ -428,6 +428,7 @@ export default function SocialScreen() {
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
+  const [shuffleKey, setShuffleKey] = useState(0); // 그리드 랜덤 재배치용
 
   // 친구 알림 확인 함수 (pending 요청 + 새 친구)
   const checkFriendNotification = async (profileId: number) => {
@@ -559,6 +560,12 @@ export default function SocialScreen() {
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
+    setShuffleKey((k) => k + 1); // 날짜 변경 시 그리드 재배치
+  };
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key as TabType);
+    setShuffleKey((k) => k + 1); // 탭 변경 시 그리드 재배치
   };
 
   useEffect(() => {
@@ -778,13 +785,15 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <View style={styles.photoGridContainer}>
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
+                randomize
+                shuffleKey={shuffleKey}
               />
             </View>
             <LockedOverlay />
@@ -795,13 +804,15 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <View style={styles.photoGridContainer}>
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
+                randomize
+                shuffleKey={shuffleKey}
               />
             </View>
             <EndOfFeed />
@@ -812,7 +823,7 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <EmptyFriends />
@@ -823,13 +834,15 @@ export default function SocialScreen() {
               <Toggle
                 options={SOCIAL_TOGGLE_OPTIONS}
                 activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as TabType)}
+                onChangeKey={handleTabChange}
               />
             </View>
             <View style={styles.photoGridContainer}>
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
+                randomize
+                shuffleKey={shuffleKey}
               />
             </View>
           </>
