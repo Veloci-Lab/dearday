@@ -1,5 +1,14 @@
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export interface FeedCardData {
   id: number;
@@ -45,8 +54,8 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   image: {
-    width: 390,
-    height: 390,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
     alignSelf: "center",
   },
   infoContainer: {
