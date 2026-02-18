@@ -6,6 +6,8 @@ import PhotoGrid, { PhotoGridItem } from "@/components/PhotoGrid";
 import Toggle from "@/components/Toggle";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -22,6 +24,45 @@ import Svg, { Path } from "react-native-svg";
 
 const DDSurprised = require("@/assets/images/DD/DD_놀람.png");
 const DDBored = require("@/assets/images/DD/DD_지루.png");
+const DDLogo = require("@/assets/images/DD/DD_쭈글_블러.png");
+
+/* ====== 자물쇠 아이콘 ====== */
+const LockIcon = () => (
+  <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
+    <Path
+      d="M20.8537 16.1538C6.89364 16.1538 6.05376 16.1538 6.00323 32.821C5.99753 34.7021 7.52501 36.231 9.40619 36.231H31.5938C33.475 36.231 35.0024 34.7021 34.9969 32.821C34.9488 16.1538 34.1489 16.1538 20.8537 16.1538Z"
+      fill="#929292"
+    />
+    <Path
+      d="M12.6924 20.6156V12.8077C12.6924 8.49563 16.188 5 20.5001 5C24.8121 5 28.3078 8.49563 28.3078 12.8077V20.6156"
+      stroke="#929292"
+      strokeWidth={2.72496}
+    />
+  </Svg>
+);
+
+/* ====== 잠금 오버레이 ====== */
+function LockedOverlay() {
+  return (
+    <View style={styles.lockedContainer}>
+      <BlurView intensity={10} tint="light" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={["rgba(255,255,255,0)", "#FFFFFF"]}
+        locations={[0, 0.8641]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.lockedContent}>
+        <View style={styles.logoContainer}>
+          <Image source={DDLogo} style={styles.logo} />
+        </View>
+        <LockIcon />
+        <Text style={styles.lockedText}>
+          비공개 계정이에요.{"\n"}친구 요청을 보내보세요!
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 /* ====== 피드 끝 표시 ====== */
 function EndOfFeed() {
@@ -49,6 +90,7 @@ export default function UserFeedScreen() {
   }, [params.id]);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [profile, setProfile] = useState<FriendProfile | null>(null);
+  const [isPublic, setIsPublic] = useState<boolean>(true);
   // follows 테이블 데이터 기반 상태
   const [sentFollow, setSentFollow] = useState<FollowRelation | null>(null);
   const [receivedFollow, setReceivedFollow] = useState<FollowRelation | null>(
@@ -58,6 +100,13 @@ export default function UserFeedScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("grid");
   const [photos, setPhotos] = useState<PhotoGridItem[]>([]);
+
+  // 친구 여부 판단
+  const isFriend =
+    sentFollow?.status === "accepted" || receivedFollow?.status === "accepted";
+
+  // 비공개 계정이고 친구가 아니면 잠금 상태
+  const isLocked = !isPublic && !isFriend;
 
   /* ====== 내 프로필 가져오기 ====== */
   const fetchMyProfile = useCallback(async () => {
@@ -136,7 +185,7 @@ export default function UserFeedScreen() {
         // 대상 프로필 정보 가져오기
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("profile_id, nickname, avatar_url")
+          .select("profile_id, nickname, avatar_url, is_public")
           .eq("profile_id", profileId)
           .single();
 
@@ -147,6 +196,7 @@ export default function UserFeedScreen() {
             avatar_url: profileData.avatar_url,
             bio: null,
           });
+          setIsPublic(profileData.is_public ?? true);
         }
 
         // 친구 관계 확인
@@ -326,6 +376,7 @@ export default function UserFeedScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!isLocked}
       >
         {/* 친구 프로필 카드 */}
         {profile && (
@@ -345,40 +396,74 @@ export default function UserFeedScreen() {
           </View>
         )}
 
-        {/* 토글 */}
-        <View style={styles.toggleContainer}>
-          <Toggle
-            options={TAB_OPTIONS}
-            activeKey={activeTab}
-            onChangeKey={setActiveTab}
-          />
-        </View>
+        {/* 잠금 상태일 때 토글 + 그리드 + 오버레이 */}
+        {isLocked ? (
+          <>
+            {/* 토글 (블러 처리 안됨) */}
+            <View style={styles.toggleContainer}>
+              <Toggle
+                options={TAB_OPTIONS}
+                activeKey={activeTab}
+                onChangeKey={setActiveTab}
+              />
+            </View>
 
-        {/* 그리드 */}
-        <View style={styles.gridContainer}>
-          {activeTab === "grid" && (
-            <>
-              {photos.length > 0 ? (
-                <PhotoGrid photos={photos} />
-              ) : (
+            {/* 그리드 + 잠금 오버레이 */}
+            <View style={styles.lockedSection}>
+              {/* 그리드 (블러 처리됨) */}
+              <View style={styles.gridContainer}>
+                {photos.length > 0 ? (
+                  <PhotoGrid photos={photos} />
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
+                    <Image source={DDBored} style={styles.emptyImage} />
+                  </View>
+                )}
+              </View>
+
+              {/* 잠금 오버레이 */}
+              <LockedOverlay />
+            </View>
+          </>
+        ) : (
+          <>
+            {/* 토글 */}
+            <View style={styles.toggleContainer}>
+              <Toggle
+                options={TAB_OPTIONS}
+                activeKey={activeTab}
+                onChangeKey={setActiveTab}
+              />
+            </View>
+
+            {/* 그리드 */}
+            <View style={styles.gridContainer}>
+              {activeTab === "grid" && (
+                <>
+                  {photos.length > 0 ? (
+                    <PhotoGrid photos={photos} />
+                  ) : (
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
+                      <Image source={DDBored} style={styles.emptyImage} />
+                    </View>
+                  )}
+                </>
+              )}
+
+              {activeTab === "question" && (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
                   <Image source={DDBored} style={styles.emptyImage} />
                 </View>
               )}
-            </>
-          )}
-
-          {activeTab === "question" && (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-              <Image source={DDBored} style={styles.emptyImage} />
             </View>
-          )}
-        </View>
 
-        {/* 피드 끝 표시 - 사진이 있을 때만 */}
-        {activeTab === "grid" && photos.length > 0 && <EndOfFeed />}
+            {/* 피드 끝 표시 - 사진이 있을 때만 */}
+            {activeTab === "grid" && photos.length > 0 && <EndOfFeed />}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -453,5 +538,44 @@ const styles = StyleSheet.create({
   endOfFeedImage: {
     width: 118,
     height: 118,
+  },
+
+  /* ====== 잠금 섹션 ====== */
+  lockedSection: {
+    position: "relative",
+    minHeight: 439,
+    overflow: "hidden",
+    marginTop: -21,
+    paddingTop: 21,
+  },
+  lockedContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  lockedContent: {
+    alignItems: "center",
+    gap: 8,
+  },
+  lockedText: {
+    fontFamily: "Pretendard",
+    fontSize: 17,
+    fontWeight: "400",
+    lineHeight: 20,
+    letterSpacing: -0.51,
+    color: "#0D0D0D",
+    textAlign: "center",
+  },
+  logoContainer: {
+    marginBottom: 16,
+  },
+  logo: {
+    width: 130,
+    height: 130,
   },
 });
