@@ -2,6 +2,7 @@ import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
 import { supabase } from "@/utils/supabase";
 import * as FileSystem from "expo-file-system";
+import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -11,7 +12,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppState,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -191,7 +191,11 @@ function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top + 18 }]}>
       <View style={styles.headerContent}>
-        <Image source={{ uri: REMOTE_DD_LOGO_URL }} style={styles.logo} />
+        <Image
+          source={{ uri: REMOTE_DD_LOGO_URL }}
+          style={styles.logo}
+          cachePolicy="disk"
+        />
         <View style={styles.rightIcons}>
           <Pressable onPress={() => console.log("캘린더")}>
             <CalendarIcon />
@@ -715,6 +719,7 @@ export default function HomeScreen() {
         source={HomeGradient}
         style={styles.backgroundImage}
         resizeMode="cover"
+        cachePolicy="disk"
       />
       <View style={[styles.content, { paddingBottom }]}>
         <HomeHeader hasUnread={hasUnreadNotifications} />

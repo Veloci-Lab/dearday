@@ -2,15 +2,9 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetFlatList,
 } from "@gorhom/bottom-sheet";
+import { Image } from "expo-image";
 import React, { forwardRef, useCallback, useMemo } from "react";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export interface ReactionUser {
   id: number;
@@ -112,6 +106,7 @@ const ReactionUserSheet = forwardRef<BottomSheet, ReactionUserSheetProps>(
                         borderRadius: 4,
                       }}
                       resizeMode="contain"
+                      cachePolicy="disk"
                     />
                   )}
                   <Text
@@ -159,6 +154,7 @@ const ReactionUserSheet = forwardRef<BottomSheet, ReactionUserSheetProps>(
                 <Image
                   source={{ uri: item.profileImageUrl }}
                   style={styles.profileImage}
+                  cachePolicy="disk"
                 />
               ) : (
                 <View style={styles.profilePlaceholder} />

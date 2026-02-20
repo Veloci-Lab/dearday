@@ -4,6 +4,7 @@ import BottomSheet, {
   BottomSheetTextInput,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { Image } from "expo-image";
 import React, {
   forwardRef,
   useCallback,
@@ -13,7 +14,6 @@ import React, {
 } from "react";
 import {
   Dimensions,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -228,6 +228,7 @@ const EmojiPickerSheet = forwardRef<BottomSheet, EmojiPickerSheetProps>(
                         source={{ uri: emojiOption.imageUrl }}
                         style={styles.deardayEmojiImage}
                         resizeMode="contain"
+                        cachePolicy="disk"
                       />
                     </Pressable>
                   );
