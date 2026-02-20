@@ -1,6 +1,7 @@
 import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
 import { supabase } from "@/utils/supabase";
+import * as FileSystem from "expo-file-system";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -436,6 +437,7 @@ export default function HomeScreen() {
   };
 
   // 사진 업로드 (Storage에 업로드 후 URL 반환)
+  // 🔥 fetch / blob 제거 버전
   const uploadImageToStorage = async (uri: string): Promise<string | null> => {
     try {
       const {
@@ -443,17 +445,19 @@ export default function HomeScreen() {
       } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const fileExt = uri.split(".").pop()?.toLowerCase() || "jpg";
-      const fileName = `${user.id}/${getTodayDateString()}_${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${getTodayDateString()}_${Date.now()}.jpg`;
 
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const arrayBuffer = await new Response(blob).arrayBuffer();
+      // 🔥 base64로 직접 읽기 (리사이즈 후라서 안전)
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      const { data, error } = await supabase.storage
+      const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+      const { error } = await supabase.storage
         .from("answer-photos")
-        .upload(fileName, arrayBuffer, {
-          contentType: `image/${fileExt}`,
+        .upload(fileName, binary, {
+          contentType: "image/jpeg",
           upsert: true,
         });
 
@@ -548,18 +552,20 @@ export default function HomeScreen() {
     width: number,
     height: number,
   ): Promise<string> => {
-    if (width === height) {
-      return uri;
-    }
-
     const size = Math.min(width, height);
     const originX = (width - size) / 2;
     const originY = (height - size) / 2;
 
     const manipulated = await ImageManipulator.manipulateAsync(
       uri,
-      [{ crop: { originX, originY, width: size, height: size } }],
-      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+      [
+        { crop: { originX, originY, width: size, height: size } },
+        { resize: { width: 1080 } }, // 🔥 핵심
+      ],
+      {
+        compress: 0.7, // 🔥 핵심
+        format: ImageManipulator.SaveFormat.JPEG, // 🔥 핵심
+      },
     );
 
     return manipulated.uri;
