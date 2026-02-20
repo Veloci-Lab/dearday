@@ -1,44 +1,86 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { EmojiAddIcon } from "./icons/EmojiAddIcon";
 
 /* ====== 타입 ====== */
 export interface ReactionItem {
   emojiId: number;
-  emoji: string; // 이모지 문자 또는 이미지 키
+  emoji: string;
   count: number;
 }
 
+export interface ReactionLongPressPayload {
+  answerId: string;
+  initialTab: string;
+}
+
 interface ReactionBarProps {
+  answerId: string;
   reactions: ReactionItem[];
   onPressReaction?: (reaction: ReactionItem) => void;
   onPressMore?: () => void;
   onPressAdd?: () => void;
-  maxVisible?: number; // 최대 표시 개수 (기본 3)
+  onLongPress?: (payload: ReactionLongPressPayload) => void; // ← Sheet 열기를 부모로 위임
+  maxVisible?: number;
 }
 
 /* ====== 개별 리액션 칩 ====== */
 function ReactionChip({
   reaction,
   onPress,
+  onLongPress,
 }: {
   reaction: ReactionItem;
   onPress?: () => void;
+  onLongPress?: () => void;
 }) {
-  const displayCount = reaction.count > 99 ? "99+" : String(reaction.count);
+  const isImage =
+    typeof reaction.emoji === "string" &&
+    (reaction.emoji.endsWith(".png") ||
+      reaction.emoji.endsWith(".jpg") ||
+      reaction.emoji.endsWith(".jpeg") ||
+      reaction.emoji.startsWith("http"));
 
   return (
-    <Pressable style={styles.reactionChip} onPress={onPress}>
-      <Text style={styles.emoji}>{reaction.emoji}</Text>
-      <Text style={styles.count}>{displayCount}</Text>
+    <Pressable
+      style={styles.reactionChip}
+      onPress={onPress}
+      onLongPress={onLongPress}
+    >
+      {isImage ? (
+        <Image
+          source={
+            reaction.emoji.startsWith("http")
+              ? { uri: reaction.emoji }
+              : {
+                  uri: `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/public/emoji/${reaction.emoji}`,
+                }
+          }
+          style={styles.emojiImage}
+          resizeMode="contain"
+        />
+      ) : (
+        <Text style={styles.emoji}>{reaction.emoji}</Text>
+      )}
+      <Text style={styles.count}>{reaction.count}</Text>
     </Pressable>
   );
 }
 
 /* ====== 더보기 버튼 ====== */
-function MoreButton({ onPress }: { onPress?: () => void }) {
+function MoreButton({
+  onPress,
+  onLongPress,
+}: {
+  onPress?: () => void;
+  onLongPress?: () => void;
+}) {
   return (
-    <Pressable style={styles.moreButton} onPress={onPress}>
+    <Pressable
+      style={styles.moreButton}
+      onPress={onPress}
+      onLongPress={onLongPress}
+    >
       <Text style={styles.moreText}>···</Text>
     </Pressable>
   );
@@ -55,10 +97,12 @@ function AddButton({ onPress }: { onPress?: () => void }) {
 
 /* ====== 메인 컴포넌트 ====== */
 export default function ReactionBar({
+  answerId,
   reactions,
   onPressReaction,
   onPressMore,
   onPressAdd,
+  onLongPress,
   maxVisible = 3,
 }: ReactionBarProps) {
   const hasMore = reactions.length > maxVisible;
@@ -66,8 +110,13 @@ export default function ReactionBar({
 
   return (
     <View style={styles.container}>
-      {/* 더보기 버튼 (4개 이상일 때) */}
-      {hasMore && <MoreButton onPress={onPressMore} />}
+      {/* 더보기 버튼 */}
+      {hasMore && (
+        <MoreButton
+          onPress={onPressMore}
+          onLongPress={() => onLongPress?.({ answerId, initialTab: "all" })}
+        />
+      )}
 
       {/* 리액션 칩들 */}
       {visibleReactions.map((reaction) => (
@@ -75,6 +124,9 @@ export default function ReactionBar({
           key={reaction.emojiId}
           reaction={reaction}
           onPress={() => onPressReaction?.(reaction)}
+          onLongPress={() =>
+            onLongPress?.({ answerId, initialTab: String(reaction.emojiId) })
+          }
         />
       ))}
 
@@ -92,8 +144,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 5,
   },
-
-  /* 리액션 칩 */
   reactionChip: {
     flexDirection: "row",
     height: 32,
@@ -119,8 +169,6 @@ const styles = StyleSheet.create({
     color: "#0D0D0D",
     textAlign: "center",
   },
-
-  /* 더보기 버튼 */
   moreButton: {
     flexDirection: "row",
     height: 32,
@@ -141,8 +189,6 @@ const styles = StyleSheet.create({
     color: "#C3C3C3",
     textAlign: "center",
   },
-
-  /* 추가 버튼 */
   addButton: {
     width: 32,
     height: 32,
@@ -151,5 +197,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     backgroundColor: "#F2F2F2",
+  },
+  emojiImage: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
   },
 });

@@ -7,44 +7,51 @@ import {
   Text,
   View,
 } from "react-native";
-import ReactionBar, { ReactionItem } from "./ReactionBar";
+import ReactionBar, {
+  ReactionItem,
+  ReactionLongPressPayload,
+} from "./ReactionBar";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export interface FeedCardData {
-  id: number;
+  id: string;
   imageUrl: string;
   nickname: string;
-  createdAt: string; // "18시 49분" 형식으로 변환된 문자열
+  createdAt: string;
   ownerProfileId: number;
   reactions?: ReactionItem[];
+  answerReactionsRaw?: any[];
 }
 
 interface FeedCardProps {
   data: FeedCardData;
+  reactions: ReactionItem[]; // ← 별도 prop으로 받기
+  answerReactionsRaw?: any[];
   onPress?: () => void;
   onPressNickname?: (data: FeedCardData) => void;
   onPressReaction?: (reaction: ReactionItem) => void;
   onPressMoreReactions?: () => void;
   onPressAddReaction?: () => void;
+  onLongPressReaction?: (payload: ReactionLongPressPayload) => void;
 }
 
 export default function FeedCard({
   data,
+  reactions,
+  answerReactionsRaw,
   onPress,
   onPressNickname,
   onPressReaction,
   onPressMoreReactions,
   onPressAddReaction,
+  onLongPressReaction,
 }: FeedCardProps) {
   return (
     <Pressable style={styles.container} onPress={onPress}>
-      {/* 이미지 영역 */}
       <Image source={{ uri: data.imageUrl }} style={styles.image} />
 
-      {/* 정보 영역 */}
       <View style={styles.infoContainer}>
-        {/* 왼쪽: 닉네임 + 시간 */}
         <View style={styles.userInfo}>
           <Pressable onPress={() => onPressNickname?.(data)} hitSlop={4}>
             <Text style={styles.nickname}>{data.nickname}</Text>
@@ -52,12 +59,13 @@ export default function FeedCard({
           <Text style={styles.createdAt}>{data.createdAt}</Text>
         </View>
 
-        {/* 오른쪽: 리액션 바 */}
         <ReactionBar
-          reactions={data.reactions ?? []}
+          answerId={data.id}
+          reactions={reactions}
           onPressReaction={onPressReaction}
           onPressMore={onPressMoreReactions}
           onPressAdd={onPressAddReaction}
+          onLongPress={onLongPressReaction} // ← 전달
         />
       </View>
     </Pressable>

@@ -137,15 +137,6 @@ const EmojiPickerSheet = forwardRef<BottomSheet, EmojiPickerSheetProps>(
                 imageUrl,
               };
             });
-            // 로그: 이모지 목록, 이미지 URL, 크기 정보
-            console.log();
-            console.log("[Dearday Emoji] Loaded:", emojis);
-            console.log(
-              "[Dearday Emoji] DEARDAY_EMOJI_SIZE:",
-              DEARDAY_EMOJI_SIZE,
-              "DEARDAY_IMAGE_SIZE:",
-              DEARDAY_IMAGE_SIZE,
-            );
             setDeardayEmojis(emojis);
           }
         } catch (error) {
@@ -227,13 +218,6 @@ const EmojiPickerSheet = forwardRef<BottomSheet, EmojiPickerSheetProps>(
               <Text style={styles.sectionTitle}>Dearday</Text>
               <View style={styles.deardayGrid}>
                 {deardayEmojis.map((emojiOption) => {
-                  // 각 이모지 렌더링 시 로그
-                  console.log("[Dearday Emoji Render]", {
-                    emojiId: emojiOption.emojiId,
-                    imageUrl: emojiOption.imageUrl,
-                    buttonSize: DEARDAY_EMOJI_SIZE,
-                    imageSize: DEARDAY_IMAGE_SIZE,
-                  });
                   return (
                     <Pressable
                       key={emojiOption.emojiId}
