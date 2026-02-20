@@ -1,5 +1,9 @@
 import EmojiPickerSheet, { EmojiOption } from "@/components/EmojiPickerSheet";
 import FeedCard, { FeedCardData } from "@/components/FeedCard";
+import ReactionUserSheet, {
+  ReactionTab,
+  ReactionUser,
+} from "@/components/ReactionUserSheet";
 import { supabase } from "@/utils/supabase";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
@@ -9,23 +13,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
-
-/* ====== 타입 ====== */
-interface DailyQuestion {
-  question_date: string;
-  question_text: string;
-  source: string | null;
-}
-
-interface AnswerWithProfile {
-  answer_id: number;
-  owner_profile_id: number;
-  photo_url: string;
-  created_at: string;
-  profiles: {
-    nickname: string;
-  };
-}
 
 /* ====== 유틸리티 ====== */
 const formatDateKorean = (dateStr: string): string => {
@@ -102,6 +89,32 @@ function QuestionPill({ date, question }: QuestionPillProps) {
   );
 }
 
+/* ====== 리액션 집계 헬퍼 ====== */
+function buildReactionsMap(reactionsRaw: any[]): Record<string, any[]> {
+  const countMap: Record<string, Record<number, number>> = {};
+  reactionsRaw.forEach((r: any) => {
+    const aid = String(r.answer_id);
+    if (!countMap[aid]) countMap[aid] = {};
+    countMap[aid][r.emoji_id] = (countMap[aid][r.emoji_id] || 0) + 1;
+  });
+
+  const reactionsMap: Record<string, any[]> = {};
+  reactionsRaw.forEach((r: any) => {
+    const aid = String(r.answer_id);
+    if (!reactionsMap[aid]) reactionsMap[aid] = [];
+    if (!reactionsMap[aid].find((x) => x.emojiId === r.emoji_id)) {
+      reactionsMap[aid].push({
+        emojiId: r.emoji_id,
+        emoji: r.emojis?.value,
+        emojiName: r.emojis?.name,
+        count: countMap[aid][r.emoji_id],
+      });
+    }
+  });
+
+  return reactionsMap;
+}
+
 /* ====== 피드 화면 ====== */
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -115,43 +128,76 @@ export default function FeedScreen() {
   const [question, setQuestion] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [feedCards, setFeedCards] = useState<FeedCardData[]>([]);
+  const [answerReactionsRaw, setAnswerReactionsRaw] = useState<any[]>([]);
+  const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
-  const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
+  const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
 
-  // BottomSheet ref
+  // ReactionUserSheet 상태
+  const [reactionTabs, setReactionTabs] = useState<ReactionTab[]>([]);
+  const [reactionUsers, setReactionUsers] = useState<ReactionUser[]>([]);
+  const [selectedTab, setSelectedTab] = useState<string>("all");
+
   const emojiSheetRef = useRef<BottomSheet>(null);
+  const reactionUserSheetRef = useRef<BottomSheet>(null);
 
   // 이모지 추가 버튼 핸들러
-  const handlePressAddReaction = useCallback((answerId: number) => {
+  const handlePressAddReaction = useCallback((answerId: string) => {
     setSelectedAnswerId(answerId);
     emojiSheetRef.current?.expand();
   }, []);
 
-  // 이모지 선택 핸들러
-  const handleSelectEmoji = useCallback(
-    async (emoji: EmojiOption) => {
-      if (!selectedAnswerId || !myProfileId) {
-        console.log("선택된 답변 또는 프로필 ID 없음");
-        emojiSheetRef.current?.close();
-        return;
-      }
+  // 롱프레스 → 탭/유저 목록 계산 후 시트 열기
+  const handleLongPressReaction = useCallback(
+    (answerId: string) => {
+      const raw = answerReactionsRaw.filter(
+        (r) => String(r.answer_id) === answerId,
+      );
 
-      try {
-        // TODO: 실제 리액션 추가 로직 구현
-        console.log(
-          `이모지 추가: answerId=${selectedAnswerId}, emoji=${emoji.emoji}`,
-        );
+      const emojiMap: Record<number, { label: string; count: number }> = {};
+      raw.forEach((r: any) => {
+        if (!emojiMap[r.emoji_id]) {
+          emojiMap[r.emoji_id] = { label: r.emojis?.value ?? "?", count: 0 };
+        }
+        emojiMap[r.emoji_id].count += 1;
+      });
 
-        emojiSheetRef.current?.close();
-      } catch (error) {
-        console.error("리액션 추가 오류:", error);
-      }
+      const tabs: ReactionTab[] = [
+        { key: "all", label: "전체", count: raw.length },
+        ...Object.entries(emojiMap).map(([id, { label, count }]) => ({
+          key: id,
+          label,
+          count,
+        })),
+      ];
+
+      const users: ReactionUser[] = raw.map((r: any) => ({
+        id: r.reactor_profile_id,
+        nickname: r.profiles?.nickname ?? "알 수 없음",
+        profileImageUrl: r.profiles?.avatar_url ?? null,
+        emojiId: r.emoji_id,
+      }));
+
+      setReactionTabs(tabs);
+      setReactionUsers(users);
+      setSelectedTab("all");
+      reactionUserSheetRef.current?.expand();
     },
-    [selectedAnswerId, myProfileId],
+    [answerReactionsRaw],
   );
+
+  const handleSelectTab = useCallback((key: string) => {
+    setSelectedTab(key);
+  }, []);
+
+  const filteredUsers =
+    selectedTab === "all"
+      ? reactionUsers
+      : reactionUsers.filter((u) => String(u.emojiId) === selectedTab);
+
+  // params에서 질문 텍스트 세팅
   useEffect(() => {
-    // params에서 질문 텍스트가 있으면 사용
     if (params.questionText) {
       setQuestion(
         decodeURIComponent(params.questionText).replace(/\\n/g, "\n"),
@@ -162,64 +208,64 @@ export default function FeedScreen() {
     }
   }, [params.questionText, params.date]);
 
-  // 내 프로필 + 친구 목록 로드 (친구 모드일 때만 필요)
+  // 내 프로필 ID 로드
   useEffect(() => {
-    const loadMyProfileAndFriends = async () => {
-      if (params.mode !== "friend") return;
+    const loadMyProfile = async () => {
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) return;
-
         const { data: profileData } = await supabase
           .from("profiles")
           .select("profile_id")
           .eq("uid", user.id)
           .single();
-
         if (!profileData) return;
+        setMyProfileId(profileData.profile_id);
+      } catch (error) {
+        console.error("프로필 로드 오류:", error);
+      }
+    };
+    loadMyProfile();
+  }, []);
 
-        const profileId = profileData.profile_id;
-        setMyProfileId(profileId);
-
+  // 친구 목록 로드
+  useEffect(() => {
+    const loadFriends = async () => {
+      if (params.mode !== "friend" || !myProfileId) return;
+      try {
         const { data: asFollower } = await supabase
           .from("follows")
           .select("followee_profile_id")
-          .eq("follower_profile_id", profileId)
+          .eq("follower_profile_id", myProfileId)
           .eq("status", "accepted");
-
         const { data: asFollowee } = await supabase
           .from("follows")
           .select("follower_profile_id")
-          .eq("followee_profile_id", profileId)
+          .eq("followee_profile_id", myProfileId)
           .eq("status", "accepted");
-
         const friendIds = new Set<number>();
         asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
         asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
-
         setFriendProfileIds([...friendIds]);
       } catch (error) {
-        console.error("프로필/친구 로드 오류:", error);
+        console.error("친구 로드 오류:", error);
       }
     };
+    loadFriends();
+  }, [params.mode, myProfileId]);
 
-    loadMyProfileAndFriends();
-  }, [params.mode]);
-
-  // params에서 질문이 없으면 서버에서 가져오기
+  // 질문 서버에서 가져오기
   useEffect(() => {
     const fetchQuestion = async () => {
       if (!params.date || params.questionText) return;
-
       try {
         const { data, error } = await supabase
           .from("daily_questions")
           .select("*")
           .eq("question_date", params.date)
           .single();
-
         if (!error && data) {
           setQuestion(data.question_text.replace(/\\n/g, "\n"));
         }
@@ -227,16 +273,42 @@ export default function FeedScreen() {
         console.error("질문 로드 오류:", error);
       }
     };
-
     fetchQuestion();
   }, [params.date, params.questionText]);
 
-  // 사진 피드 가져오기
+  // 공통 리액션 fetch
+  const fetchReactionsForAnswerIds = useCallback(async (answerIds: any[]) => {
+    const { data: reactionsRaw, error: reactionsError } = await supabase
+      .from("answer_reactions")
+      .select(
+        `
+        answer_id,
+        emoji_id,
+        reactor_profile_id,
+        emojis:emoji_id (value, name),
+        profiles:reactor_profile_id (nickname, avatar_url)
+      `,
+      )
+      .in("answer_id", answerIds);
+
+    if (!reactionsError && reactionsRaw) {
+      setAnswerReactionsRaw(reactionsRaw);
+      setReactions(buildReactionsMap(reactionsRaw));
+    } else {
+      console.error("리액션 fetch 오류:", reactionsError);
+      setAnswerReactionsRaw([]);
+      setReactions({});
+    }
+  }, []);
+
+  // 사진 피드 + 리액션 데이터 가져오기
   useEffect(() => {
-    const fetchFeedPhotos = async () => {
+    const fetchFeedPhotosAndReactions = async () => {
       if (!params.date) return;
       if (params.mode === "friend" && friendProfileIds.length === 0) {
         setFeedCards([]);
+        setAnswerReactionsRaw([]);
+        setReactions({});
         return;
       }
 
@@ -261,10 +333,12 @@ export default function FeedScreen() {
           query = query.in("owner_profile_id", friendProfileIds);
         }
 
-        const { data, error } = await query;
+        const { data: answers, error: answersError } = await query;
+        // 디버깅: answers 쿼리 결과 출력
+        console.log("answers 쿼리 결과:", answers, "error:", answersError);
 
-        if (!error && data) {
-          const cards: FeedCardData[] = data.map((item: any) => ({
+        if (!answersError && answers) {
+          const cards: FeedCardData[] = answers.map((item: any) => ({
             id: item.answer_id,
             imageUrl: item.photo_url,
             nickname: item.profiles?.nickname || "익명",
@@ -272,30 +346,107 @@ export default function FeedScreen() {
             ownerProfileId: item.owner_profile_id,
           }));
           setFeedCards(cards);
+
+          const answerIds = answers.map((a: any) => a.answer_id);
+          // 디버깅: answerIds 출력
+          console.log("answerIds:", answerIds);
+          if (answerIds.length > 0) {
+            await fetchReactionsForAnswerIds(answerIds);
+          } else {
+            setAnswerReactionsRaw([]);
+            setReactions({});
+          }
         }
       } catch (error) {
-        console.error("피드 사진 로드 오류:", error);
+        console.error("피드/리액션 로드 오류:", error);
       }
     };
 
-    fetchFeedPhotos();
-  }, [params.date, params.mode, friendProfileIds, myProfileId]);
+    fetchFeedPhotosAndReactions();
+  }, [
+    params.date,
+    params.mode,
+    friendProfileIds,
+    myProfileId,
+    fetchReactionsForAnswerIds,
+  ]);
 
-  // 헤더 높이
+  // 리액션 새로고침
+  const fetchReactions = useCallback(async () => {
+    if (!params.date) return;
+    try {
+      let query = supabase
+        .from("answers")
+        .select(`answer_id`)
+        .eq("question_date", params.date)
+        .not("photo_url", "is", null)
+        .is("deleted_at", null);
+
+      if (params.mode === "friend") {
+        query = query.in("owner_profile_id", friendProfileIds);
+      }
+
+      const { data: answers, error: answersError } = await query;
+      if (!answersError && answers) {
+        const answerIds = answers.map((a: any) => a.answer_id);
+        if (answerIds.length > 0) {
+          await fetchReactionsForAnswerIds(answerIds);
+        } else {
+          setAnswerReactionsRaw([]);
+          setReactions({});
+        }
+      }
+    } catch (error) {
+      console.error("리액션 새로고침 오류:", error);
+    }
+  }, [params.date, params.mode, friendProfileIds, fetchReactionsForAnswerIds]);
+
+  // 이모지 선택 핸들러
+  const handleSelectEmoji = useCallback(
+    async (emoji: EmojiOption) => {
+      if (!selectedAnswerId || !myProfileId) {
+        emojiSheetRef.current?.close();
+        return;
+      }
+      // 디버깅: insert 직전 값 출력
+      console.log(
+        "insert answer_id:",
+        selectedAnswerId,
+        "myProfileId:",
+        myProfileId,
+        "emojiId:",
+        emoji.emojiId,
+      );
+      try {
+        const { error: insertError } = await supabase
+          .from("answer_reactions")
+          .insert({
+            answer_id: selectedAnswerId, // 문자열 그대로 사용
+            reactor_profile_id: myProfileId,
+            emoji_id: emoji.emojiId,
+          });
+
+        if (insertError) {
+          console.error("insert 오류:", insertError);
+        }
+
+        emojiSheetRef.current?.close();
+        fetchReactions();
+      } catch (error) {
+        console.error("리액션 추가 오류:", error);
+      }
+    },
+    [selectedAnswerId, myProfileId, fetchReactions],
+  );
+
   const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
+
       {/* 헤더 */}
-      <View
-        style={[
-          styles.headerOverlay,
-          {
-            paddingTop: insets.top + 18,
-          },
-        ]}
-      >
+      <View style={[styles.headerOverlay, { paddingTop: insets.top + 18 }]}>
         <View style={styles.headerContent}>
           <Pressable
             style={styles.headerIconWrapper}
@@ -313,7 +464,7 @@ export default function FeedScreen() {
         </View>
       </View>
 
-      {/* 피드 콘텐츠 영역 - 헤더 아래부터 시작, 질문 pill 뒤로 스크롤됨 */}
+      {/* 피드 콘텐츠 */}
       <ScrollView
         style={[styles.scrollView, { marginTop: HEADER_HEIGHT }]}
         contentContainerStyle={[styles.feedContainer, { paddingTop: 81 }]}
@@ -323,6 +474,10 @@ export default function FeedScreen() {
           <FeedCard
             key={card.id}
             data={card}
+            reactions={reactions[String(card.id)] || []}
+            answerReactionsRaw={answerReactionsRaw.filter(
+              (r) => String(r.answer_id) === String(card.id),
+            )}
             onPressNickname={(item) => {
               router.push({
                 pathname: "/social/user/[id]",
@@ -332,12 +487,13 @@ export default function FeedScreen() {
                 },
               });
             }}
-            onPressAddReaction={() => handlePressAddReaction(card.id)}
+            onPressAddReaction={() => handlePressAddReaction(String(card.id))}
+            onLongPressReaction={() => handleLongPressReaction(String(card.id))}
           />
         ))}
       </ScrollView>
 
-      {/* 질문 영역 - 헤더 아래 81px 공간에서 가운데 정렬, 스크롤 위에 고정 */}
+      {/* 질문 Pill */}
       <View style={[styles.questionArea, { top: HEADER_HEIGHT }]}>
         {date && question && <QuestionPill date={date} question={question} />}
       </View>
@@ -347,6 +503,16 @@ export default function FeedScreen() {
         ref={emojiSheetRef}
         onSelectEmoji={handleSelectEmoji}
         onClose={() => setSelectedAnswerId(null)}
+      />
+
+      {/* 리액션 유저 목록 BottomSheet */}
+      <ReactionUserSheet
+        ref={reactionUserSheetRef}
+        onClose={() => {}}
+        tabs={reactionTabs}
+        selectedTab={selectedTab}
+        onSelectTab={handleSelectTab}
+        users={filteredUsers}
       />
     </GestureHandlerRootView>
   );
@@ -358,8 +524,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-
-  /* 헤더 */
   headerOverlay: {
     position: "absolute",
     top: 0,
@@ -394,8 +558,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  /* 질문 영역 */
   questionArea: {
     position: "absolute",
     left: 0,
@@ -439,8 +601,6 @@ const styles = StyleSheet.create({
     color: "#5B8DEF",
     textAlign: "center",
   },
-
-  /* 스크롤 및 피드 영역 */
   scrollView: {
     flex: 1,
   },

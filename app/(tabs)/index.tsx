@@ -307,6 +307,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const HomeGradient = require("@/assets/images/backgrounds/home_gradient.png");
   const viewShotRef = useRef<ViewShot>(null);
+  const lottieRef = useRef<LottieView>(null);
 
   // State
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -686,6 +687,22 @@ export default function HomeScreen() {
   const formattedQuestion =
     todayQuestion?.question_text?.replace(/\\n/g, "\n") || "";
 
+  const EmptyStateLottie = React.memo(() => (
+    <LottieView
+      ref={lottieRef}
+      source={require("@/assets/animations/floating-deedee.json")}
+      autoPlay
+      loop
+      speed={1}
+      resizeMode="contain"
+      renderMode="SOFTWARE"
+      style={styles.lottieAnimation}
+      onAnimationFinish={() => {
+        lottieRef.current?.play(0, 210);
+      }}
+    />
+  ));
+
   return (
     <View style={styles.container}>
       <Image
@@ -710,14 +727,7 @@ export default function HomeScreen() {
                 onEdit={handleEdit}
               />
             ) : (
-              <LottieView
-                source={require("@/assets/animations/floating-deedee.json")}
-                autoPlay
-                loop={true}
-                speed={0.8}
-                resizeMode="contain"
-                style={styles.lottieAnimation}
-              />
+              <EmptyStateLottie />
             )}
           </View>
         </ViewShot>
