@@ -22,9 +22,10 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-const DDSurprised = require("@/assets/images/DD/DD_놀람.png");
-const DDBored = require("@/assets/images/DD/DD_지루.png");
-const DDLogo = require("@/assets/images/DD/DD_쭈글_블러.png");
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const DDSurprised_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
+const DDBored_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/bored.png`;
+const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wrinkled.png`;
 
 /* ====== 자물쇠 아이콘 ====== */
 const LockIcon = () => (
@@ -53,7 +54,7 @@ function LockedOverlay() {
       />
       <View style={styles.lockedContent}>
         <View style={styles.logoContainer}>
-          <Image source={DDLogo} style={styles.logo} />
+          <Image source={{ uri: DDLogo_URL }} style={styles.logo} />
         </View>
         <LockIcon />
         <Text style={styles.lockedText}>
@@ -69,7 +70,7 @@ function EndOfFeed() {
   return (
     <View style={styles.endOfFeedContainer}>
       <Text style={styles.endOfFeedText}>끝까지 오실 줄은 몰랐어요!</Text>
-      <Image source={DDSurprised} style={styles.endOfFeedImage} />
+      <Image source={{ uri: DDSurprised_URL }} style={styles.endOfFeedImage} />
     </View>
   );
 }
@@ -417,7 +418,10 @@ export default function UserFeedScreen() {
                 ) : (
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-                    <Image source={DDBored} style={styles.emptyImage} />
+                    <Image
+                      source={{ uri: DDBored_URL }}
+                      style={styles.emptyImage}
+                    />
                   </View>
                 )}
               </View>
@@ -446,7 +450,10 @@ export default function UserFeedScreen() {
                   ) : (
                     <View style={styles.emptyContainer}>
                       <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-                      <Image source={DDBored} style={styles.emptyImage} />
+                      <Image
+                        source={{ uri: DDBored_URL }}
+                        style={styles.emptyImage}
+                      />
                     </View>
                   )}
                 </>
@@ -455,7 +462,10 @@ export default function UserFeedScreen() {
               {activeTab === "question" && (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-                  <Image source={DDBored} style={styles.emptyImage} />
+                  <Image
+                    source={{ uri: DDBored_URL }}
+                    style={styles.emptyImage}
+                  />
                 </View>
               )}
             </View>

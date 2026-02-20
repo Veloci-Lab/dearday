@@ -178,7 +178,10 @@ const calculateDaysSince = (startDate: string): number => {
   return diffDays + 1;
 };
 
-const DDLogo = require("@/assets/images/DD/DD_기본.png");
+// Dearday 로고를 Supabase에서 불러오기
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
 
 /* ------ 헤더 ------- */
 function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
@@ -187,7 +190,7 @@ function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top + 18 }]}>
       <View style={styles.headerContent}>
-        <Image source={DDLogo} style={styles.logo} />
+        <Image source={{ uri: REMOTE_DD_LOGO_URL }} style={styles.logo} />
         <View style={styles.rightIcons}>
           <Pressable onPress={() => console.log("캘린더")}>
             <CalendarIcon />

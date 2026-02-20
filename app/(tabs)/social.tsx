@@ -136,16 +136,17 @@ const LockIcon = () => (
   </Svg>
 );
 
-const DDLogo = require("@/assets/images/DD/DD_쭈글_블러.png");
-const DDSurprised = require("@/assets/images/DD/DD_놀람.png");
-const DDSleep = require("@/assets/images/DD/DD_잠.png");
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wrinkled.png`;
+const DDSurprised_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
+const DDSleep_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/sleep.png`;
 
 /* ====== 피드 끝 표시 ====== */
 function EndOfFeed() {
   return (
     <View style={styles.endOfFeedContainer}>
       <Text style={styles.endOfFeedText}>끝까지 오실 줄은 몰랐어요!</Text>
-      <Image source={DDSurprised} style={styles.endOfFeedImage} />
+      <Image source={{ uri: DDSurprised_URL }} style={styles.endOfFeedImage} />
     </View>
   );
 }
@@ -155,7 +156,7 @@ function EmptyFriends() {
   return (
     <View style={styles.emptyFriendsContainer}>
       <Text style={styles.emptyFriendsText}>아직 친구가 없어요.</Text>
-      <Image source={DDSleep} style={styles.emptyFriendsImage} />
+      <Image source={{ uri: DDSleep_URL }} style={styles.emptyFriendsImage} />
     </View>
   );
 }
@@ -171,7 +172,7 @@ function LockedOverlay() {
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.logoContainer}>
-        <Image source={DDLogo} style={styles.logo} />
+        <Image source={{ uri: DDLogo_URL }} style={styles.logo} />
       </View>
       <View style={styles.lockedContent}>
         <LockIcon />

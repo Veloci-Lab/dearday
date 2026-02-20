@@ -19,7 +19,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
-const DDSleep = require("@/assets/images/DD/DD_잠.png");
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const DDSleep_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/sleep.png`;
 
 /* ====== SVG 아이콘 ====== */
 const SearchIcon = () => (
@@ -661,7 +662,7 @@ export default function FriendsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>아직 친구가 없어요.</Text>
-            <Image source={DDSleep} style={styles.emptyImage} />
+            <Image source={{ uri: DDSleep_URL }} style={styles.emptyImage} />
           </View>
         }
       />
