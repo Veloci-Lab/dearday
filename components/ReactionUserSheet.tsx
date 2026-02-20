@@ -44,7 +44,7 @@ const ReactionUserSheet = forwardRef<BottomSheet, ReactionUserSheetProps>(
     },
     ref,
   ) => {
-    const snapPoints = useMemo(() => ["55%"], []);
+    const snapPoints = useMemo(() => ["45%"], []);
 
     const renderBackdrop = useCallback(
       (props: any) => (
@@ -68,42 +68,67 @@ const ReactionUserSheet = forwardRef<BottomSheet, ReactionUserSheetProps>(
     );
 
     const TabBar = (
-      <View style={styles.tabBarWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabBarScroll}
-        >
-          {tabs.map((tab) => {
-            const isSelected = selectedTab === tab.key;
-            return (
-              <Pressable
-                key={tab.key}
-                style={[styles.tabItem, isSelected && styles.tabItemSelected]}
-                onPress={() => onSelectTab(tab.key)}
-              >
-                <Text
+      <>
+        <View style={styles.tabBarWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBarScroll}
+          >
+            {tabs.map((tab) => {
+              const isSelected = selectedTab === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
                   style={[
-                    styles.tabLabel,
-                    isSelected && styles.tabTextSelected,
+                    styles.tabItem,
+                    { backgroundColor: isSelected ? "#F2F2F2" : "#FFFFFF" },
+                    tab.key === "all" && { gap: 0 },
                   ]}
+                  onPress={() => onSelectTab(tab.key)}
                 >
-                  {tab.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.tabCount,
-                    isSelected && styles.tabTextSelected,
-                  ]}
-                >
-                  {tab.count}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                  {tab.key === "all" ? (
+                    <Text
+                      style={[
+                        styles.tabLabel,
+                        isSelected && styles.tabTextSelected,
+                      ]}
+                    >
+                      전체
+                    </Text>
+                  ) : (
+                    <Image
+                      source={
+                        tab.label.startsWith("http")
+                          ? { uri: tab.label }
+                          : {
+                              uri: `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/public/emoji/${tab.label}`,
+                            }
+                      }
+                      style={{
+                        width: 20,
+                        height: 20,
+                        marginRight: 4,
+                        borderRadius: 4,
+                      }}
+                      resizeMode="contain"
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.tabCount,
+                      isSelected && styles.tabTextSelected,
+                    ]}
+                  >
+                    {tab.count}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
         <View style={styles.tabBarDivider} />
-      </View>
+      </>
     );
 
     return (
@@ -154,8 +179,8 @@ export default ReactionUserSheet;
 const styles = StyleSheet.create({
   sheetBackground: {
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
   },
   handleContainer: {
     paddingTop: 7,
@@ -168,28 +193,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F2F2",
   },
   tabBarWrapper: {
-    paddingTop: 25,
     paddingBottom: 10,
     paddingLeft: 24,
-    paddingRight: 0,
     backgroundColor: "#fff",
   },
   tabBarScroll: {
     flexDirection: "row",
     alignItems: "center",
     paddingRight: 24,
-    gap: 8,
+    gap: 5,
   },
   tabItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: "#F2F2F2",
+    height: 32,
+    paddingLeft: 6,
+    paddingRight: 8,
+    paddingHorizontal: 8,
+    justifyContent: "flex-end",
+    gap: 6,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
   },
   tabItemSelected: {
-    backgroundColor: "#0D0D0D",
+    // backgroundColor는 inline style에서 처리
   },
   tabLabel: {
     fontFamily: "Pretendard-SemiBold",
@@ -203,23 +230,21 @@ const styles = StyleSheet.create({
     color: "#0D0D0D",
   },
   tabTextSelected: {
-    color: "#FFFFFF",
+    color: "#0D0D0D",
   },
   tabBarDivider: {
     height: 1,
     backgroundColor: "#F2F2F2",
-    marginTop: 10,
     marginRight: -24,
   },
   userListContent: {
-    paddingBottom: 40,
+    paddingBottom: 20,
+    gap: 15,
   },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 18,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   profileImage: {
     width: 40,
@@ -229,19 +254,19 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   profilePlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: "#E0E0E0",
-    marginRight: 12,
+    marginRight: 10,
   },
   nickname: {
     fontFamily: "Pretendard-SemiBold",
-    fontSize: 16,
+    fontSize: 14,
     color: "#333",
   },
   emptyContainer: {
-    paddingTop: 32,
+    paddingTop: 20,
     paddingHorizontal: 24,
     alignItems: "center",
   },
