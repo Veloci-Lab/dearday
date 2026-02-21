@@ -206,7 +206,7 @@ const MyPage = () => {
     place: a.caption ?? "",
   }));
 
-  const blocks = buildRandomBlocks(feedItems);
+  const blocks = answers.length > 0 ? buildRandomBlocks(feedItems) : [];
 
   /* ---------------- header ---------------- */
 
@@ -412,15 +412,12 @@ const MyPage = () => {
     </View>
   );
 
+  const currentListData = activeTab === "grid" ? blocks : questionsData;
   // ---------------- render ----------------
   return (
     <View style={styles.container}>
       <FlatList<ListItem>
-        data={
-          (activeTab === "grid"
-            ? blocks
-            : questionsData) as ListItem[]
-        }
+        data={currentListData as ListItem[]}
 
         keyExtractor={(item, index) => {
           if (activeTab === "grid") {
@@ -433,76 +430,99 @@ const MyPage = () => {
 
         showsVerticalScrollIndicator={false}
 
+        ListFooterComponent={
+          currentListData.length > 0 ? <ListFooter /> : null
+        }
+        ListEmptyComponent={<ListEmptyView />}
+
         contentContainerStyle={{
           paddingBottom: 12,
           paddingHorizontal: HORIZONTAL_PADDING,
         }}
 
         ListHeaderComponent={
-          <>
-            {/* 프로필 */}
-            <View style={styles.profileWrapper}>
-              <View style={styles.profileSection}>
-                <View style={styles.profileContent}>
-                  {profile?.avatar_url ? (
-                    <Image
-                      source={{ uri: profile.avatar_url }}
-                      style={styles.profileImage}
-                    />
-                  ) : (
-                    <View style={styles.profilePlaceholder} /> // URL 없으면 회색 원
-                  )}
-                  <View
-                    style={{
-                      justifyContent: profile?.intro ? "flex-start" : "center",
-                    }}
-                  >
-                    <Text style={styles.profileName}>
-                      {profile?.nickname}
-                    </Text>
+        <>
+          {/* 프로필 (스크롤됨) */}
+          <View style={styles.profileWrapper}>
+            <View style={styles.profileSection}>
+              <View style={styles.profileContent}>
+                {profile?.avatar_url ? (
+                  <Image
+                    source={{ uri: profile.avatar_url }}
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <View style={styles.profilePlaceholder} />
+                )}
 
-                    {profile?.intro && (
-                      <Text style={styles.profileBio}>
-                        {profile.intro}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-
-                <Pressable
-                  onPress={() => {
-                    router.push("/myfeed/profileSetting");
-                    console.log("프로필 편집");
+                <View
+                  style={{
+                    justifyContent: profile?.intro ? "flex-start" : "center",
                   }}
-                  style={styles.editButton}
                 >
-                  <EditIcon width={20} height={20} />
-                </Pressable>
-              </View>
-            </View>
+                  <Text style={styles.profileName}>
+                    {profile?.nickname}
+                  </Text>
 
-            <View style={[
-              styles.tabsWrapper, 
-              activeTab === "grid" && styles.tabsWrapperGrid // 그리드일 때만 특별한 스타일 추가
-            ]}>
-              <View style={styles.tabsContainer}>
-                <Pressable
-                  style={[styles.tabButton, activeTab === "grid" && styles.activeTabButton]}
-                  onPress={() => setActiveTab("grid")}
-                >
-                  <Text style={activeTab === "grid" ? styles.activeTabLabel : styles.tabLabel}>그리드</Text>
-                </Pressable>
-
-                <Pressable
-                  style={[styles.tabButton, activeTab === "question" && styles.activeTabButton]}
-                  onPress={() => setActiveTab("question")}
-                >
-                  <Text style={activeTab === "question" ? styles.activeTabLabel : styles.tabLabel}>질문</Text>
-                </Pressable>
+                  {profile?.intro && (
+                    <Text style={styles.profileBio}>
+                      {profile.intro}
+                    </Text>
+                  )}
+                </View>
               </View>
+
+              <Pressable
+                onPress={() => router.push("/myfeed/profileSetting")}
+                style={styles.editButton}
+              >
+                <EditIcon width={20} height={20} />
+              </Pressable>
             </View>
-          </>
-        }
+          </View>
+
+          {/* 👇 Sticky 대상 */}
+          <View style={styles.tabsWrapper}>
+            <View style={styles.tabsContainer}>
+              <Pressable
+                style={[
+                  styles.tabButton,
+                  activeTab === "grid" && styles.activeTabButton,
+                ]}
+                onPress={() => setActiveTab("grid")}
+              >
+                <Text
+                  style={
+                    activeTab === "grid"
+                      ? styles.activeTabLabel
+                      : styles.tabLabel
+                  }
+                >
+                  그리드
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.tabButton,
+                  activeTab === "question" && styles.activeTabButton,
+                ]}
+                onPress={() => setActiveTab("question")}
+              >
+                <Text
+                  style={
+                    activeTab === "question"
+                      ? styles.activeTabLabel
+                      : styles.tabLabel
+                  }
+                >
+                  질문
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </>
+      }
 
         renderItem={({ item, index }) => {
           // 그리드 탭
@@ -564,8 +584,6 @@ const MyPage = () => {
             />
           );
         }}
-
-        ListFooterComponent={<ListFooter />}
 
         onEndReached={
           activeTab === "question"

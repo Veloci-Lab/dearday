@@ -6,11 +6,11 @@ import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 interface Reaction {
   reaction_id: string;
-  emoji: string;
+  emoji_url: string;
   count: number;
 }
 
@@ -21,7 +21,7 @@ interface Answer {
   question_date: string;
   updated_at: string; // 시간 표시용
   question_text?: string;
-  answer_reaction?: Reaction[];
+  answer_reactions?: Reaction[];
 }
 
 export default function AnswerViewerScreen() {
@@ -37,6 +37,9 @@ export default function AnswerViewerScreen() {
   const [nickname, setNickname] = useState<string>("사용자"); // 기본값
   const [initialIndex, setInitialIndex] = useState(0);
   const flatListRef = useRef<FlatList<Answer>>(null);
+
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null)
 
   // 시간 포맷 함수 (ISO string -> HH시 mm분)
   const formatTime = (dateString: string) => {
@@ -77,7 +80,12 @@ export default function AnswerViewerScreen() {
         // 2. 답변 가져오기
         const { data, error } = await supabase
           .from("answers")
-          .select(`*, answer_reactions (*)`)
+          .select(`*, 
+              answer_reactions (
+              reactor_profile_id,
+              emoji_id,
+              emojis ( emoji_id, value ) 
+            )`)
           .eq("owner_profile_id", profileId)
           .is("deleted_at", null)
           .order("question_date", { ascending: false }); // DB 번호 기준으로 역순 정렬
@@ -101,11 +109,40 @@ export default function AnswerViewerScreen() {
 
   // 3. 개별 피드 아이템 렌더링
   const renderItem = ({ item, index }: { item: Answer; index: number }) => {
-    // 역순일 때 번호 계산 (예: 전체 10개 중 첫번째 아이템은 Q10)
-    const questionNumber = index+1;
+    const questionNumber = index + 1;
+
+    const rawReactions = (item as any).answer_reactions || [];
+    const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  
+    const reactionMap = rawReactions.reduce((acc: any, curr: any) => {
+      // emojis 테이블에서 가져온 value 값 추출
+      const emojiValue = curr.emojis?.value; 
+      if (!emojiValue) return acc;
+
+      if (acc[emojiValue]) {
+        acc[emojiValue].count += 1;
+      } else {
+        acc[emojiValue] = {
+          id: curr.reaction_id,
+          // 알려주신 URL 규칙 적용
+          imageUrl: `${SUPABASE_URL}/storage/v1/object/public/emoji/${emojiValue}`,
+          count: 1
+        };
+      }
+      return acc;
+    }, {});
+
+
+    const reactions = item.answer_reactions || [];
+    const displayedReactions = reactions.slice(0, 3);
+    const hasMoreReactions = reactions.length > 3;
+
+    console.log(`--- [Q${index + 1}] Answer ID: ${item.answer_id} ---`);
+    console.log("Raw Data:", JSON.stringify(item, null, 2)); 
+    console.log("Found Reactions:", reactions);
+
     return (
       <View style={styles.feedItem}>
-        {/* 질문 헤더 영역 */}
         <View style={styles.questionSection}>
           <Text style={styles.questionText}>
             <Text style={styles.questionNumber}>Q{questionNumber}. </Text>
@@ -116,12 +153,10 @@ export default function AnswerViewerScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 이미지 영역 */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: item.photo_url }} style={styles.photo} />
         </View>
 
-        {/* 푸터 영역 (작성자 및 리액션) */}
         <View style={styles.footerSection}>
           <View>
             <Text style={styles.username}>{nickname}</Text>
@@ -129,14 +164,32 @@ export default function AnswerViewerScreen() {
           </View>
           
           <View style={styles.reactionRow}>
-            {item.answer_reaction && item.answer_reaction.length > 0 ? (
-              item.answer_reaction.map((reaction) => (
-                <View key={reaction.reaction_id} style={styles.reactionBadge}>
-                  <Text style={styles.reactionText}>{reaction.emoji} {reaction.count}</Text>
-                </View>
-              ))
-            ) : null}
-            <TouchableOpacity style={styles.addEmojiBtn}>
+            {/* 1. 잘라낸 3개의 리액션만 출력 */}
+            {displayedReactions.map((reaction: Reaction, idx: number) => (
+              // reaction_id가 확실히 고유한지 확인하고, 불안하면 idx를 조합하세요.
+              <View key={reaction.reaction_id} style={styles.reactionBadge}>
+                {/* 텍스트 대신 Image 컴포넌트로 이모지 표시 */}
+                <Image 
+                  source={{ uri: reaction.emoji_url}} 
+                  style={{ width: 20, height: 20, marginRight: 4 }} 
+                />
+                <Text style={styles.reactionText}>{reaction.count}</Text>
+              </View>
+            ))}
+            {/* 2. 3개가 넘으면 회색 네모 점(...) 출력 */}
+            {hasMoreReactions && (
+              <View style={styles.moreBadge}>
+                <Text style={styles.moreText}>...</Text>
+              </View>
+            )}
+
+            <TouchableOpacity 
+              style={styles.addEmojiBtn} 
+              onPress={() => {
+                setSelectedAnswerId(item.answer_id);
+                setIsPickerOpen(true);
+              }}
+            >
               <EmojiAddIcon />
             </TouchableOpacity>
           </View>
@@ -265,5 +318,72 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
+  },
+  moreBadge: {
+    backgroundColor: "#F5F5F5",
+    width: 28,
+    height: 28,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 6,
+  },
+  moreText: {
+    color: "#C3C3C3",
+    fontFamily: 'Pretendard-Regular',
+    fontSize: 14,
+  },
+  // 모달 관련 스타일
+  modal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    height: height * 0.7, // 화면의 70% 높이
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    paddingHorizontal: 20,
+  },
+  handle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginVertical: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  searchText: {
+    color: '#999',
+    marginLeft: 10,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '600',
+    marginBottom: 15,
+  },
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 15,
+    marginBottom: 25,
+  },
+  deardayImage: {
+    width: 65,
+    height: 65,
+    resizeMode: 'contain',
+  },
+  nativeEmoji: {
+    fontSize: 32,
   },
 });

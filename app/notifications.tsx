@@ -176,16 +176,16 @@ function renderMessage(
   emoji?: Notification["emoji"],
 ) {
   switch (type) {
-    case "follow_request":
-      return "님이 팔로우 요청을 보냈어요.";
-    case "follow_back":
-      return "님이 팔로우 요청을 보냈어요.";
-    case "follow":
-      return "님이 나를 팔로우하기 시작했어요.";
+    // case "follow_request":
+    //   return "님이 팔로우 요청을 보냈어요.";
+    // case "follow_back":
+    //   return "님이 팔로우 요청을 보냈어요.";
+    // case "follow":
+    //   return "님이 나를 팔로우하기 시작했어요.";
     case "emoji":
       return emoji
-        ? `님이 나의 사진에 ${emoji}를 남겼어요.`
-        : "님이 나의 사진에 반응을 남겼어요.";
+        ? `님이 회원님의 사진에 반응했어요. ${emoji}`
+        : "님이 회원님의 사진에 반응했어요.";
   }
 }
 
@@ -196,42 +196,42 @@ function renderAction(
   onFollowBack: (item: Notification) => void,
 ) {
   switch (item.type) {
-    case "follow_request":
-      return (
-        <View style={styles.actions}>
-          <Pressable style={styles.confirm} onPress={() => onConfirm(item)}>
-            <Text style={styles.confirmText}>확인</Text>
-          </Pressable>
+    // case "follow_request":
+    //   return (
+    //     <View style={styles.actions}>
+    //       <Pressable style={styles.confirm} onPress={() => onConfirm(item)}>
+    //         <Text style={styles.confirmText}>확인</Text>
+    //       </Pressable>
 
-          <Pressable style={styles.delete} onPress={() => onDelete(item)}>
-            <Text style={styles.deleteText}>삭제</Text>
-          </Pressable>
-        </View>
-      );
+    //       <Pressable style={styles.delete} onPress={() => onDelete(item)}>
+    //         <Text style={styles.deleteText}>삭제</Text>
+    //       </Pressable>
+    //     </View>
+    //   );
 
-    case "follow_back":
-      return (
-        <Pressable
-          style={[
-            styles.confirm,
-            {
-              width: 109,
-              height: 35,
-              alignItems: "center",
-              justifyContent: "center",
-            },
-          ]}
-        >
-          <Text style={styles.confirmText}>맞팔로우 하기</Text>
-        </Pressable>
-      );
+    // case "follow_back":
+    //   return (
+    //     <Pressable
+    //       style={[
+    //         styles.confirm,
+    //         {
+    //           width: 109,
+    //           height: 35,
+    //           alignItems: "center",
+    //           justifyContent: "center",
+    //         },
+    //       ]}
+    //     >
+    //       <Text style={styles.confirmText}>맞팔로우 하기</Text>
+    //     </Pressable>
+    //   );
 
-    case "follow":
-      return (
-        <View style={styles.following}>
-          <Text style={styles.followingText}>팔로잉 중</Text>
-        </View>
-      );
+    // case "follow":
+    //   return (
+    //     <View style={styles.following}>
+    //       <Text style={styles.followingText}>팔로잉 중</Text>
+    //     </View>
+    //   );
     case "emoji":
       return item.entity?.photo_url ? (
         <Image
@@ -304,7 +304,7 @@ export default function NotificationsScreen() {
         type,
         is_read,
         created_at,
-        emoji,
+        emoji_value,
         entity_id,
         actor:actor_profile_id(
           profile_id,
@@ -319,6 +319,7 @@ export default function NotificationsScreen() {
       `,
       )
       .eq("user_profile_id", profileId)
+      .eq("type", "emoji")
       .order("created_at", { ascending: false });
 
     if (error) {
