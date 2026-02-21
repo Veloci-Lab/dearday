@@ -3,7 +3,6 @@ import { useAuthStore } from "@/utils/authStore";
 import { useOnboardingStore } from "@/utils/onboardingStore";
 import { registerForPushNotificationsAsync } from "@/utils/registerForPushNotificationsAsync";
 import { supabase } from "@/utils/supabase";
-import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from 'expo-image-picker';
@@ -262,22 +261,31 @@ export default function OnboardingPrivacyScreen() {
             </Text>
 
             <View style={styles.permissionRow}>
-              <View style={styles.permissionIcon}>
+              {/* <View style={styles.permissionIcon}>
                 <Ionicons name="notifications-outline" size={22} color="#64748B" />
-              </View>
+              </View> */}
               <View style={styles.permissionText}>
-                <Text style={styles.permissionTitle}>알람</Text>
-                <Text style={styles.permissionDesc}>~를 위해서 필요해요</Text>
+                <Text style={styles.permissionTitle}>알림</Text>
+                <Text style={styles.permissionDesc}>오늘의 질문 알림을 받을 수 있어요.</Text>
               </View>
             </View>
 
             <View style={styles.permissionRow}>
-              <View style={styles.permissionIcon}>
+              {/* <View style={styles.permissionIcon}>
                 <Ionicons name="image-outline" size={22} color="#64748B" />
-              </View>
+              </View> */}
               <View style={styles.permissionText}>
                 <Text style={styles.permissionTitle}>사진</Text>
-                <Text style={styles.permissionDesc}>~를 위해서 필요해요</Text>
+                <Text style={styles.permissionDesc}>컨텐츠에 사진을 첨부할 수 있어요.</Text>
+              </View>
+            </View>
+            <View style={styles.permissionRow}>
+              {/* <View style={styles.permissionIcon}>
+                <Ionicons name="image-outline" size={22} color="#64748B" />
+              </View> */}
+              <View style={styles.permissionText}>
+                <Text style={styles.permissionTitle}>개인화 정보</Text>
+                <Text style={styles.permissionDesc}>최적화된 정보를 제공받을 수 있어요.</Text>
               </View>
             </View>
 
