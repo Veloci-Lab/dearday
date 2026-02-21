@@ -211,7 +211,7 @@ export default function UserFeedScreen() {
         // 나 자신의 피드인 경우, 내 피드 뷰어로 리다이렉트
         if (myId && profileId === myId) {
           router.replace({
-            pathname: "/myfeed/answerViewer",
+            pathname: "../../mypage",
             params: { profileId: myId },
           });
           return;
