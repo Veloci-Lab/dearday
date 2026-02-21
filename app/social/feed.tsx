@@ -450,7 +450,6 @@ export default function FeedScreen() {
         return;
       }
 
-      // 1️⃣ 로컬 상태 먼저 업데이트
       setAnswerReactionsRaw((prev) => [
         ...prev,
         {
@@ -458,7 +457,7 @@ export default function FeedScreen() {
           reactor_profile_id: myProfileId,
           emoji_id: emoji.emojiId,
           emojis: { value: emoji.emoji, name: emoji.name },
-          profiles: { nickname: "나", avatar_url: null }, // 나의 정보
+          profiles: { nickname: "나", avatar_url: null }, 
         },
       ]);
 
@@ -466,7 +465,6 @@ export default function FeedScreen() {
         const prevForAnswer = prev[selectedAnswerId] || [];
         const existing = prevForAnswer.find((r) => r.emojiId === emoji.emojiId);
         if (existing) {
-          // 이미 있으면 count 증가
           return {
             ...prev,
             [selectedAnswerId]: prevForAnswer.map((r) =>
@@ -486,10 +484,8 @@ export default function FeedScreen() {
         }
       });
 
-      // 2️⃣ 시트 닫기
       emojiSheetRef.current?.close();
 
-      // 3️⃣ DB insert
       try {
         const { error: insertError } = await supabase
           .from("answer_reactions")
