@@ -28,6 +28,7 @@ interface Answer {
   photo_url: string;
   caption: string;
   question_date: string;
+  created_at: string;
   updated_at: string;
   question_text?: string;
   answer_reactions?: any[];
@@ -214,10 +215,14 @@ export default function AnswerViewerScreen() {
   const renderItem = ({ item, index }: { item: Answer; index: number }) => {
     const questionNumber = index + 1;
 
-    // ✅ renderItem 안에서 리액션 계산
     const { displayedReactions, hasMoreReactions } = buildDisplayedReactions(
       item.answer_reactions ?? [],
     );
+
+    const isEdited =
+      new Date(item.updated_at).getTime() -
+        new Date(item.created_at).getTime() >
+      5000;
 
     return (
       <FeedCard
@@ -227,6 +232,7 @@ export default function AnswerViewerScreen() {
           nickname: nickname,
           createdAt: formatTime(item.updated_at),
           ownerProfileId: Number(profileId),
+          isEdited,
         }}
         reactions={displayedReactions.map((r) => ({
           emojiId: Number(r.reaction_id),
@@ -339,10 +345,13 @@ export default function AnswerViewerScreen() {
                 if (a.answer_id !== selectedAnswerId) return a;
 
                 const existingReactionIndex = a.answer_reactions?.findIndex(
-                  (r: any) => r.reactor_profile_id === myProfileId
+                  (r: any) => r.reactor_profile_id === myProfileId,
                 );
 
-                if (existingReactionIndex != null && existingReactionIndex >= 0) {
+                if (
+                  existingReactionIndex != null &&
+                  existingReactionIndex >= 0
+                ) {
                   // 2️⃣ 이미 반응이 있으면 emoji_id 업데이트
                   const updatedReactions = [...a.answer_reactions];
                   updatedReactions[existingReactionIndex] = {
@@ -365,10 +374,13 @@ export default function AnswerViewerScreen() {
                   };
                   return {
                     ...a,
-                    answer_reactions: [...(a.answer_reactions || []), newReaction],
+                    answer_reactions: [
+                      ...(a.answer_reactions || []),
+                      newReaction,
+                    ],
                   };
                 }
-              })
+              }),
             );
 
             // 4️⃣ Supabase에 반영

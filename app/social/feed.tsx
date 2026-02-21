@@ -328,6 +328,7 @@ export default function FeedScreen() {
             owner_profile_id,
             photo_url,
             created_at,
+            updated_at,
             profiles:owner_profile_id (nickname)
           `,
           )
@@ -343,13 +344,20 @@ export default function FeedScreen() {
         const { data: answers, error: answersError } = await query;
 
         if (!answersError && answers) {
-          const cards: FeedCardData[] = answers.map((item: any) => ({
-            id: item.answer_id,
-            imageUrl: item.photo_url,
-            nickname: item.profiles?.nickname || "익명",
-            createdAt: formatTimeAgo(item.created_at),
-            ownerProfileId: item.owner_profile_id,
-          }));
+          const cards: FeedCardData[] = answers.map((item: any) => {
+            const createdAt = new Date(item.created_at).getTime();
+            const updatedAt = new Date(item.updated_at).getTime();
+            const isEdited = updatedAt - createdAt > 5000; // 5초 이상 차이나면 수정된 것으로 판단
+
+            return {
+              id: item.answer_id,
+              imageUrl: item.photo_url,
+              nickname: item.profiles?.nickname || "익명",
+              createdAt: formatTimeAgo(item.created_at),
+              ownerProfileId: item.owner_profile_id,
+              isEdited,
+            };
+          });
           setFeedCards(cards);
           // 새 카드 로드 시 스크롤 초기화
           setHasScrolledToInitial(false);
@@ -457,7 +465,7 @@ export default function FeedScreen() {
           reactor_profile_id: myProfileId,
           emoji_id: emoji.emojiId,
           emojis: { value: emoji.emoji, name: emoji.name },
-          profiles: { nickname: "나", avatar_url: null }, 
+          profiles: { nickname: "나", avatar_url: null },
         },
       ]);
 
@@ -468,9 +476,7 @@ export default function FeedScreen() {
           return {
             ...prev,
             [selectedAnswerId]: prevForAnswer.map((r) =>
-              r.emojiId === emoji.emojiId
-                ? { ...r, count: r.count + 1 }
-                : r
+              r.emojiId === emoji.emojiId ? { ...r, count: r.count + 1 } : r,
             ),
           };
         } else {
@@ -478,7 +484,12 @@ export default function FeedScreen() {
             ...prev,
             [selectedAnswerId]: [
               ...prevForAnswer,
-              { emojiId: emoji.emojiId, emoji: emoji.emoji, emojiName: emoji.name, count: 1 },
+              {
+                emojiId: emoji.emojiId,
+                emoji: emoji.emoji,
+                emojiName: emoji.name,
+                count: 1,
+              },
             ],
           };
         }

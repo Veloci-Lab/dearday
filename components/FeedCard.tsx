@@ -16,6 +16,7 @@ export interface FeedCardData {
   ownerProfileId: number;
   reactions?: ReactionItem[];
   answerReactionsRaw?: any[];
+  isEdited?: boolean;
 }
 
 interface FeedCardProps {
@@ -48,6 +49,11 @@ export default function FeedCard({
         style={styles.image}
         cachePolicy="disk"
       />
+      {data.isEdited && (
+        <View style={styles.editedBadge}>
+          <Text style={styles.editedBadgeText}>수정됨</Text>
+        </View>
+      )}
 
       <View style={styles.infoContainer}>
         <View style={styles.userInfo}>
@@ -107,5 +113,21 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     letterSpacing: -0.36,
     color: "#C3C3C3",
+  },
+  editedBadge: {
+    position: "absolute",
+    top: 15,
+    right: 13,
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  editedBadgeText: {
+    fontFamily: "Pretendard",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    letterSpacing: -0.4,
   },
 });
