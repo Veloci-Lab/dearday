@@ -229,7 +229,7 @@ export default function AnswerViewerScreen() {
           ownerProfileId: Number(profileId),
         }}
         reactions={displayedReactions.map((r) => ({
-          emojiId: r.reaction_id,
+          emojiId: Number(r.reaction_id),
           emoji: r.emoji_url,
           emojiName: "", // If available, add name
           count: r.count,
@@ -244,7 +244,8 @@ export default function AnswerViewerScreen() {
           setSelectedAnswerId(item.answer_id);
           const raw = item.answer_reactions ?? [];
           console.log("answer_reactions raw:", raw);
-          const emojiMap = {};
+          const emojiMap: Record<string, { label: string; count: number }> = {};
+
           raw.forEach((r) => {
             // Defensive check: skip if emoji_id is missing
             if (!r.emoji_id) {

@@ -1,5 +1,6 @@
 import ArrowIcon from "@/components/icons/ArrowIcon";
 import EditIcon from "@/components/icons/EditIcon";
+import Toggle from "@/components/Toggle";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -556,43 +557,14 @@ const MyPage = () => {
 
             {/* 👇 Sticky 대상 */}
             <View style={styles.tabsWrapper}>
-              <View style={styles.tabsContainer}>
-                <Pressable
-                  style={[
-                    styles.tabButton,
-                    activeTab === "grid" && styles.activeTabButton,
-                  ]}
-                  onPress={() => setActiveTab("grid")}
-                >
-                  <Text
-                    style={
-                      activeTab === "grid"
-                        ? styles.activeTabLabel
-                        : styles.tabLabel
-                    }
-                  >
-                    그리드
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={[
-                    styles.tabButton,
-                    activeTab === "question" && styles.activeTabButton,
-                  ]}
-                  onPress={() => setActiveTab("question")}
-                >
-                  <Text
-                    style={
-                      activeTab === "question"
-                        ? styles.activeTabLabel
-                        : styles.tabLabel
-                    }
-                  >
-                    질문
-                  </Text>
-                </Pressable>
-              </View>
+              <Toggle
+                options={[
+                  { key: "grid", label: "그리드" },
+                  { key: "question", label: "질문" },
+                ]}
+                activeKey={activeTab}
+                onChangeKey={(key) => setActiveTab(key as "grid" | "question")}
+              />
             </View>
           </>
         }
