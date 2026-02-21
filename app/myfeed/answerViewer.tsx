@@ -317,7 +317,11 @@ export default function AnswerViewerScreen() {
             });
           });
         }}
-        contentContainerStyle={{ backgroundColor: "#fff", gap: 30 }}
+        contentContainerStyle={{
+          backgroundColor: "#fff",
+          gap: 30,
+          paddingBottom: 40,
+        }}
       />
       {/* 이모지 피커 BottomSheet */}
       <EmojiPickerSheet
@@ -328,13 +332,38 @@ export default function AnswerViewerScreen() {
             return;
           }
           try {
-            const { error } = await supabase.from("answer_reactions").insert({
-              answer_id: selectedAnswerId,
-              reactor_profile_id: myProfileId,
-              emoji_id: emoji.emojiId,
-            });
-            if (error) {
-              console.error("insert 오류:", error);
+            // 기존 반응이 있는지 확인
+            const { data: existing, error: selectError } = await supabase
+              .from("answer_reactions")
+              .select("*")
+              .eq("answer_id", selectedAnswerId)
+              .eq("reactor_profile_id", myProfileId)
+              .maybeSingle();
+            if (selectError) {
+              console.error("기존 반응 조회 오류:", selectError);
+            }
+            if (existing) {
+              // 이미 반응한 경우: emoji_id만 update
+              const { error: updateError } = await supabase
+                .from("answer_reactions")
+                .update({ emoji_id: emoji.emojiId })
+                .eq("answer_id", selectedAnswerId)
+                .eq("reactor_profile_id", myProfileId);
+              if (updateError) {
+                console.error("이모지 변경 오류:", updateError);
+              }
+            } else {
+              // 없으면 insert
+              const { error: insertError } = await supabase
+                .from("answer_reactions")
+                .insert({
+                  answer_id: selectedAnswerId,
+                  reactor_profile_id: myProfileId,
+                  emoji_id: emoji.emojiId,
+                });
+              if (insertError) {
+                console.error("이모지 저장 오류:", insertError);
+              }
             }
           } catch (e) {
             console.error("supabase 오류:", e);

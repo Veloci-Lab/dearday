@@ -487,6 +487,7 @@ export default function FeedScreen() {
       emojiSheetRef.current?.close();
 
       try {
+        // 먼저 insert 시도
         const { error: insertError } = await supabase
           .from("answer_reactions")
           .insert({
@@ -495,43 +496,29 @@ export default function FeedScreen() {
             emoji_id: emoji.emojiId,
           });
 
-        if (insertError) {
+        // PK(중복) 에러 발생 시 update로 대체
+        if (insertError && insertError.code === "23505") {
+          // 이미 존재하는 경우 update
+          const { error: updateError } = await supabase
+            .from("answer_reactions")
+            .update({ emoji_id: emoji.emojiId })
+            .eq("answer_id", selectedAnswerId)
+            .eq("reactor_profile_id", myProfileId);
+          if (updateError) {
+            console.error("update 오류:", updateError);
+          }
+        } else if (insertError) {
+          // 다른 에러는 그대로 출력
           console.error("insert 오류:", insertError);
-          // 실패하면 로컬 상태 롤백
-          setAnswerReactionsRaw((prev) =>
-            prev.filter(
-              (r) =>
-                !(
-                  r.answer_id === selectedAnswerId &&
-                  r.reactor_profile_id === myProfileId &&
-                  r.emoji_id === emoji.emojiId
-                )
-            )
-          );
-          setReactions((prev) => {
-            const prevForAnswer = prev[selectedAnswerId] || [];
-            const existing = prevForAnswer.find((r) => r.emojiId === emoji.emojiId);
-            if (existing && existing.count === 1) {
-              return {
-                ...prev,
-                [selectedAnswerId]: prevForAnswer.filter((r) => r.emojiId !== emoji.emojiId),
-              };
-            } else if (existing) {
-              return {
-                ...prev,
-                [selectedAnswerId]: prevForAnswer.map((r) =>
-                  r.emojiId === emoji.emojiId ? { ...r, count: r.count - 1 } : r
-                ),
-              };
-            }
-            return prev;
-          });
         }
+
+        emojiSheetRef.current?.close();
+        fetchReactions();
       } catch (error) {
         console.error("리액션 추가 오류:", error);
       }
     },
-    [selectedAnswerId, myProfileId]
+    [selectedAnswerId, myProfileId, fetchReactions],
   );
 
   return (
