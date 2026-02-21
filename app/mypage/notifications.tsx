@@ -170,18 +170,21 @@ export default function NotificationSettingsScreen() {
       <View style={styles.content}>
         <SwitchRow
           title="오늘의 질문"
+          subtitle="“오늘의 질문이 도착해 있어요.”"
           value={settings.daily_question_enabled}
           onValueChange={(v) => updateSetting("daily_question_enabled", v)}
           disabled={loading}
         />
         <SwitchRow
           title="좋아요"
+          subtitle="“dearday님이 회원님의 사진에 반응했어요.”"
           value={settings.emoji_enabled}
           onValueChange={(v) => updateSetting("emoji_enabled", v)}
           disabled={loading}
         />
         <SwitchRow
           title="팔로우 요청"
+          subtitle="“dearday님이 회원님을 팔로우하고 싶어 해요.”"
           value={settings.follow_enabled}
           onValueChange={(v) => updateSetting("follow_enabled", v)}
           disabled={loading}
@@ -212,18 +215,23 @@ export default function NotificationSettingsScreen() {
 /** 공통 스위치 */
 function SwitchRow({
   title,
+  subtitle,
   value,
   onValueChange,
   disabled,
 }: {
   title: string;
+  subtitle?: string;
   value: boolean;
   onValueChange: (v: boolean) => void;
   disabled?: boolean;
 }) {
   return (
     <View style={styles.item}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      </View>
       <Switch
         value={value}
         onValueChange={onValueChange}
@@ -257,14 +265,18 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Pretendard-SemiBold",
     fontSize: 14,
-    color: "#111",
+    color: "#0D0D0D",
+    fontWeight: 600,
+    lineHeight: 16,
+    letterSpacing: -0.42,
   },
   subtitle: {
     fontFamily: "Pretendard-Regular",
     marginTop: 4,
     fontSize: 12,
-    color: "#8E8E93",
+    color: "#929292",
     lineHeight: 16,
+    letterSpacing: -0.36,
   },
 
   reissueBox: {
@@ -275,14 +287,18 @@ const styles = StyleSheet.create({
   reissueTitle: {
     fontFamily: "Pretendard-SemiBold",
     fontSize: 14,
-    color: "#111",
+    color: "#0D0D0D",
+    fontWeight: 600,
+    lineHeight: 16,
+    letterSpacing: -0.42,
   },
   reissueDesc: {
     fontFamily: "Pretendard-Regular",
     marginTop: 4,
     fontSize: 12,
-    color: "#8E8E93",
+    color: "#929292",
     lineHeight: 16,
+    letterSpacing: -0.36,
   },
   reissueBtn: {
     paddingHorizontal: 12,
