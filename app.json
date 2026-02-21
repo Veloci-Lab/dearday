@@ -38,18 +38,18 @@
     "plugins": [
       "expo-router",
       [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/icon.png",
-          "imageWidth": 110,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
-      [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.785878283817-c2a3fu28mrap3ktgs1q3vhs8u66r09ov"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/DD/DD_기본.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "imageWidth": 75
         }
       ],
       [
@@ -79,7 +79,8 @@
       ],
       [
         "expo-image-picker"
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
