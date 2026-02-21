@@ -1,12 +1,12 @@
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
+import { Image } from "expo-image";
 import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -96,6 +96,7 @@ function FriendRequestPopup({
                 <Image
                   source={{ uri: profile.avatar_url }}
                   style={styles.popupAvatarImage}
+                  cachePolicy="disk"
                 />
               ) : null}
             </View>
@@ -176,6 +177,7 @@ function SearchResultItem({
             <Image
               source={{ uri: profile.avatar_url }}
               style={styles.avatarImage}
+              cachePolicy="disk"
             />
           ) : null}
         </View>

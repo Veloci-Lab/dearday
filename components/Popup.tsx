@@ -1,6 +1,6 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import {
-  Image,
   Modal,
   StyleSheet,
   Text,
@@ -156,6 +156,7 @@ const Popup: React.FC<PopupProps> = ({
           <Image
             source={{ uri: profileInfo.avatarUrl }}
             style={styles.profileAvatar}
+            cachePolicy="disk"
           />
         ) : (
           <View style={styles.profileAvatarPlaceholder} />

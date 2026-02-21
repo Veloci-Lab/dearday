@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { EmojiAddIcon } from "./icons/EmojiAddIcon";
 
 /* ====== 타입 ====== */
@@ -58,6 +59,7 @@ function ReactionChip({
           }
           style={styles.emojiImage}
           resizeMode="contain"
+          cachePolicy="disk"
         />
       ) : (
         <Text style={styles.emoji}>{reaction.emoji}</Text>

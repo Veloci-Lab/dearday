@@ -1,12 +1,6 @@
+import { Image } from "expo-image";
 import React from "react";
-import {
-  Dimensions,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import ReactionBar, {
   ReactionItem,
   ReactionLongPressPayload,
@@ -49,7 +43,11 @@ export default function FeedCard({
 }: FeedCardProps) {
   return (
     <Pressable style={styles.container} onPress={onPress}>
-      <Image source={{ uri: data.imageUrl }} style={styles.image} />
+      <Image
+        source={{ uri: data.imageUrl }}
+        style={styles.image}
+        cachePolicy="disk"
+      />
 
       <View style={styles.infoContainer}>
         <View style={styles.userInfo}>
