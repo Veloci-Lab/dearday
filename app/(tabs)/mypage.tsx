@@ -361,14 +361,16 @@ const MyPage = () => {
     }
   };
 
+  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
+  const REMOTE_DD_SURPRISE_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprize.png`;
+  const REMOTE_DD_WINK_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wink.png`;
+
   /* ---------------- render parts ---------------- */
   const ListEmptyView = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-      <Image
-        source={require("@/assets/images/DD/ver_board.png")}
-        style={styles.emptyImage}
-      />
+      <Image source={{ uri: REMOTE_DD_LOGO_URL }} style={styles.emptyImage} />
     </View>
   );
 
@@ -385,7 +387,7 @@ const MyPage = () => {
         <View style={styles.endContainer}>
           <Text style={styles.endText}>끝까지 오실 줄은 몰랐어요!</Text>
           <Image
-            source={require("@/assets/images/DD/ver_surprise.png")}
+            source={{ uri: REMOTE_DD_SURPRISE_URL }}
             style={{ width: 120, height: 120, marginTop: 16 }}
           />
         </View>
@@ -395,7 +397,7 @@ const MyPage = () => {
       <View style={styles.endContainer}>
         <Text style={styles.endText}>더 올리면 더 내릴 수 있어요!</Text>
         <Image
-          source={require("@/assets/images/DD/ver_wink.png")}
+          source={{ uri: REMOTE_DD_WINK_URL }}
           style={{ width: 120, height: 120, marginTop: 16 }}
         />
       </View>
