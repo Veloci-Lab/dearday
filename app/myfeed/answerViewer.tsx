@@ -28,9 +28,52 @@ interface Answer {
   photo_url: string;
   caption: string;
   question_date: string;
-  updated_at: string; // 시간 표시용
+  updated_at: string;
   question_text?: string;
-  answer_reactions?: Reaction[];
+  answer_reactions?: any[];
+}
+
+const ArrowLeft = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12.5659 19.4341C12.8783 19.7465 12.8783 20.2531 12.5659 20.5655C12.2535 20.8779 11.7469 20.8779 11.4345 20.5655L3.43451 12.5655C3.12209 12.2531 3.12209 11.7465 3.43451 11.4341L11.4345 3.43412C11.7469 3.1217 12.2535 3.1217 12.5659 3.43412C12.8783 3.74654 12.8783 4.25307 12.5659 4.56549L5.93157 11.1998L19.9998 11.1998C20.4416 11.1998 20.7998 11.558 20.7998 11.9998C20.7998 12.4416 20.4416 12.7998 19.9998 12.7998L5.93157 12.7998L12.5659 19.4341Z"
+      fill="#0D0D0D"
+    />
+  </Svg>
+);
+
+/* ====== 리액션 집계 헬퍼 ====== */
+function buildDisplayedReactions(answerReactions: any[]): {
+  displayedReactions: Reaction[];
+  hasMoreReactions: boolean;
+} {
+  if (!answerReactions || answerReactions.length === 0) {
+    return { displayedReactions: [], hasMoreReactions: false };
+  }
+
+  // emoji_id 기준으로 count 집계
+  const countMap: Record<number, { emoji_url: string; count: number }> = {};
+  answerReactions.forEach((r: any) => {
+    const eid = r.emoji_id;
+    if (!countMap[eid]) {
+      countMap[eid] = {
+        emoji_url: r.emojis?.value ?? "",
+        count: 0,
+      };
+    }
+    countMap[eid].count += 1;
+  });
+
+  const all: Reaction[] = Object.entries(countMap).map(([eid, val]) => ({
+    reaction_id: eid,
+    emoji_url: val.emoji_url,
+    count: val.count,
+  }));
+
+  const displayedReactions = all.slice(0, 3);
+  const hasMoreReactions = all.length > 3;
+
+  return { displayedReactions, hasMoreReactions };
 }
 
 export default function AnswerViewerScreen() {
@@ -41,34 +84,21 @@ export default function AnswerViewerScreen() {
   }>();
 
   const [answers, setAnswers] = useState<Answer[]>([]);
-  const [isReady, setIsReady] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [nickname, setNickname] = useState<string>("사용자"); // 기본값
+  const [nickname, setNickname] = useState<string>("사용자");
   const [isMyFeed, setIsMyFeed] = useState<boolean>(true);
   const [initialIndex, setInitialIndex] = useState(0);
   const flatListRef = useRef<FlatList<Answer>>(null);
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null)
+  const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
 
-  // 시간 포맷 함수 (ISO string -> HH시 mm분)
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const hours = date.getHours();
     const minutes = date.getMinutes();
     return `${hours}시 ${minutes < 10 ? `0${minutes}` : minutes}분`;
   };
-
-  // 1. 헤더 설정
-  // 피드와 동일한 ArrowLeft 아이콘
-  const ArrowLeft = () => (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12.5659 19.4341C12.8783 19.7465 12.8783 20.2531 12.5659 20.5655C12.2535 20.8779 11.7469 20.8779 11.4345 20.5655L3.43451 12.5655C3.12209 12.2531 3.12209 11.7465 3.43451 11.4341L11.4345 3.43412C11.7469 3.1217 12.2535 3.1217 12.5659 3.43412C12.8783 3.74654 12.8783 4.25307 12.5659 4.56549L5.93157 11.1998L19.9998 11.1998C20.4416 11.1998 20.7998 11.558 20.7998 11.9998C20.7998 12.4416 20.4416 12.7998 19.9998 12.7998L5.93157 12.7998L12.5659 19.4341Z"
-        fill="#0D0D0D"
-      />
-    </Svg>
-  );
 
   useEffect(() => {
     navigation.setOptions({
@@ -92,52 +122,46 @@ export default function AnswerViewerScreen() {
     });
   }, [navigation, isMyFeed, nickname]);
 
-  // 2. 데이터(프로필 & 답변 리스트) 가져오기
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // 1. 닉네임 가져오기 (컬럼명을 id로 시도해 보세요 만약 profile_id가 아니라면)
         const { data: profileData } = await supabase
           .from("profiles")
           .select("nickname")
-          .eq("profile_id", profileId) // 혹은 "profile_id"
+          .eq("profile_id", profileId)
           .single();
 
         if (profileData) setNickname(profileData.nickname);
 
-        // 내 피드 여부 판별
         const { data: myProfile } = await supabase.auth.getUser();
         if (myProfile?.user?.id) {
-          // 내 프로필 id와 현재 피드의 profileId 비교
           const { data: myProfileRow } = await supabase
             .from("profiles")
             .select("profile_id")
             .eq("uid", myProfile.user.id)
             .single();
-          if (
-            myProfileRow &&
-            String(myProfileRow.profile_id) === String(profileId)
-          ) {
-            setIsMyFeed(true);
-          } else {
-            setIsMyFeed(false);
-          }
+          setIsMyFeed(
+            myProfileRow
+              ? String(myProfileRow.profile_id) === String(profileId)
+              : false,
+          );
         }
 
-        // 2. 답변 가져오기
         const { data, error } = await supabase
           .from("answers")
-          .select(`*, 
-              answer_reactions (
+          .select(
+            `*,
+            answer_reactions (
               reactor_profile_id,
               emoji_id,
-              emojis ( emoji_id, value ) 
-            )`)
+              emojis ( emoji_id, value )
+            )`,
+          )
           .eq("owner_profile_id", profileId)
           .is("deleted_at", null)
-          .order("question_date", { ascending: false }); // DB 번호 기준으로 역순 정렬
+          .order("question_date", { ascending: false });
 
         if (!error && data) {
           setAnswers(data);
@@ -147,7 +171,6 @@ export default function AnswerViewerScreen() {
             );
             if (index >= 0) setInitialIndex(index);
           }
-          setLoading(false);
         }
       } catch (e) {
         console.error(e);
@@ -156,13 +179,16 @@ export default function AnswerViewerScreen() {
       }
     };
     fetchData();
-    console.log("answers:", answers.length, "index:", initialIndex);
   }, [profileId, initialAnswerId]);
 
-  // 3. 개별 피드 아이템 렌더링
   const renderItem = ({ item, index }: { item: Answer; index: number }) => {
-    // 역순일 때 번호 계산 (예: 전체 10개 중 첫번째 아이템은 Q10)
     const questionNumber = index + 1;
+
+    // ✅ renderItem 안에서 리액션 계산
+    const { displayedReactions, hasMoreReactions } = buildDisplayedReactions(
+      item.answer_reactions ?? [],
+    );
+
     return (
       <View style={styles.feedItem}>
         <View style={styles.questionSection}>
@@ -186,27 +212,22 @@ export default function AnswerViewerScreen() {
           </View>
 
           <View style={styles.reactionRow}>
-            {/* 1. 잘라낸 3개의 리액션만 출력 */}
-            {displayedReactions.map((reaction: Reaction, idx: number) => (
-              // reaction_id가 확실히 고유한지 확인하고, 불안하면 idx를 조합하세요.
+            {displayedReactions.map((reaction: Reaction) => (
               <View key={reaction.reaction_id} style={styles.reactionBadge}>
-                {/* 텍스트 대신 Image 컴포넌트로 이모지 표시 */}
-                <Image 
-                  source={{ uri: reaction.emoji_url}} 
-                  style={{ width: 20, height: 20, marginRight: 4 }} 
+                <Image
+                  source={{ uri: reaction.emoji_url }}
+                  style={{ width: 20, height: 20, marginRight: 4 }}
                 />
                 <Text style={styles.reactionText}>{reaction.count}</Text>
               </View>
             ))}
-            {/* 2. 3개가 넘으면 회색 네모 점(...) 출력 */}
             {hasMoreReactions && (
               <View style={styles.moreBadge}>
                 <Text style={styles.moreText}>...</Text>
               </View>
             )}
-
-            <TouchableOpacity 
-              style={styles.addEmojiBtn} 
+            <TouchableOpacity
+              style={styles.addEmojiBtn}
               onPress={() => {
                 setSelectedAnswerId(item.answer_id);
                 setIsPickerOpen(true);
@@ -220,7 +241,7 @@ export default function AnswerViewerScreen() {
     );
   };
 
-  if (loading || initialIndex === null) {
+  if (loading) {
     return <View style={{ flex: 1, backgroundColor: "white" }} />;
   }
 
@@ -229,9 +250,9 @@ export default function AnswerViewerScreen() {
       ref={flatListRef}
       data={answers}
       keyExtractor={(item) => item.answer_id}
-      renderItem={renderItem} // 기존 renderItem 함수 사용
+      renderItem={renderItem}
       initialScrollIndex={initialIndex}
-      getItemLayout={(data, index) => ({
+      getItemLayout={(_, index) => ({
         length: 550,
         offset: 550 * index,
         index,
@@ -253,7 +274,7 @@ export default function AnswerViewerScreen() {
 const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
-    fontWeight: "bold", // 폰트 파일이 없을 경우 대비
+    fontWeight: "bold",
     letterSpacing: -0.51,
   },
   feedItem: {
@@ -273,17 +294,16 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: "#5B8DEF",
     fontStyle: "normal",
-    fontWeight: 400,
+    fontWeight: "400",
     letterSpacing: -0.45,
     marginRight: 4,
   },
   questionText: {
-    textOverflow: "ellipsis",
     fontFamily: "Pretendard-Regular",
     color: "#0D0D0D",
     fontSize: 17,
     fontStyle: "normal",
-    fontWeight: 400,
+    fontWeight: "400",
     letterSpacing: -0.45,
     flex: 1,
   },
@@ -307,7 +327,7 @@ const styles = StyleSheet.create({
   username: {
     fontFamily: "Pretendard-SemiBold",
     fontSize: 14,
-    fontWeight: 600,
+    fontWeight: "600",
     lineHeight: 18.9,
     letterSpacing: -0.42,
   },
@@ -354,17 +374,16 @@ const styles = StyleSheet.create({
   },
   moreText: {
     color: "#C3C3C3",
-    fontFamily: 'Pretendard-Regular',
+    fontFamily: "Pretendard-Regular",
     fontSize: 14,
   },
-  // 모달 관련 스타일
   modal: {
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
     margin: 0,
   },
   pickerContainer: {
-    backgroundColor: 'white',
-    height: height * 0.7, // 화면의 70% 높이
+    backgroundColor: "white",
+    height: height * 0.7,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     paddingHorizontal: 20,
@@ -372,40 +391,40 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 5,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     borderRadius: 10,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginVertical: 10,
   },
   searchBar: {
-    flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    backgroundColor: "#F5F5F5",
     padding: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   searchText: {
-    color: '#999',
+    color: "#999",
     marginLeft: 10,
   },
   sectionTitle: {
     fontSize: 14,
-    color: '#888',
-    fontWeight: '600',
+    color: "#888",
+    fontWeight: "600",
     marginBottom: 15,
   },
   emojiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
     gap: 15,
     marginBottom: 25,
   },
   deardayImage: {
     width: 65,
     height: 65,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   nativeEmoji: {
     fontSize: 32,
