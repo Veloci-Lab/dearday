@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.45,
   },
   questionListText: {
-    fontFamily: "Pretendard-Regular",
+    fontFamily: "HakgyoansimBadasseugi-L",
     fontSize: 15,
     color: "#0D0D0D",
     fontWeight: "400",

@@ -318,15 +318,15 @@ const gridStyles = StyleSheet.create({
     gap: GAP,
   },
   largeImage: {
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: "hidden",
   },
   smallImage: {
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: "hidden",
   },
   equalImage: {
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: "hidden",
   },
 });
