@@ -201,6 +201,26 @@ export default function ProfileEditScreen() {
       setLoading(false);
     }
   };
+  /** 한 줄 소개 글자 수 제한 함수 */
+  const getValidatedIntro = (text: string) => {
+    let totalScore = 0;
+    let validatedText = "";
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      // 한글(자음, 모음 포함)은 2점, 나머지는 1점
+      const score = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(char) ? 2 : 1;
+
+      if (totalScore + score <= 36) {
+        totalScore += score;
+        validatedText += char;
+      } else {
+        // 36점을 넘으면 루프 종료
+        break;
+      }
+    }
+    return validatedText;
+  };
 
 
   const isCheckDisabled = !nicknameEdited || !nickname.trim() || status === "checking";
@@ -238,14 +258,14 @@ export default function ProfileEditScreen() {
             </View>
 
             {/* 삭제 아이콘 */}
-            {profileImage && (
+            {/* {profileImage && (
               <Pressable
                 onPress={() => setProfileImage(null)}
                 style={styles.deleteIcon}
               >
                 <Ionicons name="trash" size={16} color="#FF5A5A" />
               </Pressable>
-            )}
+            )} */}
           </Pressable>
 
 
@@ -276,6 +296,7 @@ export default function ProfileEditScreen() {
                 placeholderTextColor="#C3C3C3"
                 autoCapitalize="none"
                 autoCorrect={false}
+                maxLength={10}
                 returnKeyType="done"
                 />
               <Pressable
@@ -310,7 +331,7 @@ export default function ProfileEditScreen() {
             </View>
             {nicknameEdited && status === "idle" && (
             <Text style={styles.helperInfo}>
-                닉네임 중복확인을 해주세요.
+                최대 10글자까지 입력 가능합니다.
             </Text>
             )}
             {status === "available" && (
@@ -332,13 +353,19 @@ export default function ProfileEditScreen() {
                         isIntroEdited && { borderColor: "#5B8DEF" },
                     ]}
                     value={intro}
-                    onChangeText={setIntro}
+                    // onChangeText={setIntro}
+                    onChangeText={(t) => {
+                      // 유효한 길이까지만 잘라서 상태 업데이트
+                      const validated = getValidatedIntro(t);
+                      setIntro(validated);
+                    }}
                     placeholder={
                         originalIntro
                         ? "내용을 입력해주세요"
                         : "현재 한 줄 소개가 없어요"
                     }
                     placeholderTextColor="#C3C3C3"
+                    maxLength={36}
                     />
 
                 {intro !== "현재 한 줄 소개가 없어요" && (
@@ -350,6 +377,11 @@ export default function ProfileEditScreen() {
                 </Pressable>
                 )}
             </View>
+            {isIntroEdited && (
+              <Text style={styles.helperLimit}>
+                한글 18자, 영문 36자까지 가능합니다.
+              </Text>
+            )}
           </View>
           {/* 공개 설정*/}
           <Text style={styles.label}>공개 설정</Text>
@@ -455,12 +487,19 @@ const styles = StyleSheet.create({
   helperInfo: {
     fontFamily: "Pretendard-Regular",
     marginTop: 8,
-    fontSize: 15,
-    color: "#5B8DEF",
+    fontSize: 13,
+    color: "#626262",
     letterSpacing: -0.45,
   },
-  helperSuccess: { fontFamily: "Pretendard-Regular", marginTop: 8, fontSize: 15, color: "#5B8DEF", letterSpacing: -0.45 },
-  helperError: { fontFamily: "Pretendard-Regular", marginTop: 8, fontSize: 15, color: "#FF5A5A", letterSpacing: -0.45},
+  helperLimit: {
+    fontFamily: "Pretendard-Regular",
+    marginTop: 8,
+    fontSize: 13,
+    color: "#626262",
+    letterSpacing: -0.45,
+  },
+  helperSuccess: { fontFamily: "Pretendard-Regular", marginTop: 8, fontSize: 13, color: "#5B8DEF", letterSpacing: -0.45 },
+  helperError: { fontFamily: "Pretendard-Regular", marginTop: 8, fontSize: 13, color: "#FF5A5A", letterSpacing: -0.45},
   clearButton: {
     position: "absolute",
     right: 12,
@@ -469,7 +508,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  footer: { paddingHorizontal: 24},
+  footer: { paddingHorizontal: 24, paddingBottom: 10},
   completeBtn: { height: 56, borderRadius: 12, backgroundColor: "#5B8DEF", alignItems: "center", justifyContent: "center" },
   completeBtnDisabled: { backgroundColor: "#F2F2F2" },
   completeBtnText: { fontFamily: "Pretendard-SemiBold", fontSize: 17, color: "#FFFFFF", letterSpacing: -0.51 },
