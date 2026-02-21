@@ -224,7 +224,7 @@ export default function SignInScreen() {
       {/* 1. 배경 비디오 레이어 */}
       {!isVideoFinished && (
         <Video
-          source={{ uri: REMOTE_DD_LOGO_URL }} // Supabase에 업로드된 비디오 URL로 변경
+          source={{ uri: require("@/assets/videos/splash.mp4") }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
           onEnd={() => setIsVideoFinished(true)}
@@ -239,7 +239,7 @@ export default function SignInScreen() {
           <View style={s.logoContainer}>
             <View style={s.rowLogo}>
               <Image
-                source={require("@/assets/images/DD/DD_기본.png")}
+                source={{ uri: REMOTE_DD_LOGO_URL }}
                 style={s.characterIcon}
                 resizeMode="contain"
               />

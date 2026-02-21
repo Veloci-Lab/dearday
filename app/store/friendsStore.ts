@@ -1,5 +1,5 @@
 // app/store/friendsStore.ts
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface Friend {
   profile_id: number;
