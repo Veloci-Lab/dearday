@@ -125,5 +125,6 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 13,
     color: "#626262",
+    letterSpacing: -0.39,
   },
 });
