@@ -18,6 +18,29 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
+import { create } from "zustand";
+
+interface Friend {
+  profile_id: number;
+  nickname: string;
+  avatar_url: string | null;
+}
+
+interface FriendStore {
+  friends: Friend[];
+  addFriend: (friend: Friend) => void;
+  removeFriend: (profileId: number) => void;
+}
+
+export const useFriendsStore = create<FriendStore>((set) => ({
+  friends: [],
+  addFriend: (friend) =>
+    set((state) => ({ friends: [...state.friends, friend] })),
+  removeFriend: (profileId) =>
+    set((state) => ({
+      friends: state.friends.filter((f) => f.profile_id !== profileId),
+    })),
+}));
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const DDSleep_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/sleep.png`;
