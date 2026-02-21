@@ -42,7 +42,7 @@ const ArrowLeft = () => (
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const DDSurprised_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
 const DDBored_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/bored.png`;
-const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wrinkled.png`;
+const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/blur.png`;
 
 const LockIcon = () => (
   <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">

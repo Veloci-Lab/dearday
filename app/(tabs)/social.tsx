@@ -137,7 +137,7 @@ const LockIcon = () => (
 );
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wrinkled_blur.png`;
+const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/blur.png`;
 const DDSurprised_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
 const DDSleep_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/sleep.png`;
 
