@@ -88,47 +88,68 @@ const Square3Row = ({
   );
 };
 
-const L3Left2 = ({ items, width, gap = 6, onPressItem }: { items: FeedItem[]; width: number; gap?: number; onPressItem?: (item: FeedItem) => void }) => {
+/* ---------------- 패턴 컴포넌트 ---------------- */
+
+const L3Left2 = ({
+  items,
+  width,
+  gap = 6,
+  onPressItem,
+}: {
+  items: FeedItem[];
+  width: number;
+  gap?: number;
+  onPressItem?: (item: FeedItem) => void;
+}) => {
   if (items.length < 3) return null;
 
-  const leftWidth = width * 0.30;
+  const leftWidth = (width - gap * 2) / 3;
   const rightWidth = width - leftWidth - gap;
 
-  const h1 = leftWidth * (0.8 + Math.random() * 0.2);
-  const h2 = leftWidth * (0.8 + Math.random() * 0.2);
-  const rightHeight = h1 + h2 + gap;
+  const smallSquare = leftWidth; // 작은 블록은 정사각형
+  const largeSquare = rightWidth; // 큰 블록도 정사각형
 
   return (
     <View style={{ flexDirection: 'row', gap, marginBottom: gap }}>
       <View style={{ width: leftWidth, justifyContent: 'space-between', gap }}>
-        <Tile it={items[0]} width={leftWidth} height={h1} radius={6} onPressItem={onPressItem} />
-        <Tile it={items[1]} width={leftWidth} height={h2} radius={6} onPressItem={onPressItem} />
+        <Tile it={items[0]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
+        <Tile it={items[1]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
       </View>
-      <Tile it={items[2]} width={rightWidth} height={rightHeight} radius={8} onPressItem={onPressItem} />
+      <Tile it={items[2]} width={largeSquare} height={largeSquare} radius={8} onPressItem={onPressItem} />
     </View>
   );
 };
 
-const L3Right2 = ({ items, width, gap = 6, onPressItem }: { items: FeedItem[]; width: number; gap?: number; onPressItem?: (item: FeedItem) => void }) => {
+const L3Right2 = ({
+  items,
+  width,
+  gap = 6,
+  onPressItem,
+}: {
+  items: FeedItem[];
+  width: number;
+  gap?: number;
+  onPressItem?: (item: FeedItem) => void;
+}) => {
   if (items.length < 3) return null;
 
-  const rightWidth = width * 0.30;
+  const rightWidth = (width - gap * 2) / 3;
   const leftWidth = width - rightWidth - gap;
 
-  const h1 = rightWidth * (0.8 + Math.random() * 0.2);
-  const h2 = rightWidth * (0.8 + Math.random() * 0.2);
-  const leftHeight = h1 + h2 + gap;
+  const smallSquare = rightWidth;
+  const largeSquare = leftWidth;
 
   return (
     <View style={{ flexDirection: 'row', gap, marginBottom: gap }}>
-      <Tile it={items[0]} width={leftWidth} height={leftHeight} radius={8} onPressItem={onPressItem} />
+      <Tile it={items[0]} width={largeSquare} height={largeSquare} radius={8} onPressItem={onPressItem} />
       <View style={{ width: rightWidth, justifyContent: 'space-between', gap }}>
-        <Tile it={items[1]} width={rightWidth} height={h1} radius={6} onPressItem={onPressItem} />
-        <Tile it={items[2]} width={rightWidth} height={h2} radius={6} onPressItem={onPressItem} />
+        <Tile it={items[1]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
+        <Tile it={items[2]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
       </View>
     </View>
   );
 };
+
 
 /* ---------------- 랜덤 빌드 ---------------- */
 const buildRandomBlocks = (items: FeedItem[]): { type: string; items: FeedItem[] }[] => {
@@ -616,7 +637,7 @@ const styles = StyleSheet.create({
   profileSection: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#D8D8D833',
+    backgroundColor: '#F2F2F2',
     borderRadius: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
