@@ -1,7 +1,7 @@
 import { commonHeaderOptions } from "@/styles/common";
 import { useAuthStore } from "@/utils/authStore";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   Image,
@@ -91,6 +91,8 @@ function NotificationItem({
 
   const translateX = useSharedValue(0);
 
+  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+
   // 다른 아이템이 열리면 자동으로 닫힘
   // console.log('Notification item:', item.type, item.emoji)
 
@@ -156,7 +158,13 @@ function NotificationItem({
                   <Text style={styles.bold}>
                     {item.actor ? item.actor.nickname : "알 수 없음"}
                   </Text>
-                  {renderMessage(item.type, item.emoji)}
+                  {renderMessage(item.type)}
+                  {item.type === "emoji" && item.emoji && (
+                    <Image
+                      source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/emoji/${item.emoji}`}}
+                      style={{ width: 20, height: 20, marginLeft: 4}}
+                    />
+                  )}
                 </Text>
                 <Text style={styles.time}>
                   {formatNotificationDate(item.created_at)}
@@ -172,20 +180,17 @@ function NotificationItem({
 }
 
 function renderMessage(
-  type: Notification["type"],
-  emoji?: Notification["emoji"],
+  type: Notification["type"]
 ) {
   switch (type) {
-    case "follow_request":
-      return "님이 팔로우 요청을 보냈어요.";
-    case "follow_back":
-      return "님이 팔로우 요청을 보냈어요.";
-    case "follow":
-      return "님이 나를 팔로우하기 시작했어요.";
+    // case "follow_request":
+    //   return "님이 팔로우 요청을 보냈어요.";
+    // case "follow_back":
+    //   return "님이 팔로우 요청을 보냈어요.";
+    // case "follow":
+    //   return "님이 나를 팔로우하기 시작했어요.";
     case "emoji":
-      return emoji
-        ? `님이 나의 사진에 ${emoji}를 남겼어요.`
-        : "님이 나의 사진에 반응을 남겼어요.";
+      return "님이 회원님의 사진에 반응했어요.";
   }
 }
 
@@ -196,42 +201,42 @@ function renderAction(
   onFollowBack: (item: Notification) => void,
 ) {
   switch (item.type) {
-    case "follow_request":
-      return (
-        <View style={styles.actions}>
-          <Pressable style={styles.confirm} onPress={() => onConfirm(item)}>
-            <Text style={styles.confirmText}>확인</Text>
-          </Pressable>
+    // case "follow_request":
+    //   return (
+    //     <View style={styles.actions}>
+    //       <Pressable style={styles.confirm} onPress={() => onConfirm(item)}>
+    //         <Text style={styles.confirmText}>확인</Text>
+    //       </Pressable>
 
-          <Pressable style={styles.delete} onPress={() => onDelete(item)}>
-            <Text style={styles.deleteText}>삭제</Text>
-          </Pressable>
-        </View>
-      );
+    //       <Pressable style={styles.delete} onPress={() => onDelete(item)}>
+    //         <Text style={styles.deleteText}>삭제</Text>
+    //       </Pressable>
+    //     </View>
+    //   );
 
-    case "follow_back":
-      return (
-        <Pressable
-          style={[
-            styles.confirm,
-            {
-              width: 109,
-              height: 35,
-              alignItems: "center",
-              justifyContent: "center",
-            },
-          ]}
-        >
-          <Text style={styles.confirmText}>맞팔로우 하기</Text>
-        </Pressable>
-      );
+    // case "follow_back":
+    //   return (
+    //     <Pressable
+    //       style={[
+    //         styles.confirm,
+    //         {
+    //           width: 109,
+    //           height: 35,
+    //           alignItems: "center",
+    //           justifyContent: "center",
+    //         },
+    //       ]}
+    //     >
+    //       <Text style={styles.confirmText}>맞팔로우 하기</Text>
+    //     </Pressable>
+    //   );
 
-    case "follow":
-      return (
-        <View style={styles.following}>
-          <Text style={styles.followingText}>팔로잉 중</Text>
-        </View>
-      );
+    // case "follow":
+    //   return (
+    //     <View style={styles.following}>
+    //       <Text style={styles.followingText}>팔로잉 중</Text>
+    //     </View>
+    //   );
     case "emoji":
       return item.entity?.photo_url ? (
         <Image
@@ -274,6 +279,24 @@ export default function NotificationsScreen() {
 
   const [openId, setOpenId] = useState<string | null>(null);
 
+  const markAllAsRead = async () => {
+    const { error } = await supabase
+      .from("follow_notifications")
+      .update({ is_read: true })
+      .eq("user_profile_id", profileId)
+      .eq("is_read", false);
+
+    if (error) {
+      console.error("[mark read error]", error);
+      return;
+    }
+
+    // UI 반영
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, is_read: true }))
+    );
+  };
+
   useEffect(() => {
     navigation.setOptions({
       ...commonHeaderOptions,
@@ -304,7 +327,7 @@ export default function NotificationsScreen() {
         type,
         is_read,
         created_at,
-        emoji,
+        emoji_value,
         entity_id,
         actor:actor_profile_id(
           profile_id,
@@ -319,6 +342,7 @@ export default function NotificationsScreen() {
       `,
       )
       .eq("user_profile_id", profileId)
+      .eq("type", "emoji")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -332,7 +356,7 @@ export default function NotificationsScreen() {
       is_read: n.is_read,
       created_at: n.created_at,
       actor: n.actor,
-      emoji: n.emoji,
+      emoji: n.emoji_value,
       entity: n.entity,
     }));
 
@@ -343,6 +367,16 @@ export default function NotificationsScreen() {
   useEffect(() => {
     fetchNotifications();
   }, []);
+  useFocusEffect(
+    useCallback(() => {
+      // 화면 들어올 때: 아무것도 안 함
+
+      return () => {
+        // 화면 나갈 때 실행
+        markAllAsRead();
+      };
+    }, [])
+  );
 
   const handleConfirmFollow = async (item: Notification) => {
     // 1) follow 상태 accepted
@@ -595,10 +629,21 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 
-  text: { fontSize: 15 },
-  bold: { fontWeight: "600" },
-  time: { fontSize: 12, color: "#999", marginTop: 2 },
-
+  text: { 
+    fontFamily: 'Pretendard-Regular',
+    fontSize: 13,
+    fontWeight: 400,
+    lineHeight: 20,
+  },
+  bold: { fontWeight: "700" },
+  time: 
+  { fontSize: 12, 
+    color: "#929292", 
+    marginTop: 4, 
+    fontFamily: 'Pretendard-Regular',
+    fontWeight: 400,
+    lineHeight: 16
+  },
   actions: {
     display: "flex",
     flexDirection: "row",

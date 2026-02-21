@@ -1,9 +1,10 @@
+import VideoSplash from "@/components/VideoSplash";
 import { useAuthStore } from "@/utils/authStore";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -30,6 +31,9 @@ export default function RootLayout() {
     "HakgyoansimBadasseugi-L": require("@/assets/fonts/HakgyoansimBadasseugi-L.otf"),
     "HakgyoansimBadasseugi-B": require("@/assets/fonts/HakgyoansimBadasseugi-B.otf"),
   });
+
+  const [appReady, setAppReady] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -75,9 +79,27 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, authLoading]);
 
-  if (!fontsLoaded || authLoading) {
-    return null;
+  // if (!fontsLoaded || authLoading) {
+  //   return null;
+  // }
+  useEffect(() => {
+    if (fontsLoaded && !authLoading) {
+      setAppReady(true);
+
+      // 로그인 + 온보딩 완료 유저 
+      if (isLoggedIn && hasCompletedOnboarding) {
+        setShowVideo(true);
+      }
+
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, authLoading, isLoggedIn, hasCompletedOnboarding]);
+
+  if (!appReady) return null;
+  if (showVideo) {
+    return <VideoSplash onFinish={() => setShowVideo(false)} />;
   }
+  
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
