@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 2,
     borderRadius: 15,
-    backgroundColor: "rgba(254, 254, 254, 0.5)",
+    backgroundColor: "#F2F2F2",
     alignSelf: "center",
   },
   indicator: {

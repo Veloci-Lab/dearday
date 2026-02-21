@@ -4,6 +4,7 @@ import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, {
@@ -17,7 +18,6 @@ import {
   Animated,
   Dimensions,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -137,7 +137,7 @@ const LockIcon = () => (
 );
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wrinkled.png`;
+const DDLogo_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wrinkled_blur.png`;
 const DDSurprised_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
 const DDSleep_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/sleep.png`;
 
@@ -146,7 +146,12 @@ function EndOfFeed() {
   return (
     <View style={styles.endOfFeedContainer}>
       <Text style={styles.endOfFeedText}>끝까지 오실 줄은 몰랐어요!</Text>
-      <Image source={{ uri: DDSurprised_URL }} style={styles.endOfFeedImage} />
+      <Image
+        source={{ uri: DDSurprised_URL }}
+        style={styles.endOfFeedImage}
+        transition={200}
+        cachePolicy="disk"
+      />
     </View>
   );
 }
@@ -156,7 +161,12 @@ function EmptyFriends() {
   return (
     <View style={styles.emptyFriendsContainer}>
       <Text style={styles.emptyFriendsText}>아직 친구가 없어요.</Text>
-      <Image source={{ uri: DDSleep_URL }} style={styles.emptyFriendsImage} />
+      <Image
+        source={{ uri: DDSleep_URL }}
+        style={styles.emptyFriendsImage}
+        transition={200}
+        cachePolicy="disk"
+      />
     </View>
   );
 }
@@ -172,7 +182,12 @@ function LockedOverlay() {
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.logoContainer}>
-        <Image source={{ uri: DDLogo_URL }} style={styles.logo} />
+        <Image
+          source={{ uri: DDLogo_URL }}
+          style={styles.logo}
+          transition={200}
+          cachePolicy="disk"
+        />
       </View>
       <View style={styles.lockedContent}>
         <LockIcon />
@@ -753,6 +768,8 @@ export default function SocialScreen() {
           source={SocialGradient}
           style={styles.backgroundImage}
           resizeMode="cover"
+          transition={200}
+          cachePolicy="disk"
         />
 
         {/* 헤더 높이만큼 여백 */}

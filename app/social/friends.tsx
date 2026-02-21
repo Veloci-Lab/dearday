@@ -1,6 +1,7 @@
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "expo-image";
 import { router, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -108,6 +108,7 @@ function ConfirmPopup({
                 <Image
                   source={{ uri: profile.avatar_url }}
                   style={styles.popupAvatarImage}
+                  cachePolicy="disk"
                 />
               ) : null}
             </View>
@@ -178,6 +179,7 @@ function FriendRequestItem({
             <Image
               source={{ uri: request.profile.avatar_url }}
               style={styles.avatarImage}
+              cachePolicy="disk"
             />
           ) : null}
         </View>
@@ -662,7 +664,11 @@ export default function FriendsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>아직 친구가 없어요.</Text>
-            <Image source={{ uri: DDSleep_URL }} style={styles.emptyImage} />
+            <Image
+              source={{ uri: DDSleep_URL }}
+              style={styles.emptyImage}
+              cachePolicy="disk"
+            />
           </View>
         }
       />

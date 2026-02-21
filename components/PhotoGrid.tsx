@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import React, { useMemo } from "react";
-import { Dimensions, Image, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 
 /* ====== 타입 ====== */
 export interface PhotoGridItem {
@@ -55,6 +56,8 @@ function LargeLeftRow({
           source={{ uri: large.image_url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
+          transition={200}
+          cachePolicy="disk"
         />
       </Pressable>
       <View style={gridStyles.smallColumn}>
@@ -69,6 +72,8 @@ function LargeLeftRow({
             source={{ uri: small1.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
+            transition={200}
+            cachePolicy="disk"
           />
         </Pressable>
         <Pressable
@@ -82,6 +87,8 @@ function LargeLeftRow({
             source={{ uri: small2.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
+            transition={200}
+            cachePolicy="disk"
           />
         </Pressable>
       </View>
@@ -114,6 +121,8 @@ function ThreeEqualRow({
             source={{ uri: photo.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
+            transition={200}
+            cachePolicy="disk"
           />
         </Pressable>
       ))}
@@ -145,6 +154,8 @@ function LargeRightRow({
             source={{ uri: small1.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
+            transition={200}
+            cachePolicy="disk"
           />
         </Pressable>
         <Pressable
@@ -158,6 +169,8 @@ function LargeRightRow({
             source={{ uri: small2.image_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
+            transition={200}
+            cachePolicy="disk"
           />
         </Pressable>
       </View>
@@ -172,6 +185,8 @@ function LargeRightRow({
           source={{ uri: large.image_url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
+          transition={200}
+          cachePolicy="disk"
         />
       </Pressable>
     </View>
@@ -303,15 +318,15 @@ const gridStyles = StyleSheet.create({
     gap: GAP,
   },
   largeImage: {
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: "hidden",
   },
   smallImage: {
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: "hidden",
   },
   equalImage: {
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: "hidden",
   },
 });
