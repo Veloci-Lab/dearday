@@ -133,6 +133,7 @@ export default function FeedScreen() {
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
+  const [hasScrolledToInitial, setHasScrolledToInitial] = useState(false);
 
   // ReactionUserSheet 상태
   const [reactionTabs, setReactionTabs] = useState<ReactionTab[]>([]);
@@ -141,6 +142,13 @@ export default function FeedScreen() {
 
   const emojiSheetRef = useRef<BottomSheet>(null);
   const reactionUserSheetRef = useRef<BottomSheet>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // 각 카드의 y 위치를 저장
+  const cardOffsetsRef = useRef<Record<string, number>>({});
+
+  const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
+  const QUESTION_PILL_HEIGHT = 81;
 
   // 이모지 추가 버튼 핸들러
   const handlePressAddReaction = useCallback((answerId: string) => {
@@ -295,7 +303,6 @@ export default function FeedScreen() {
       setAnswerReactionsRaw(reactionsRaw);
       setReactions(buildReactionsMap(reactionsRaw));
     } else {
-      console.error("리액션 fetch 오류:", reactionsError);
       setAnswerReactionsRaw([]);
       setReactions({});
     }
@@ -334,8 +341,6 @@ export default function FeedScreen() {
         }
 
         const { data: answers, error: answersError } = await query;
-        // 디버깅: answers 쿼리 결과 출력
-        console.log("answers 쿼리 결과:", answers, "error:", answersError);
 
         if (!answersError && answers) {
           const cards: FeedCardData[] = answers.map((item: any) => ({
@@ -346,9 +351,10 @@ export default function FeedScreen() {
             ownerProfileId: item.owner_profile_id,
           }));
           setFeedCards(cards);
+          // 새 카드 로드 시 스크롤 초기화
+          setHasScrolledToInitial(false);
 
           const answerIds = answers.map((a: any) => a.answer_id);
-          // 디버깅: answerIds 출력
           console.log("answerIds:", answerIds);
           if (answerIds.length > 0) {
             await fetchReactionsForAnswerIds(answerIds);
@@ -370,6 +376,41 @@ export default function FeedScreen() {
     myProfileId,
     fetchReactionsForAnswerIds,
   ]);
+
+  // ✅ feedCards 로드 완료 후 initialPhotoId 위치로 스크롤
+  useEffect(() => {
+    if (
+      !params.initialPhotoId ||
+      feedCards.length === 0 ||
+      hasScrolledToInitial
+    )
+      return;
+
+    const targetId = String(params.initialPhotoId);
+    const targetIndex = feedCards.findIndex(
+      (card) => String(card.id) === targetId,
+    );
+
+    if (targetIndex <= 0) {
+      // 첫 번째이거나 못 찾으면 스크롤 불필요
+      setHasScrolledToInitial(true);
+      return;
+    }
+
+    // 레이아웃이 렌더링될 시간을 주고 스크롤
+    const timer = setTimeout(() => {
+      const offset = cardOffsetsRef.current[targetId];
+      if (offset !== undefined && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({
+          y: offset,
+          animated: false, // 부드럽게 이동하지 않고 바로 이동
+        });
+      }
+      setHasScrolledToInitial(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [feedCards, params.initialPhotoId, hasScrolledToInitial]);
 
   // 리액션 새로고침
   const fetchReactions = useCallback(async () => {
@@ -408,20 +449,11 @@ export default function FeedScreen() {
         emojiSheetRef.current?.close();
         return;
       }
-      // 디버깅: insert 직전 값 출력
-      console.log(
-        "insert answer_id:",
-        selectedAnswerId,
-        "myProfileId:",
-        myProfileId,
-        "emojiId:",
-        emoji.emojiId,
-      );
       try {
         const { error: insertError } = await supabase
           .from("answer_reactions")
           .insert({
-            answer_id: selectedAnswerId, // 문자열 그대로 사용
+            answer_id: selectedAnswerId,
             reactor_profile_id: myProfileId,
             emoji_id: emoji.emojiId,
           });
@@ -438,8 +470,6 @@ export default function FeedScreen() {
     },
     [selectedAnswerId, myProfileId, fetchReactions],
   );
-
-  const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -466,30 +496,43 @@ export default function FeedScreen() {
 
       {/* 피드 콘텐츠 */}
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollView, { marginTop: HEADER_HEIGHT }]}
-        contentContainerStyle={[styles.feedContainer, { paddingTop: 81 }]}
+        contentContainerStyle={[
+          styles.feedContainer,
+          { paddingTop: QUESTION_PILL_HEIGHT },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {feedCards.map((card) => (
-          <FeedCard
+          <View
             key={card.id}
-            data={card}
-            reactions={reactions[String(card.id)] || []}
-            answerReactionsRaw={answerReactionsRaw.filter(
-              (r) => String(r.answer_id) === String(card.id),
-            )}
-            onPressNickname={(item) => {
-              router.push({
-                pathname: "/social/user/[id]",
-                params: {
-                  id: String(item.ownerProfileId),
-                  nickname: item.nickname,
-                },
-              });
+            onLayout={(e) => {
+              // 각 카드의 y 위치 기록
+              cardOffsetsRef.current[String(card.id)] = e.nativeEvent.layout.y;
             }}
-            onPressAddReaction={() => handlePressAddReaction(String(card.id))}
-            onLongPressReaction={() => handleLongPressReaction(String(card.id))}
-          />
+          >
+            <FeedCard
+              data={card}
+              reactions={reactions[String(card.id)] || []}
+              answerReactionsRaw={answerReactionsRaw.filter(
+                (r) => String(r.answer_id) === String(card.id),
+              )}
+              onPressNickname={(item) => {
+                router.push({
+                  pathname: "/social/user/[id]",
+                  params: {
+                    id: String(item.ownerProfileId),
+                    nickname: item.nickname,
+                  },
+                });
+              }}
+              onPressAddReaction={() => handlePressAddReaction(String(card.id))}
+              onLongPressReaction={() =>
+                handleLongPressReaction(String(card.id))
+              }
+            />
+          </View>
         ))}
       </ScrollView>
 
