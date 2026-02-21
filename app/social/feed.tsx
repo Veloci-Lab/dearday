@@ -449,6 +449,47 @@ export default function FeedScreen() {
         emojiSheetRef.current?.close();
         return;
       }
+
+      // 1️⃣ 로컬 상태 먼저 업데이트
+      setAnswerReactionsRaw((prev) => [
+        ...prev,
+        {
+          answer_id: selectedAnswerId,
+          reactor_profile_id: myProfileId,
+          emoji_id: emoji.emojiId,
+          emojis: { value: emoji.emoji, name: emoji.name },
+          profiles: { nickname: "나", avatar_url: null }, // 나의 정보
+        },
+      ]);
+
+      setReactions((prev) => {
+        const prevForAnswer = prev[selectedAnswerId] || [];
+        const existing = prevForAnswer.find((r) => r.emojiId === emoji.emojiId);
+        if (existing) {
+          // 이미 있으면 count 증가
+          return {
+            ...prev,
+            [selectedAnswerId]: prevForAnswer.map((r) =>
+              r.emojiId === emoji.emojiId
+                ? { ...r, count: r.count + 1 }
+                : r
+            ),
+          };
+        } else {
+          return {
+            ...prev,
+            [selectedAnswerId]: [
+              ...prevForAnswer,
+              { emojiId: emoji.emojiId, emoji: emoji.emoji, emojiName: emoji.name, count: 1 },
+            ],
+          };
+        }
+      });
+
+      // 2️⃣ 시트 닫기
+      emojiSheetRef.current?.close();
+
+      // 3️⃣ DB insert
       try {
         const { error: insertError } = await supabase
           .from("answer_reactions")
@@ -460,15 +501,41 @@ export default function FeedScreen() {
 
         if (insertError) {
           console.error("insert 오류:", insertError);
+          // 실패하면 로컬 상태 롤백
+          setAnswerReactionsRaw((prev) =>
+            prev.filter(
+              (r) =>
+                !(
+                  r.answer_id === selectedAnswerId &&
+                  r.reactor_profile_id === myProfileId &&
+                  r.emoji_id === emoji.emojiId
+                )
+            )
+          );
+          setReactions((prev) => {
+            const prevForAnswer = prev[selectedAnswerId] || [];
+            const existing = prevForAnswer.find((r) => r.emojiId === emoji.emojiId);
+            if (existing && existing.count === 1) {
+              return {
+                ...prev,
+                [selectedAnswerId]: prevForAnswer.filter((r) => r.emojiId !== emoji.emojiId),
+              };
+            } else if (existing) {
+              return {
+                ...prev,
+                [selectedAnswerId]: prevForAnswer.map((r) =>
+                  r.emojiId === emoji.emojiId ? { ...r, count: r.count - 1 } : r
+                ),
+              };
+            }
+            return prev;
+          });
         }
-
-        emojiSheetRef.current?.close();
-        fetchReactions();
       } catch (error) {
         console.error("리액션 추가 오류:", error);
       }
     },
-    [selectedAnswerId, myProfileId, fetchReactions],
+    [selectedAnswerId, myProfileId]
   );
 
   return (
