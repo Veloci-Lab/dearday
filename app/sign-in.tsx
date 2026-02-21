@@ -214,6 +214,9 @@ export default function SignInScreen() {
   //   );
   // }
 
+  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
+
   return (
     <View style={s.mainContainer}>
       <StatusBar style={isVideoFinished ? "dark" : "light"} />
@@ -221,7 +224,7 @@ export default function SignInScreen() {
       {/* 1. 배경 비디오 레이어 */}
       {!isVideoFinished && (
         <Video
-          source={require("@/assets/videos/splash.mp4")}
+          source={{ uri: REMOTE_DD_LOGO_URL }} // Supabase에 업로드된 비디오 URL로 변경
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
           onEnd={() => setIsVideoFinished(true)}
