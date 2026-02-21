@@ -1,7 +1,7 @@
 import { commonHeaderOptions } from "@/styles/common";
 import { useAuthStore } from "@/utils/authStore";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   Image,
@@ -91,6 +91,8 @@ function NotificationItem({
 
   const translateX = useSharedValue(0);
 
+  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+
   // 다른 아이템이 열리면 자동으로 닫힘
   // console.log('Notification item:', item.type, item.emoji)
 
@@ -156,7 +158,13 @@ function NotificationItem({
                   <Text style={styles.bold}>
                     {item.actor ? item.actor.nickname : "알 수 없음"}
                   </Text>
-                  {renderMessage(item.type, item.emoji)}
+                  {renderMessage(item.type)}
+                  {item.type === "emoji" && item.emoji && (
+                    <Image
+                      source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/emoji/${item.emoji}`}}
+                      style={{ width: 20, height: 20, marginLeft: 4}}
+                    />
+                  )}
                 </Text>
                 <Text style={styles.time}>
                   {formatNotificationDate(item.created_at)}
@@ -172,8 +180,7 @@ function NotificationItem({
 }
 
 function renderMessage(
-  type: Notification["type"],
-  emoji?: Notification["emoji"],
+  type: Notification["type"]
 ) {
   switch (type) {
     // case "follow_request":
@@ -183,9 +190,7 @@ function renderMessage(
     // case "follow":
     //   return "님이 나를 팔로우하기 시작했어요.";
     case "emoji":
-      return emoji
-        ? `님이 회원님의 사진에 반응했어요. ${emoji}`
-        : "님이 회원님의 사진에 반응했어요.";
+      return "님이 회원님의 사진에 반응했어요.";
   }
 }
 
@@ -274,6 +279,24 @@ export default function NotificationsScreen() {
 
   const [openId, setOpenId] = useState<string | null>(null);
 
+  const markAllAsRead = async () => {
+    const { error } = await supabase
+      .from("follow_notifications")
+      .update({ is_read: true })
+      .eq("user_profile_id", profileId)
+      .eq("is_read", false);
+
+    if (error) {
+      console.error("[mark read error]", error);
+      return;
+    }
+
+    // UI 반영
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, is_read: true }))
+    );
+  };
+
   useEffect(() => {
     navigation.setOptions({
       ...commonHeaderOptions,
@@ -333,7 +356,7 @@ export default function NotificationsScreen() {
       is_read: n.is_read,
       created_at: n.created_at,
       actor: n.actor,
-      emoji: n.emoji,
+      emoji: n.emoji_value,
       entity: n.entity,
     }));
 
@@ -344,6 +367,16 @@ export default function NotificationsScreen() {
   useEffect(() => {
     fetchNotifications();
   }, []);
+  useFocusEffect(
+    useCallback(() => {
+      // 화면 들어올 때: 아무것도 안 함
+
+      return () => {
+        // 화면 나갈 때 실행
+        markAllAsRead();
+      };
+    }, [])
+  );
 
   const handleConfirmFollow = async (item: Notification) => {
     // 1) follow 상태 accepted
@@ -596,10 +629,21 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 
-  text: { fontSize: 15 },
-  bold: { fontWeight: "600" },
-  time: { fontSize: 12, color: "#999", marginTop: 2 },
-
+  text: { 
+    fontFamily: 'Pretendard-Regular',
+    fontSize: 13,
+    fontWeight: 400,
+    lineHeight: 20,
+  },
+  bold: { fontWeight: "700" },
+  time: 
+  { fontSize: 12, 
+    color: "#929292", 
+    marginTop: 4, 
+    fontFamily: 'Pretendard-Regular',
+    fontWeight: 400,
+    lineHeight: 16
+  },
   actions: {
     display: "flex",
     flexDirection: "row",
