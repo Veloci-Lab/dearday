@@ -2,7 +2,7 @@ import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
-import { router, useNavigation, useRouter } from "expo-router";
+import { router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
@@ -280,7 +280,8 @@ export default function FriendsScreen() {
   const [myNickname, setMyNickname] = useState("");
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [friends, setFriends] = useState<FriendRelation[]>([]);
+  const [friendRelations, setFriendRelations] = useState<FriendRelation[]>([]);
+  const zustandFriends = useFriendsStore((state) => state.friends);
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
 
@@ -424,7 +425,7 @@ export default function FriendsScreen() {
       return 0;
     });
 
-    setFriends(combined);
+    setFriendRelations(combined); 
 
     // 새 친구를 "본" 목록에 추가
     if (newFriendIds.length > 0) {
@@ -439,6 +440,14 @@ export default function FriendsScreen() {
       }
     }
   }, []);
+  
+  useFocusEffect(
+    useCallback(() => {
+      if (myProfileId) {
+        fetchFriends(myProfileId);
+      }
+    }, [myProfileId, fetchFriends])
+  );
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -592,9 +601,11 @@ export default function FriendsScreen() {
       .eq("followee_profile_id", myProfileId);
 
     if (!err1 && !err2) {
-      setFriends((prev) =>
+      setFriendRelations((prev) => // friends → friendRelations
         prev.filter((f) => f.profile.profile_id !== targetProfileId),
       );
+
+      useFriendsStore.getState().removeFriend(targetProfileId);
 
       // "본" 친구 목록에서도 제거 (나중에 다시 추가하면 N 표시됨)
       try {
@@ -641,7 +652,7 @@ export default function FriendsScreen() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>내 친구들</Text>
-          <Text style={styles.sectionCount}>{friends.length}</Text>
+          <Text style={styles.sectionCount}>{friendRelations.length}</Text>
         </View>
       </View>
     </View>
@@ -660,7 +671,7 @@ export default function FriendsScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={friends}
+        data={friendRelations}
         keyExtractor={(item) => String(item.profile.profile_id)}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{

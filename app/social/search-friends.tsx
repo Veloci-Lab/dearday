@@ -5,17 +5,17 @@ import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { useFriendsStore } from "../store/friendsStore";
 
 /* ====== SVG 아이콘 ====== */
 const SearchIcon = () => (
@@ -215,6 +215,9 @@ export default function SearchFriendsScreen() {
     null,
   );
 
+  //친구 상태
+  const friends = useFriendsStore((state) => state.friends);
+
   /* ── 내 프로필 ID ── */
   useEffect(() => {
     const fetchMyProfile = async () => {
@@ -346,23 +349,23 @@ export default function SearchFriendsScreen() {
 
   /* ── 친구 요청 버튼 → 팝업 열기 ── */
   const handleRequestPress = (profile: SearchResult) => {
-    setSelectedProfile(profile);
-    setPopupVisible(true);
+    setSelectedProfile(profile);   // 팝업에 선택한 친구 정보 전달
+    setPopupVisible(true);         // 팝업 열기
   };
 
-  /* ── 팝업 확인 → 요청 보내기 ── */
   const handleConfirmRequest = async () => {
     if (!myProfileId || !selectedProfile) return;
 
     const targetId = selectedProfile.profile_id;
     const isTargetPublic = selectedProfile.is_public;
+
     setPopupVisible(false);
     setSelectedProfile(null);
 
+    // 버튼 상태 'sending'으로 먼저 업데이트
     setRelationMap((prev) => ({ ...prev, [targetId]: "sending" }));
 
-    // 공개 계정: 바로 accepted, 비공개 계정: pending
-    const newStatus = isTargetPublic ? "accepted" : "pending";
+    const newStatus: RequestStatus = isTargetPublic ? "accepted" : "pending";
 
     const { error } = await supabase.from("follows").insert({
       follower_profile_id: myProfileId,
@@ -370,20 +373,33 @@ export default function SearchFriendsScreen() {
       status: newStatus,
     });
 
-    if (error) {
-      setRelationMap((prev) => {
-        const next = { ...prev };
-        delete next[targetId];
-        return next;
-      });
-      Alert.alert(
-        "오류",
-        isTargetPublic ? "친구 추가에 실패했어요." : "친구 요청에 실패했어요.",
+    if (!error) {
+      // Zustand 전역 상태 업데이트
+      if (newStatus === "accepted") {
+        useFriendsStore.getState().addFriend({
+          profile_id: targetId,
+          nickname: selectedProfile!.nickname,
+          avatar_url: selectedProfile!.avatar_url,
+        });
+      }
+
+      // SearchFriendsScreen에서도 바로 반영
+      setRelationMap((prev) => ({ ...prev, [targetId]: newStatus }));
+
+      // results 배열 업데이트 (FlatList 재렌더링)
+      setResults((prev) =>
+        prev.map((r) =>
+          r.profile_id === targetId ? { ...r, is_public: true } : r
+        )
       );
     } else {
-      setRelationMap((prev) => ({ ...prev, [targetId]: newStatus }));
+      // 에러 발생 시 이전 상태로 롤백
+      setRelationMap((prev) => ({ ...prev, [targetId]: "none" }));
+      console.error("친구 요청 실패:", error);
     }
   };
+    
+  
 
   /* ── 팝업 취소 ── */
   const handleCancelPopup = () => {
