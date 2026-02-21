@@ -1,6 +1,9 @@
+import EmojiPickerSheet, { EmojiOption } from "@/components/EmojiPickerSheet";
 import FeedCard from "@/components/FeedCard";
+import ReactionUserSheet from "@/components/ReactionUserSheet";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
+import BottomSheet from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -88,8 +91,35 @@ export default function AnswerViewerScreen() {
   const [initialIndex, setInitialIndex] = useState(0);
   const flatListRef = useRef<FlatList<Answer>>(null);
 
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [reactionSheetUsers, setReactionSheetUsers] = useState<any[]>([]);
+  const [reactionSheetTabs, setReactionSheetTabs] = useState<any[]>([]);
+  const [reactionSheetSelectedTab, setReactionSheetSelectedTab] =
+    useState("all");
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
+  const emojiSheetRef = useRef<BottomSheet>(null);
+  const reactionUserSheetRef = useRef<BottomSheet>(null);
+  const [myProfileId, setMyProfileId] = useState<number | null>(null);
+  // 내 프로필 ID 로드 (feed.tsx 참고)
+  useEffect(() => {
+    const loadMyProfile = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("profile_id")
+          .eq("uid", user.id)
+          .single();
+        if (!profileData) return;
+        setMyProfileId(profileData.profile_id);
+      } catch (error) {
+        console.error("프로필 로드 오류:", error);
+      }
+    };
+    loadMyProfile();
+  }, []);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -206,9 +236,40 @@ export default function AnswerViewerScreen() {
         onPressNickname={() => {}}
         onPressAddReaction={() => {
           setSelectedAnswerId(item.answer_id);
-          setIsPickerOpen(true);
+          emojiSheetRef.current?.expand();
         }}
-        // You can add other handlers as needed
+        onLongPressReaction={() => {
+          setSelectedAnswerId(item.answer_id);
+          const raw = item.answer_reactions ?? [];
+          const emojiMap = {};
+          raw.forEach((r) => {
+            if (!emojiMap[r.emoji_id]) {
+              emojiMap[r.emoji_id] = {
+                label: r.emojis?.value ?? "?",
+                count: 0,
+              };
+            }
+            emojiMap[r.emoji_id].count += 1;
+          });
+          const tabs = [
+            { key: "all", label: "전체", count: raw.length },
+            ...Object.entries(emojiMap).map(([id, { label, count }]) => ({
+              key: id,
+              label,
+              count,
+            })),
+          ];
+          const users = raw.map((r) => ({
+            id: r.reactor_profile_id,
+            nickname: r.profiles?.nickname ?? "알 수 없음",
+            profileImageUrl: r.profiles?.avatar_url ?? null,
+            emojiId: r.emoji_id,
+          }));
+          setReactionSheetTabs(tabs);
+          setReactionSheetUsers(users);
+          setReactionSheetSelectedTab("all");
+          reactionUserSheetRef.current?.expand();
+        }}
       />
     );
   };
@@ -218,28 +279,73 @@ export default function AnswerViewerScreen() {
   }
 
   return (
-    <FlatList
-      ref={flatListRef}
-      data={answers}
-      keyExtractor={(item) => item.answer_id}
-      renderItem={renderItem}
-      initialScrollIndex={initialIndex}
-      getItemLayout={(_, index) => ({
-        length: 550,
-        offset: 550 * index,
-        index,
-      })}
-      onScrollToIndexFailed={(info) => {
-        const wait = new Promise((resolve) => setTimeout(resolve, 500));
-        wait.then(() => {
-          flatListRef.current?.scrollToIndex({
-            index: info.index,
-            animated: false,
+    <>
+      <FlatList
+        ref={flatListRef}
+        data={answers}
+        keyExtractor={(item) => item.answer_id}
+        renderItem={renderItem}
+        initialScrollIndex={initialIndex}
+        getItemLayout={(_, index) => ({
+          length: 550,
+          offset: 550 * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise((resolve) => setTimeout(resolve, 500));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({
+              index: info.index,
+              animated: false,
+            });
           });
-        });
-      }}
-      contentContainerStyle={{ backgroundColor: "#fff", gap: 30 }}
-    />
+        }}
+        contentContainerStyle={{ backgroundColor: "#fff", gap: 30 }}
+      />
+      {/* 이모지 피커 BottomSheet */}
+      <EmojiPickerSheet
+        ref={emojiSheetRef}
+        onSelectEmoji={async (emoji: EmojiOption) => {
+          if (!selectedAnswerId || !myProfileId) {
+            emojiSheetRef.current?.close();
+            return;
+          }
+          try {
+            const { error } = await supabase.from("answer_reactions").insert({
+              answer_id: selectedAnswerId,
+              reactor_profile_id: myProfileId,
+              emoji_id: emoji.emojiId,
+            });
+            if (error) {
+              console.error("insert 오류:", error);
+            }
+          } catch (e) {
+            console.error("supabase 오류:", e);
+          }
+          emojiSheetRef.current?.close();
+          // 저장 후 리액션 새로고침 (feed.tsx처럼)
+          // answers state를 새로고침하거나, 별도 fetch 함수 구현 가능
+          // 여기서는 간단히 fetchData() 호출
+          // (실제 feed.tsx는 fetchReactions 호출)
+          // 아래 코드 참고
+          // fetchData();
+        }}
+        onClose={() => {
+          emojiSheetRef.current?.close();
+        }}
+      />
+      {/* 리액션 유저 목록 BottomSheet */}
+      <ReactionUserSheet
+        ref={reactionUserSheetRef}
+        onClose={() => {
+          reactionUserSheetRef.current?.close();
+        }}
+        tabs={reactionSheetTabs}
+        selectedTab={reactionSheetSelectedTab}
+        onSelectTab={setReactionSheetSelectedTab}
+        users={reactionSheetUsers}
+      />
+    </>
   );
 }
 
