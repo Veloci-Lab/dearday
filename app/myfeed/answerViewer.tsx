@@ -1,3 +1,4 @@
+import { MoreIcon } from "@/app/social/friends";
 import EmojiPickerSheet, { EmojiOption } from "@/components/EmojiPickerSheet";
 import FeedCard from "@/components/FeedCard";
 import { commonHeaderOptions } from "@/styles/common";
@@ -32,6 +33,7 @@ interface Answer {
   updated_at: string;
   question_text?: string;
   answer_reactions?: any[];
+  daily_questions?: { question_text: string } | null;
 }
 
 const ArrowLeft = () => (
@@ -52,8 +54,6 @@ function buildDisplayedReactions(answerReactions: any[]): {
     return { displayedReactions: [], hasMoreReactions: false };
   }
 
-  // emoji_id 기준으로 count 집계
-  // emojis.value에는 실제 이미지 url이 담겨 있음
   const countMap: Record<number, { emoji_image_url: string; count: number }> =
     {};
   answerReactions.forEach((r: any) => {
@@ -101,7 +101,8 @@ export default function AnswerViewerScreen() {
   const emojiSheetRef = useRef<BottomSheet>(null);
   const reactionUserSheetRef = useRef<BottomSheet>(null);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
-  // 내 프로필 ID 로드 (feed.tsx 참고)
+
+  // 내 프로필 ID 로드
   useEffect(() => {
     const loadMyProfile = async () => {
       try {
@@ -183,6 +184,7 @@ export default function AnswerViewerScreen() {
           .from("answers")
           .select(
             `*,
+            daily_questions:question_date ( question_text ),
             answer_reactions (
               reactor_profile_id,
               emoji_id,
@@ -214,6 +216,7 @@ export default function AnswerViewerScreen() {
 
   const renderItem = ({ item, index }: { item: Answer; index: number }) => {
     const questionNumber = index + 1;
+    const questionText = item.daily_questions?.question_text ?? "";
 
     const { displayedReactions, hasMoreReactions } = buildDisplayedReactions(
       item.answer_reactions ?? [],
@@ -225,75 +228,90 @@ export default function AnswerViewerScreen() {
       5000;
 
     return (
-      <FeedCard
-        data={{
-          id: item.answer_id,
-          imageUrl: item.photo_url,
-          nickname: nickname,
-          createdAt: formatTime(item.updated_at),
-          ownerProfileId: Number(profileId),
-          isEdited,
-        }}
-        reactions={displayedReactions.map((r) => ({
-          emojiId: Number(r.reaction_id),
-          emoji: r.emoji_url,
-          emojiName: "", // If available, add name
-          count: r.count,
-        }))}
-        answerReactionsRaw={item.answer_reactions}
-        onPressNickname={() => {}}
-        onPressAddReaction={() => {
-          setSelectedAnswerId(item.answer_id);
-          emojiSheetRef.current?.expand();
-        }}
-        onLongPressReaction={() => {
-          setSelectedAnswerId(item.answer_id);
-          const raw = item.answer_reactions ?? [];
-          console.log("answer_reactions raw:", raw);
-          const emojiMap: Record<string, { label: string; count: number }> = {};
+      <View>
+        {/* 질문 섹션 */}
+        <View style={styles.questionSection}>
+          <View
+            style={{ flexDirection: "row", flex: 1, alignItems: "flex-start" }}
+          >
+            <Text style={styles.questionNumber}>Q{questionNumber}.</Text>
+            <Text style={styles.questionText}>{questionText}</Text>
+          </View>
+          <TouchableOpacity style={{ paddingLeft: 5 }}>
+            <MoreIcon />
+          </TouchableOpacity>
+        </View>
 
-          raw.forEach((r) => {
-            // Defensive check: skip if emoji_id is missing
-            if (!r.emoji_id) {
-              console.warn("Missing emoji_id in reaction:", r);
-              return;
-            }
-            if (!emojiMap[r.emoji_id]) {
-              emojiMap[r.emoji_id] = {
-                label: r.emojis && r.emojis.value ? r.emojis.value : "?",
-                count: 0,
-              };
-            }
-            emojiMap[r.emoji_id].count += 1;
-          });
-          console.log("emojiMap result:", emojiMap);
-          const tabs = [
-            { key: "all", label: "전체", count: raw.length },
-            ...Object.entries(emojiMap).map(([id, { label, count }]) => ({
-              key: id,
-              label,
-              count,
-            })),
-          ];
-          // 사용자 닉네임을 feed.tsx처럼 profiles:reactor_profile_id에서 가져오도록 수정
-          const users = raw.map((r) => ({
-            id: r.reactor_profile_id,
-            nickname:
-              r.profiles && r.profiles.nickname
-                ? r.profiles.nickname
-                : "알 수 없음",
-            profileImageUrl:
-              r.profiles && r.profiles.avatar_url
-                ? r.profiles.avatar_url
-                : null,
-            emojiId: r.emoji_id,
-          }));
-          setReactionSheetTabs(tabs);
-          setReactionSheetUsers(users);
-          setReactionSheetSelectedTab("all");
-          reactionUserSheetRef.current?.expand();
-        }}
-      />
+        <FeedCard
+          data={{
+            id: item.answer_id,
+            imageUrl: item.photo_url,
+            nickname: nickname,
+            createdAt: formatTime(item.updated_at),
+            ownerProfileId: Number(profileId),
+            isEdited,
+          }}
+          reactions={displayedReactions.map((r) => ({
+            emojiId: Number(r.reaction_id),
+            emoji: r.emoji_url,
+            emojiName: "",
+            count: r.count,
+          }))}
+          answerReactionsRaw={item.answer_reactions}
+          onPressNickname={() => {}}
+          onPressAddReaction={() => {
+            setSelectedAnswerId(item.answer_id);
+            emojiSheetRef.current?.expand();
+          }}
+          onLongPressReaction={() => {
+            setSelectedAnswerId(item.answer_id);
+            const raw = item.answer_reactions ?? [];
+            console.log("answer_reactions raw:", raw);
+            const emojiMap: Record<string, { label: string; count: number }> =
+              {};
+
+            raw.forEach((r) => {
+              if (!r.emoji_id) {
+                console.warn("Missing emoji_id in reaction:", r);
+                return;
+              }
+              if (!emojiMap[r.emoji_id]) {
+                emojiMap[r.emoji_id] = {
+                  label: r.emojis && r.emojis.value ? r.emojis.value : "?",
+                  count: 0,
+                };
+              }
+              emojiMap[r.emoji_id].count += 1;
+            });
+
+            const tabs = [
+              { key: "all", label: "전체", count: raw.length },
+              ...Object.entries(emojiMap).map(([id, { label, count }]) => ({
+                key: id,
+                label,
+                count,
+              })),
+            ];
+
+            const users = raw.map((r) => ({
+              id: r.reactor_profile_id,
+              nickname:
+                r.profiles && r.profiles.nickname
+                  ? r.profiles.nickname
+                  : "알 수 없음",
+              profileImageUrl:
+                r.profiles && r.profiles.avatar_url
+                  ? r.profiles.avatar_url
+                  : null,
+              emojiId: r.emoji_id,
+            }));
+            setReactionSheetTabs(tabs);
+            setReactionSheetUsers(users);
+            setReactionSheetSelectedTab("all");
+            reactionUserSheetRef.current?.expand();
+          }}
+        />
+      </View>
     );
   };
 
@@ -329,6 +347,7 @@ export default function AnswerViewerScreen() {
           paddingBottom: 40,
         }}
       />
+
       {/* 이모지 피커 BottomSheet */}
       <EmojiPickerSheet
         ref={emojiSheetRef}
@@ -339,7 +358,6 @@ export default function AnswerViewerScreen() {
           }
 
           try {
-            // 1️⃣ answers state에서 해당 answer 찾기
             setAnswers((prevAnswers) =>
               prevAnswers.map((a) => {
                 if (a.answer_id !== selectedAnswerId) return a;
@@ -352,7 +370,6 @@ export default function AnswerViewerScreen() {
                   existingReactionIndex != null &&
                   existingReactionIndex >= 0
                 ) {
-                  // 2️⃣ 이미 반응이 있으면 emoji_id 업데이트
                   const updatedReactions = [...a.answer_reactions];
                   updatedReactions[existingReactionIndex] = {
                     ...updatedReactions[existingReactionIndex],
@@ -361,7 +378,6 @@ export default function AnswerViewerScreen() {
                   };
                   return { ...a, answer_reactions: updatedReactions };
                 } else {
-                  // 3️⃣ 없으면 새 반응 추가
                   const newReaction = {
                     answer_id: selectedAnswerId,
                     reactor_profile_id: myProfileId,
@@ -369,7 +385,7 @@ export default function AnswerViewerScreen() {
                     emojis: { value: emoji.emoji },
                     profiles: {
                       nickname: nickname,
-                      avatar_url: null, // 필요하면 실제 avatar_url 넣기
+                      avatar_url: null,
                     },
                   };
                   return {
@@ -383,7 +399,6 @@ export default function AnswerViewerScreen() {
               }),
             );
 
-            // 4️⃣ Supabase에 반영
             const { data: existing } = await supabase
               .from("answer_reactions")
               .select("*")
@@ -429,8 +444,9 @@ const styles = StyleSheet.create({
   questionSection: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingLeft: 12,
+    paddingRight: 6,
+    paddingVertical: 14,
     alignItems: "center",
   },
   questionNumber: {
@@ -445,7 +461,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontFamily: "Pretendard-Regular",
     color: "#0D0D0D",
-    fontSize: 17,
+    fontSize: 15,
     fontStyle: "normal",
     fontWeight: "400",
     letterSpacing: -0.45,

@@ -65,7 +65,7 @@ const SearchIcon = () => (
   </Svg>
 );
 
-const MoreIcon = () => (
+export const MoreIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
     <Circle cx={12} cy={5} r={1.5} fill="#0D0D0D" />
     <Circle cx={12} cy={12} r={1.5} fill="#0D0D0D" />
@@ -425,7 +425,7 @@ export default function FriendsScreen() {
       return 0;
     });
 
-    setFriendRelations(combined); 
+    setFriendRelations(combined);
 
     // 새 친구를 "본" 목록에 추가
     if (newFriendIds.length > 0) {
@@ -440,13 +440,13 @@ export default function FriendsScreen() {
       }
     }
   }, []);
-  
+
   useFocusEffect(
     useCallback(() => {
       if (myProfileId) {
         fetchFriends(myProfileId);
       }
-    }, [myProfileId, fetchFriends])
+    }, [myProfileId, fetchFriends]),
   );
 
   const loadData = useCallback(async () => {
@@ -601,8 +601,10 @@ export default function FriendsScreen() {
       .eq("followee_profile_id", myProfileId);
 
     if (!err1 && !err2) {
-      setFriendRelations((prev) => // friends → friendRelations
-        prev.filter((f) => f.profile.profile_id !== targetProfileId),
+      setFriendRelations(
+        (
+          prev, // friends → friendRelations
+        ) => prev.filter((f) => f.profile.profile_id !== targetProfileId),
       );
 
       useFriendsStore.getState().removeFriend(targetProfileId);
