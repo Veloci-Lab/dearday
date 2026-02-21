@@ -10,10 +10,17 @@ import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +28,16 @@ import {
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+
+// feed.tsx에서 사용하는 ArrowLeft 아이콘 복사
+const ArrowLeft = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12.5659 19.4341C12.8783 19.7465 12.8783 20.2531 12.5659 20.5655C12.2535 20.8779 11.7469 20.8779 11.4345 20.5655L3.43451 12.5655C3.12209 12.2531 3.12209 11.7465 3.43451 11.4341L11.4345 3.43412C11.7469 3.1217 12.2535 3.1217 12.5659 3.43412C12.8783 3.74654 12.8783 4.25307 12.5659 4.56549L5.93157 11.1998L19.9998 11.1998C20.4416 11.1998 20.7998 11.558 20.7998 11.9998C20.7998 12.4416 20.4416 12.7998 19.9998 12.7998L5.93157 12.7998L12.5659 19.4341Z"
+      fill="#0D0D0D"
+    />
+  </Svg>
+);
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const DDSurprised_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
@@ -111,6 +128,11 @@ export default function UserFeedScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("grid");
   const [photos, setPhotos] = useState<PhotoGridItem[]>([]);
+  // 답변 목록 (질문 탭용)
+  const [answers, setAnswers] = useState<any[]>([]);
+  const [answersLoading, setAnswersLoading] = useState(false);
+  const [answersNickname, setAnswersNickname] = useState<string>("");
+  const flatListRef = useRef(null);
 
   // 친구 여부 판단
   const isFriend =
@@ -173,7 +195,7 @@ export default function UserFeedScreen() {
     [],
   );
 
-  /* ====== 프로필 및 사진 가져오기 ====== */
+  /* ====== 프로필, 사진, 답변 가져오기 ====== */
   useEffect(() => {
     const fetchData = async () => {
       if (!profileId) {
@@ -186,10 +208,12 @@ export default function UserFeedScreen() {
         // 내 프로필 ID 가져오기
         const myId = await fetchMyProfile();
 
-        // TODO: 나 자신의 피드인 경우 나의 피드 페이지로 이동
+        // 나 자신의 피드인 경우, 내 피드 뷰어로 리다이렉트
         if (myId && profileId === myId) {
-          // 추후 나의 피드 페이지 구현 시 router.replace로 변경
-          router.back();
+          router.replace({
+            pathname: "/myfeed/answerViewer",
+            params: { profileId: myId },
+          });
           return;
         }
 
@@ -208,6 +232,7 @@ export default function UserFeedScreen() {
             bio: null,
           });
           setIsPublic(profileData.is_public ?? true);
+          setAnswersNickname(profileData.nickname ?? "");
         }
 
         // 친구 관계 확인
@@ -215,8 +240,8 @@ export default function UserFeedScreen() {
           await fetchFollowRelation(myId, profileId);
         }
 
-        // 사진 가져오기
-        const { data, error } = await supabase
+        // 사진 가져오기 (그리드)
+        const { data: photoData, error: photoError } = await supabase
           .from("answers")
           .select("answer_id, photo_url, owner_profile_id")
           .eq("owner_profile_id", profileId)
@@ -224,47 +249,61 @@ export default function UserFeedScreen() {
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
 
-        if (!error && data) {
-          const mapped: PhotoGridItem[] = data.map((item: any) => ({
+        if (!photoError && photoData) {
+          const mapped: PhotoGridItem[] = photoData.map((item: any) => ({
             id: String(item.answer_id),
             image_url: item.photo_url,
             user_id: String(item.owner_profile_id),
           }));
           setPhotos(mapped);
         }
+
+        // 답변 목록 (질문 탭)
+        setAnswersLoading(true);
+        const { data: answerData, error: answerError } = await supabase
+          .from("answers")
+          .select(`*, answer_reactions (*)`)
+          .eq("owner_profile_id", profileId)
+          .is("deleted_at", null)
+          .order("question_date", { ascending: false });
+        if (!answerError && answerData) {
+          setAnswers(answerData);
+        } else {
+          setAnswers([]);
+        }
+        setAnswersLoading(false);
       } catch (error) {
         console.error("유저 피드 로드 오류:", error);
+        setAnswersLoading(false);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchData();
   }, [profileId, fetchMyProfile, fetchFollowRelation]);
 
   /* ====== 헤더 설정 ====== */
   useEffect(() => {
+    let title = "";
+    if (myProfileId && profile && Number(profile.profile_id) === myProfileId) {
+      title = "나의 피드";
+    } else if (profile?.nickname) {
+      title = `${profile.nickname}님의 피드`;
+    } else {
+      title = "피드";
+    }
     navigation.setOptions({
       ...commonHeaderOptions,
       headerShown: true,
       headerShadowVisible: true,
-      headerTitle: () => (
-        <Text style={styles.headerTitle}>
-          {profile?.nickname ? `${profile.nickname}님의 피드` : "피드"}
-        </Text>
-      ),
+      headerTitle: () => <Text style={styles.headerTitle}>{title}</Text>,
       headerLeft: () => (
         <Pressable onPress={() => router.back()}>
-          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
-              fill="#0D0D0D"
-            />
-          </Svg>
+          <ArrowLeft />
         </Pressable>
       ),
     });
-  }, [navigation, profile?.nickname]);
+  }, [navigation, myProfileId, profile]);
 
   /* ====== 친구 요청 보내기 ====== */
   const handleSendRequest = async () => {
@@ -424,7 +463,18 @@ export default function UserFeedScreen() {
               {/* 그리드 (블러 처리됨) */}
               <View style={styles.gridContainer}>
                 {photos.length > 0 ? (
-                  <PhotoGrid photos={photos} />
+                  <PhotoGrid
+                    photos={photos}
+                    onPressPhoto={(photo) => {
+                      router.push({
+                        pathname: "/social/user/answerViewer",
+                        params: {
+                          profileId: profileId,
+                          initialAnswerId: photo.id,
+                        },
+                      });
+                    }}
+                  />
                 ) : (
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
@@ -458,7 +508,18 @@ export default function UserFeedScreen() {
               {activeTab === "grid" && (
                 <>
                   {photos.length > 0 ? (
-                    <PhotoGrid photos={photos} />
+                    <PhotoGrid
+                      photos={photos}
+                      onPressPhoto={(photo) => {
+                        router.push({
+                          pathname: "/social/user/answerViewer",
+                          params: {
+                            profileId: profileId,
+                            initialAnswerId: photo.id,
+                          },
+                        });
+                      }}
+                    />
                   ) : (
                     <View style={styles.emptyContainer}>
                       <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
@@ -473,17 +534,88 @@ export default function UserFeedScreen() {
                 </>
               )}
 
-              {activeTab === "question" && (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-                  <Image
-                    source={{ uri: DDBored_URL }}
-                    style={styles.emptyImage}
-                    transition={200}
-                    cachePolicy="disk"
+              {activeTab === "question" &&
+                (answersLoading ? (
+                  <View style={styles.emptyContainer}>
+                    <ActivityIndicator size="small" color="#5B8DEF" />
+                  </View>
+                ) : answers.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>아직 답변이 없어요.</Text>
+                    <Image
+                      source={{ uri: DDBored_URL }}
+                      style={styles.emptyImage}
+                      transition={200}
+                      cachePolicy="disk"
+                    />
+                  </View>
+                ) : (
+                  <FlatList
+                    ref={flatListRef}
+                    data={answers}
+                    keyExtractor={(item) => String(item.answer_id)}
+                    renderItem={({ item, index }) => {
+                      // 날짜 포맷 (YYYY. MM. DD.)
+                      let dateStr = "";
+                      if (item.updated_at) {
+                        const d = new Date(item.updated_at);
+                        dateStr = `${d.getFullYear()}. ${(d.getMonth() + 1)
+                          .toString()
+                          .padStart(2, "0")}. ${d
+                          .getDate()
+                          .toString()
+                          .padStart(2, "0")}.`;
+                      }
+                      return (
+                        <Pressable
+                          style={styles.questionRow}
+                          onPress={() => {
+                            // TODO: 상세 보기로 이동 (필요시 구현)
+                          }}
+                        >
+                          <Image
+                            source={{ uri: item.photo_url || DDBored_URL }}
+                            style={styles.questionAvatar}
+                          />
+                          <View style={styles.questionTextCol}>
+                            <Text
+                              style={styles.questionTitle}
+                              numberOfLines={1}
+                            >
+                              <Text style={styles.questionNumber}>
+                                Q{index + 1}.
+                              </Text>{" "}
+                              {item.question_text ||
+                                "오늘 찍은 사진 중 가장 마음에 드는 사진은?"}
+                            </Text>
+                            <Text style={styles.questionDate}>{dateStr}</Text>
+                          </View>
+                          <Svg
+                            width={20}
+                            height={20}
+                            viewBox="0 0 20 20"
+                            fill="none"
+                          >
+                            <Path
+                              d="M7.5 5L12.5 10L7.5 15"
+                              stroke="#BDBDBD"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </Svg>
+                        </Pressable>
+                      );
+                    }}
+                    ItemSeparatorComponent={() => (
+                      <View style={{ height: 8 }} />
+                    )}
+                    contentContainerStyle={{
+                      backgroundColor: "#fff",
+                      paddingVertical: 8,
+                    }}
                   />
-                </View>
-              )}
+                ))}
             </View>
 
             {/* 피드 끝 표시 - 사진이 있을 때만 */}
@@ -603,5 +735,49 @@ const styles = StyleSheet.create({
   logo: {
     width: 130,
     height: 130,
+  },
+
+  /* ====== Feed List Styles (질문 탭) ====== */
+  questionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginHorizontal: 8,
+    shadowColor: "rgba(0,0,0,0.03)",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  questionAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: "#f2f2f2",
+  },
+  questionTextCol: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  questionTitle: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15,
+    color: "#222",
+    marginBottom: 2,
+  },
+  questionNumber: {
+    color: "#5B8DEF",
+    fontFamily: "Pretendard-Bold",
+    fontSize: 15,
+  },
+  questionDate: {
+    fontFamily: "Pretendard",
+    fontSize: 13,
+    color: "#BDBDBD",
+    marginTop: 2,
   },
 });
