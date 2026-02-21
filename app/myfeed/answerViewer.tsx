@@ -1,6 +1,5 @@
 import EmojiPickerSheet, { EmojiOption } from "@/components/EmojiPickerSheet";
 import FeedCard from "@/components/FeedCard";
-import ReactionUserSheet from "@/components/ReactionUserSheet";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -331,65 +330,73 @@ export default function AnswerViewerScreen() {
             emojiSheetRef.current?.close();
             return;
           }
+
           try {
-            // 기존 반응이 있는지 확인
-            const { data: existing, error: selectError } = await supabase
+            // 1️⃣ answers state에서 해당 answer 찾기
+            setAnswers((prevAnswers) =>
+              prevAnswers.map((a) => {
+                if (a.answer_id !== selectedAnswerId) return a;
+
+                const existingReactionIndex = a.answer_reactions?.findIndex(
+                  (r: any) => r.reactor_profile_id === myProfileId
+                );
+
+                if (existingReactionIndex != null && existingReactionIndex >= 0) {
+                  // 2️⃣ 이미 반응이 있으면 emoji_id 업데이트
+                  const updatedReactions = [...a.answer_reactions];
+                  updatedReactions[existingReactionIndex] = {
+                    ...updatedReactions[existingReactionIndex],
+                    emoji_id: emoji.emojiId,
+                    emojis: { value: emoji.emojiUrl },
+                  };
+                  return { ...a, answer_reactions: updatedReactions };
+                } else {
+                  // 3️⃣ 없으면 새 반응 추가
+                  const newReaction = {
+                    answer_id: selectedAnswerId,
+                    reactor_profile_id: myProfileId,
+                    emoji_id: emoji.emojiId,
+                    emojis: { value: emoji.emoji },
+                    profiles: {
+                      nickname: nickname,
+                      avatar_url: null, // 필요하면 실제 avatar_url 넣기
+                    },
+                  };
+                  return {
+                    ...a,
+                    answer_reactions: [...(a.answer_reactions || []), newReaction],
+                  };
+                }
+              })
+            );
+
+            // 4️⃣ Supabase에 반영
+            const { data: existing } = await supabase
               .from("answer_reactions")
               .select("*")
               .eq("answer_id", selectedAnswerId)
               .eq("reactor_profile_id", myProfileId)
               .maybeSingle();
-            if (selectError) {
-              console.error("기존 반응 조회 오류:", selectError);
-            }
+
             if (existing) {
-              // 이미 반응한 경우: emoji_id만 update
-              const { error: updateError } = await supabase
+              await supabase
                 .from("answer_reactions")
                 .update({ emoji_id: emoji.emojiId })
                 .eq("answer_id", selectedAnswerId)
                 .eq("reactor_profile_id", myProfileId);
-              if (updateError) {
-                console.error("이모지 변경 오류:", updateError);
-              }
             } else {
-              // 없으면 insert
-              const { error: insertError } = await supabase
-                .from("answer_reactions")
-                .insert({
-                  answer_id: selectedAnswerId,
-                  reactor_profile_id: myProfileId,
-                  emoji_id: emoji.emojiId,
-                });
-              if (insertError) {
-                console.error("이모지 저장 오류:", insertError);
-              }
+              await supabase.from("answer_reactions").insert({
+                answer_id: selectedAnswerId,
+                reactor_profile_id: myProfileId,
+                emoji_id: emoji.emojiId,
+              });
             }
           } catch (e) {
-            console.error("supabase 오류:", e);
+            console.error("이모지 선택 오류:", e);
+          } finally {
+            emojiSheetRef.current?.close();
           }
-          emojiSheetRef.current?.close();
-          // 저장 후 리액션 새로고침 (feed.tsx처럼)
-          // answers state를 새로고침하거나, 별도 fetch 함수 구현 가능
-          // 여기서는 간단히 fetchData() 호출
-          // (실제 feed.tsx는 fetchReactions 호출)
-          // 아래 코드 참고
-          // fetchData();
         }}
-        onClose={() => {
-          emojiSheetRef.current?.close();
-        }}
-      />
-      {/* 리액션 유저 목록 BottomSheet */}
-      <ReactionUserSheet
-        ref={reactionUserSheetRef}
-        onClose={() => {
-          reactionUserSheetRef.current?.close();
-        }}
-        tabs={reactionSheetTabs}
-        selectedTab={reactionSheetSelectedTab}
-        onSelectTab={setReactionSheetSelectedTab}
-        users={reactionSheetUsers}
       />
     </>
   );
