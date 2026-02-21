@@ -1,13 +1,11 @@
-import { EmojiAddIcon } from "@/components/icons/EmojiAddIcon";
+import FeedCard from "@/components/FeedCard";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
-import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -190,54 +188,28 @@ export default function AnswerViewerScreen() {
     );
 
     return (
-      <View style={styles.feedItem}>
-        <View style={styles.questionSection}>
-          <Text style={styles.questionText}>
-            <Text style={styles.questionNumber}>Q{questionNumber}. </Text>
-            {item.question_text || "오늘 찍은 사진 중 가장 마음에 드는 사진은?"}
-          </Text>
-          <TouchableOpacity>
-            <Ionicons name="ellipsis-vertical" size={18} color="#ccc" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: item.photo_url }} style={styles.photo} />
-        </View>
-
-        <View style={styles.footerSection}>
-          <View>
-            <Text style={styles.username}>{nickname}</Text>
-            <Text style={styles.timeText}>{formatTime(item.updated_at)}</Text>
-          </View>
-
-          <View style={styles.reactionRow}>
-            {displayedReactions.map((reaction: Reaction) => (
-              <View key={reaction.reaction_id} style={styles.reactionBadge}>
-                <Image
-                  source={{ uri: reaction.emoji_url }}
-                  style={{ width: 20, height: 20, marginRight: 4 }}
-                />
-                <Text style={styles.reactionText}>{reaction.count}</Text>
-              </View>
-            ))}
-            {hasMoreReactions && (
-              <View style={styles.moreBadge}>
-                <Text style={styles.moreText}>...</Text>
-              </View>
-            )}
-            <TouchableOpacity
-              style={styles.addEmojiBtn}
-              onPress={() => {
-                setSelectedAnswerId(item.answer_id);
-                setIsPickerOpen(true);
-              }}
-            >
-              <EmojiAddIcon />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <FeedCard
+        data={{
+          id: item.answer_id,
+          imageUrl: item.photo_url,
+          nickname: nickname,
+          createdAt: formatTime(item.updated_at),
+          ownerProfileId: Number(profileId),
+        }}
+        reactions={displayedReactions.map((r) => ({
+          emojiId: r.reaction_id,
+          emoji: r.emoji_url,
+          emojiName: "", // If available, add name
+          count: r.count,
+        }))}
+        answerReactionsRaw={item.answer_reactions}
+        onPressNickname={() => {}}
+        onPressAddReaction={() => {
+          setSelectedAnswerId(item.answer_id);
+          setIsPickerOpen(true);
+        }}
+        // You can add other handlers as needed
+      />
     );
   };
 
@@ -266,7 +238,7 @@ export default function AnswerViewerScreen() {
           });
         });
       }}
-      contentContainerStyle={{ backgroundColor: "#fff" }}
+      contentContainerStyle={{ backgroundColor: "#fff", gap: 30 }}
     />
   );
 }
