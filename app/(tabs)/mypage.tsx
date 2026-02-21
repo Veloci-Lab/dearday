@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   profileSection: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#D8D8D833',
     borderRadius: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
