@@ -683,14 +683,14 @@ const styles = StyleSheet.create({
   questionTextArea: { flex: 1, gap: 4 },
   questionListNumber: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 13,
+    fontSize: 15,
     color: "#5B8DEF",
     fontWeight: "400",
     letterSpacing: -0.45,
   },
   questionListText: {
-    fontFamily: "HakgyoansimBadasseugi-L",
-    fontSize: 13,
+    fontFamily: "Pretendard-Regular",
+    fontSize: 15,
     color: "#0D0D0D",
     fontWeight: "400",
     letterSpacing: -0.45,
