@@ -2,6 +2,7 @@ import FriendProfileCard, {
   FollowRelation,
   FriendProfile,
 } from "@/components/FriendProfileCard";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import PhotoGrid, { PhotoGridItem } from "@/components/PhotoGrid";
 import Toggle from "@/components/Toggle";
 import { commonHeaderOptions } from "@/styles/common";
@@ -98,6 +99,7 @@ function EndOfFeed() {
   );
 }
 
+// ✅ 통일된 날짜 포맷 (점 사이 공백 있게)
 function formatDate(dateString: string): string {
   if (!dateString) return "";
   const d = new Date(dateString);
@@ -111,18 +113,6 @@ const TAB_OPTIONS = [
   { key: "grid", label: "그리드" },
   { key: "question", label: "질문" },
 ];
-
-const ChevronRight = () => (
-  <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-    <Path
-      d="M7.5 4.5L13 10L7.5 15.5"
-      stroke="#C3C3C3"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
 
 export default function UserFeedScreen() {
   const navigation = useNavigation();
@@ -146,7 +136,6 @@ export default function UserFeedScreen() {
   const [photos, setPhotos] = useState<PhotoGridItem[]>([]);
   const [answers, setAnswers] = useState<any[]>([]);
   const [answersLoading, setAnswersLoading] = useState(false);
-  const [answersNickname, setAnswersNickname] = useState<string>("");
   const flatListRef = useRef(null);
 
   const isFriend =
@@ -212,7 +201,7 @@ export default function UserFeedScreen() {
           return;
         }
 
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("profile_id, nickname, avatar_url, is_public")
           .eq("profile_id", profileId)
@@ -226,15 +215,14 @@ export default function UserFeedScreen() {
             bio: null,
           });
           setIsPublic(profileData.is_public ?? true);
-          setAnswersNickname(profileData.nickname ?? "");
         }
 
         if (myId && profileId !== myId) {
           await fetchFollowRelation(myId, profileId);
         }
 
-        // 그리드 사진 (기존 그대로 유지)
-        const { data: photoData, error: photoError } = await supabase
+        // 그리드 사진
+        const { data: photoData } = await supabase
           .from("answers")
           .select("answer_id, photo_url, owner_profile_id")
           .eq("owner_profile_id", profileId)
@@ -242,7 +230,7 @@ export default function UserFeedScreen() {
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
 
-        if (!photoError && photoData) {
+        if (photoData) {
           setPhotos(
             photoData.map((item: any) => ({
               id: String(item.answer_id),
@@ -252,12 +240,12 @@ export default function UserFeedScreen() {
           );
         }
 
-        // 질문 탭: answers + daily_questions 조인 (question_date 기준)
+        // 질문 탭: join으로 한 번에
         setAnswersLoading(true);
         const { data: answerData, error: answerError } = await supabase
           .from("answers")
           .select(
-            "answer_id, photo_url, question_date, created_at, updated_at, owner_profile_id, daily_questions(question_text)",
+            "answer_id, photo_url, question_date, created_at, updated_at, owner_profile_id, daily_questions:question_date(question_text)",
           )
           .eq("owner_profile_id", profileId)
           .not("photo_url", "is", null)
@@ -265,11 +253,13 @@ export default function UserFeedScreen() {
           .order("created_at", { ascending: false });
 
         if (!answerError && answerData) {
-          // daily_questions 조인 결과를 question_text로 평탄화
-          const mapped = answerData.map((item: any) => ({
-            ...item,
-            question_text: item.daily_questions?.question_text ?? null,
-          }));
+          const mapped = answerData.map((item: any) => {
+            const dq = item.daily_questions;
+            const questionText = Array.isArray(dq)
+              ? (dq[0]?.question_text ?? "")
+              : (dq?.question_text ?? "");
+            return { ...item, question_text: questionText };
+          });
           setAnswers(mapped);
         } else {
           setAnswers([]);
@@ -395,6 +385,61 @@ export default function UserFeedScreen() {
     );
   }
 
+  const QuestionList = () => (
+    <View style={styles.questionListContainer}>
+      {answers.map((item, index) => {
+        // ✅ 오름차순 번호
+        const questionNumber = index + 1;
+        const dateStr = formatDate(item.question_date || item.created_at);
+        return (
+          <TouchableOpacity
+            key={String(item.answer_id)}
+            style={styles.questionListItem}
+            activeOpacity={0.7}
+            onPress={() =>
+              router.push({
+                pathname: "/social/user/answerViewer",
+                params: { profileId, initialAnswerId: item.answer_id },
+              })
+            }
+          >
+            {/* ✅ 썸네일 40x40 */}
+            <View style={styles.questionThumbnailWrapper}>
+              <Image
+                source={{ uri: item.photo_url }}
+                style={styles.questionThumbnail}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+              />
+            </View>
+
+            {/* 텍스트 영역 */}
+            <View style={styles.questionTextArea}>
+              {/* ✅ 질문 한 줄 + ... 처리 */}
+              <Text
+                style={styles.questionListText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                <Text style={styles.questionListNumber}>
+                  Q{questionNumber}.{" "}
+                </Text>
+                {item.question_text ?? ""}
+              </Text>
+              <Text style={styles.questionListDate}>{dateStr}</Text>
+            </View>
+
+            {/* ✅ 화살표 왼쪽 14 간격 */}
+            <View style={{ marginLeft: 14 }}>
+              <ArrowIcon width={13.333} height={20} />
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -466,7 +511,6 @@ export default function UserFeedScreen() {
               />
             </View>
 
-            {/* 그리드 탭 — 원본 그대로 */}
             <View style={styles.gridContainer}>
               {activeTab === "grid" && (
                 <>
@@ -494,7 +538,6 @@ export default function UserFeedScreen() {
                 </>
               )}
 
-              {/* ✅ 질문 탭 — FlatList 제거, map()으로 교체 */}
               {activeTab === "question" && (
                 <>
                   {answersLoading ? (
@@ -512,69 +555,7 @@ export default function UserFeedScreen() {
                       />
                     </View>
                   ) : (
-                    <View style={styles.questionListContainer}>
-                      {answers.map((item, index) => {
-                        const questionNumber = answers.length - index;
-                        const dateStr = formatDate(
-                          item.question_date || item.created_at,
-                        );
-                        return (
-                          <TouchableOpacity
-                            key={String(item.answer_id)}
-                            style={styles.questionListItem}
-                            activeOpacity={0.7}
-                            onPress={() =>
-                              router.push({
-                                pathname: "/social/user/answerViewer",
-                                params: {
-                                  profileId,
-                                  initialAnswerId: item.answer_id,
-                                },
-                              })
-                            }
-                          >
-                            <View style={styles.questionThumbnailWrapper}>
-                              <Image
-                                source={{ uri: item.photo_url }}
-                                style={styles.questionThumbnail}
-                                contentFit="cover"
-                                transition={200}
-                                cachePolicy="memory-disk"
-                              />
-                            </View>
-                            <View style={styles.questionTextArea}>
-                              <Text
-                                style={styles.questionListText}
-                                numberOfLines={1}
-                              >
-                                <Text style={styles.questionListNumber}>
-                                  Q{questionNumber}.{" "}
-                                </Text>
-                                {item.question_text ||
-                                  "오늘 찍은 사진 중 가장 마음에 드는 사진은?"}
-                              </Text>
-                              <Text style={styles.questionListDate}>
-                                {dateStr}
-                              </Text>
-                            </View>
-                            <Svg
-                              width={20}
-                              height={20}
-                              viewBox="0 0 20 20"
-                              fill="none"
-                            >
-                              <Path
-                                d="M7.5 4.5L13 10L7.5 15.5"
-                                stroke="#C3C3C3"
-                                strokeWidth={1.8}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </Svg>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                    <QuestionList />
                   )}
                 </>
               )}
@@ -664,41 +645,45 @@ const styles = StyleSheet.create({
   },
   logoContainer: { marginBottom: 16 },
   logo: { width: 130, height: 130 },
-  questionListContainer: { paddingHorizontal: 16 },
+  // ✅ 통일된 질문 탭 스타일
+  questionListContainer: { paddingHorizontal: 8 },
   questionListItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    gap: 12,
+    paddingLeft: 16,
+    paddingRight: 10,
+    paddingVertical: 10,
   },
   questionThumbnailWrapper: {
-    width: 56,
-    height: 56,
+    width: 40, // ✅ 40x40
+    height: 40,
     borderRadius: 10,
     overflow: "hidden",
     backgroundColor: "#F2F2F2",
     flexShrink: 0,
+    marginRight: 12,
   },
   questionThumbnail: { width: "100%", height: "100%" },
-  questionTextArea: { flex: 1, gap: 4 },
+  questionTextArea: { flex: 1 },
   questionListNumber: {
     fontFamily: "Pretendard-Regular",
-    fontSize: 15,
+    fontSize: 13,
     color: "#5B8DEF",
     fontWeight: "400",
-    letterSpacing: -0.45,
+    letterSpacing: -0.39,
   },
   questionListText: {
     fontFamily: "HakgyoansimBadasseugi-L",
-    fontSize: 15,
+    fontSize: 13,
     color: "#0D0D0D",
     fontWeight: "400",
-    letterSpacing: -0.45,
+    letterSpacing: -0.39,
   },
   questionListDate: {
     fontFamily: "Pretendard-Regular",
     fontSize: 13,
     color: "#C3C3C3",
     letterSpacing: -0.3,
+    marginTop: 4,
   },
 });

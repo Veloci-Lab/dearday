@@ -7,8 +7,11 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
+  Alert,
   Dimensions,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -31,6 +34,7 @@ interface Answer {
   question_date: string;
   created_at: string;
   updated_at: string;
+  owner_profile_id: number; // ✅ 추가
   question_text?: string;
   answer_reactions?: any[];
   daily_questions?: { question_text: string } | null;
@@ -59,10 +63,7 @@ function buildDisplayedReactions(answerReactions: any[]): {
   answerReactions.forEach((r: any) => {
     const eid = r.emoji_id;
     if (!countMap[eid]) {
-      countMap[eid] = {
-        emoji_image_url: r.emojis?.value ?? "",
-        count: 0,
-      };
+      countMap[eid] = { emoji_image_url: r.emojis?.value ?? "", count: 0 };
     }
     countMap[eid].count += 1;
   });
@@ -73,10 +74,19 @@ function buildDisplayedReactions(answerReactions: any[]): {
     count: val.count,
   }));
 
-  const displayedReactions = all.slice(0, 3);
-  const hasMoreReactions = all.length > 3;
+  return {
+    displayedReactions: all.slice(0, 3),
+    hasMoreReactions: all.length > 3,
+  };
+}
 
-  return { displayedReactions, hasMoreReactions };
+/* ====== 오늘 이전(어제 포함) 날짜인지 판단 ====== */
+function isBeforeToday(questionDate: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(questionDate);
+  target.setHours(0, 0, 0, 0);
+  return target.getTime() < today.getTime();
 }
 
 export default function AnswerViewerScreen() {
@@ -214,11 +224,80 @@ export default function AnswerViewerScreen() {
     fetchData();
   }, [profileId, initialAnswerId]);
 
+  /* ====== 삭제 실행 ====== */
+  const handleDelete = async (answerId: string) => {
+    try {
+      const { error } = await supabase
+        .from("answers")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("answer_id", answerId);
+
+      if (error) {
+        console.error("삭제 오류:", error);
+        Alert.alert("오류", "삭제에 실패했어요. 다시 시도해주세요.");
+        return;
+      }
+
+      // 로컬 state에서 제거
+      setAnswers((prev) => prev.filter((a) => a.answer_id !== answerId));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  /* ====== 점점점 버튼 핸들러 ====== */
+  const handlePressMore = (item: Answer) => {
+    const isMine = item.owner_profile_id === myProfileId;
+    const canDelete = isMine && isBeforeToday(item.question_date);
+
+    if (!canDelete) return;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["취소", "삭제"],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            Alert.alert(
+              "사진 삭제",
+              "이 사진을 삭제할까요?\n삭제 후에는 복구할 수 없어요.",
+              [
+                { text: "취소", style: "cancel" },
+                {
+                  text: "삭제",
+                  style: "destructive",
+                  onPress: () => handleDelete(item.answer_id),
+                },
+              ],
+            );
+          }
+        },
+      );
+    } else {
+      // Android
+      Alert.alert(
+        "사진 삭제",
+        "이 사진을 삭제할까요?\n삭제 후에는 복구할 수 없어요.",
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "삭제",
+            style: "destructive",
+            onPress: () => handleDelete(item.answer_id),
+          },
+        ],
+      );
+    }
+  };
+
   const renderItem = ({ item, index }: { item: Answer; index: number }) => {
     const questionNumber = index + 1;
     const questionText = item.daily_questions?.question_text ?? "";
 
-    const { displayedReactions, hasMoreReactions } = buildDisplayedReactions(
+    const { displayedReactions } = buildDisplayedReactions(
       item.answer_reactions ?? [],
     );
 
@@ -226,6 +305,9 @@ export default function AnswerViewerScreen() {
       new Date(item.updated_at).getTime() -
         new Date(item.created_at).getTime() >
       5000;
+
+    const isMine = item.owner_profile_id === myProfileId;
+    const canDelete = isMine && isBeforeToday(item.question_date);
 
     return (
       <View>
@@ -237,9 +319,17 @@ export default function AnswerViewerScreen() {
             <Text style={styles.questionNumber}>Q{questionNumber}.</Text>
             <Text style={styles.questionText}>{questionText}</Text>
           </View>
-          <TouchableOpacity style={{ paddingLeft: 5 }}>
-            <MoreIcon />
-          </TouchableOpacity>
+
+          {/* 삭제 가능할 때만 점점점 표시 */}
+          {canDelete && (
+            <TouchableOpacity
+              style={{ paddingLeft: 5 }}
+              onPress={() => handlePressMore(item)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MoreIcon width={20} height={20} />
+            </TouchableOpacity>
+          )}
         </View>
 
         <FeedCard
@@ -266,7 +356,6 @@ export default function AnswerViewerScreen() {
           onLongPressReaction={() => {
             setSelectedAnswerId(item.answer_id);
             const raw = item.answer_reactions ?? [];
-            console.log("answer_reactions raw:", raw);
             const emojiMap: Record<string, { label: string; count: number }> =
               {};
 
@@ -383,10 +472,7 @@ export default function AnswerViewerScreen() {
                     reactor_profile_id: myProfileId,
                     emoji_id: emoji.emojiId,
                     emojis: { value: emoji.emoji },
-                    profiles: {
-                      nickname: nickname,
-                      avatar_url: null,
-                    },
+                    profiles: { nickname: nickname, avatar_url: null },
                   };
                   return {
                     ...a,
@@ -444,9 +530,8 @@ const styles = StyleSheet.create({
   questionSection: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingLeft: 12,
-    paddingRight: 6,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
     alignItems: "center",
   },
   questionNumber: {
@@ -461,7 +546,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontFamily: "Pretendard-Regular",
     color: "#0D0D0D",
-    fontSize: 15,
+    fontSize: 17,
     fontStyle: "normal",
     fontWeight: "400",
     letterSpacing: -0.45,

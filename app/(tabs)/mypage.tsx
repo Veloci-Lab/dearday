@@ -6,7 +6,7 @@ import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -64,6 +64,16 @@ const generateRandomRatios = (count: number) => {
   );
 };
 
+// ✅ 통일된 날짜 포맷 (점 사이 공백 있게)
+function formatDate(dateString: string): string {
+  if (!dateString) return "";
+  const d = new Date(dateString);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}. ${mm}. ${dd}.`;
+}
+
 /* ---------------- 패턴 컴포넌트 ---------------- */
 const Square3Row = ({
   items,
@@ -77,9 +87,7 @@ const Square3Row = ({
   onPressItem?: (item: FeedItem) => void;
 }) => {
   if (items.length < 3) return null;
-
   const squareWidth = (width - gap * 2) / 3;
-
   return (
     <View style={{ flexDirection: "row", gap, marginBottom: gap }}>
       {items.map((item) => (
@@ -96,8 +104,6 @@ const Square3Row = ({
   );
 };
 
-/* ---------------- 패턴 컴포넌트 ---------------- */
-
 const L3Left2 = ({
   items,
   width,
@@ -110,35 +116,30 @@ const L3Left2 = ({
   onPressItem?: (item: FeedItem) => void;
 }) => {
   if (items.length < 3) return null;
-
   const leftWidth = (width - gap * 2) / 3;
   const rightWidth = width - leftWidth - gap;
-
-  const smallSquare = leftWidth; // 작은 블록은 정사각형
-  const largeSquare = rightWidth; // 큰 블록도 정사각형
-
   return (
     <View style={{ flexDirection: "row", gap, marginBottom: gap }}>
       <View style={{ width: leftWidth, justifyContent: "space-between", gap }}>
         <Tile
           it={items[0]}
-          width={smallSquare}
-          height={smallSquare}
+          width={leftWidth}
+          height={leftWidth}
           radius={6}
           onPressItem={onPressItem}
         />
         <Tile
           it={items[1]}
-          width={smallSquare}
-          height={smallSquare}
+          width={leftWidth}
+          height={leftWidth}
           radius={6}
           onPressItem={onPressItem}
         />
       </View>
       <Tile
         it={items[2]}
-        width={largeSquare}
-        height={largeSquare}
+        width={rightWidth}
+        height={rightWidth}
         radius={8}
         onPressItem={onPressItem}
       />
@@ -158,34 +159,29 @@ const L3Right2 = ({
   onPressItem?: (item: FeedItem) => void;
 }) => {
   if (items.length < 3) return null;
-
   const rightWidth = (width - gap * 2) / 3;
   const leftWidth = width - rightWidth - gap;
-
-  const smallSquare = rightWidth;
-  const largeSquare = leftWidth;
-
   return (
     <View style={{ flexDirection: "row", gap, marginBottom: gap }}>
       <Tile
         it={items[0]}
-        width={largeSquare}
-        height={largeSquare}
+        width={leftWidth}
+        height={leftWidth}
         radius={8}
         onPressItem={onPressItem}
       />
       <View style={{ width: rightWidth, justifyContent: "space-between", gap }}>
         <Tile
           it={items[1]}
-          width={smallSquare}
-          height={smallSquare}
+          width={rightWidth}
+          height={rightWidth}
           radius={6}
           onPressItem={onPressItem}
         />
         <Tile
           it={items[2]}
-          width={smallSquare}
-          height={smallSquare}
+          width={rightWidth}
+          height={rightWidth}
           radius={6}
           onPressItem={onPressItem}
         />
@@ -194,7 +190,6 @@ const L3Right2 = ({
   );
 };
 
-/* ---------------- 랜덤 빌드 ---------------- */
 const buildRandomBlocks = (
   items: FeedItem[],
 ): { type: string; items: FeedItem[] }[] => {
@@ -204,19 +199,16 @@ const buildRandomBlocks = (
     while (slice.length < 3) {
       slice.push({ id: `__ph__${i}`, imageUrl: "", dateISO: "", place: "" });
     }
-    // 랜덤으로 3가지 패턴 선택
     const rand = Math.random();
     let type: "Square3" | "L3Left2" | "L3Right2" = "Square3";
     if (rand < 0.33) type = "Square3";
     else if (rand < 0.66) type = "L3Left2";
     else type = "L3Right2";
-
     blocks.push({ type, items: slice });
   }
   return blocks;
 };
 
-/* ---------------- component ---------------- */
 const Tile = ({
   it,
   width,
@@ -257,13 +249,9 @@ const MyPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const [questionsData, setQuestionsData] = useState<
-    { answer: Answer; question: any }[]
-  >([]);
-
+  const [questionsData, setQuestionsData] = useState<QuestionItem[]>([]);
   const [activeTab, setActiveTab] = useState<"grid" | "question">("grid");
 
-  const isInitialMount = useRef(true);
   const cacheKey = `my_feed_${profileId}`;
   const profileCacheKey = `profile_${profileId}`;
 
@@ -276,11 +264,8 @@ const MyPage = () => {
 
   const blocks = answers.length > 0 ? buildRandomBlocks(feedItems) : [];
 
-  // 헤더 숨기기 (기본 네비게이션 헤더)
   useEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   /* ---------------- data ---------------- */
@@ -291,7 +276,6 @@ const MyPage = () => {
       .select("avatar_url, nickname, intro")
       .eq("profile_id", profileId)
       .single();
-
     if (data) {
       setProfile(data);
       await AsyncStorage.setItem(profileCacheKey, JSON.stringify(data));
@@ -301,88 +285,68 @@ const MyPage = () => {
   const fetchAnswers = async (pageNum: number, append = false) => {
     if (loading) return;
     setLoading(true);
-
     const from = pageNum * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-
     const { data } = await supabase
       .from("answers")
       .select("answer_id, question_date, photo_url, caption, created_at")
       .eq("owner_profile_id", profileId)
       .order("question_date", { ascending: false })
       .range(from, to);
-
     const newAnswers = data || [];
-
     const merged = append ? [...answers, ...newAnswers] : newAnswers;
     setAnswers(merged);
     setLayoutRatios(generateRandomRatios(merged.length));
     setHasMore(newAnswers.length === PAGE_SIZE);
-
     await AsyncStorage.setItem(cacheKey, JSON.stringify(merged));
     setLoading(false);
     setRefreshing(false);
   };
 
-  // useEffect(() => {
-  //   if (!profileId || !isInitialMount.current) return;
-  //   isInitialMount.current = false;
-
-  //   (async () => {
-  //     const cached = await AsyncStorage.getItem(cacheKey);
-  //     if (cached) setAnswers(JSON.parse(cached));
-  //     await fetchProfile();
-  //     await fetchAnswers(0);
-  //   })();
-  // }, [profileId]);
   useFocusEffect(
     useCallback(() => {
-      if (profileId) {
-        fetchProfile();
-      }
+      if (profileId) fetchProfile();
     }, [profileId]),
   );
+
   useEffect(() => {
-    if (profileId) {
-      fetchAnswers(0);
-    }
+    if (profileId) fetchAnswers(0);
   }, [profileId]);
 
+  // ✅ N+1 제거: join으로 한 번에 가져오기
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoading(true);
-      // answers 가져오기
-      const { data: answers } = await supabase
+      const { data } = await supabase
         .from("answers")
-        .select("*")
+        .select("*, daily_questions:question_date(question_text)")
         .eq("owner_profile_id", profileId)
+        .not("photo_url", "is", null)
+        .is("deleted_at", null)
         .order("question_date", { ascending: false });
 
-      // 각 answer에 대한 question 가져오기
-      const combined = await Promise.all(
-        (answers || []).map(async (a) => {
-          const { data: q } = await supabase
-            .from("daily_questions")
-            .select("*")
-            .eq("question_date", a.question_date)
-            .single();
-          return { answer: a, question: q };
-        }),
-      );
+      const combined: QuestionItem[] = (data || []).map((a: any) => {
+        const dq = a.daily_questions;
+        const questionText = Array.isArray(dq)
+          ? (dq[0]?.question_text ?? "")
+          : (dq?.question_text ?? "");
+        return {
+          answer: a,
+          question: { question_text: questionText },
+        };
+      });
 
       setQuestionsData(combined);
       setLoading(false);
     };
-
-    fetchQuestions();
-  }, []);
+    if (profileId) fetchQuestions();
+  }, [profileId]);
 
   /* ---------------- handlers ---------------- */
 
   const [patternSeed, setPatternSeed] = useState(0);
   const handleRefresh = async () => {
     setPatternSeed(Math.random());
-
     setRefreshing(true);
     setPage(0);
     setLayoutRatios(generateRandomRatios(answers.length));
@@ -402,11 +366,12 @@ const MyPage = () => {
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
       <Image
-        source={require("@/assets/images/DD/ver_board.png")} // 적절한 이미지 경로로 수정하세요
+        source={require("@/assets/images/DD/ver_board.png")}
         style={styles.emptyImage}
       />
     </View>
   );
+
   const ListFooter = () => {
     if (loading) {
       return (
@@ -415,7 +380,6 @@ const MyPage = () => {
         </View>
       );
     }
-
     if (activeTab === "question") {
       return (
         <View style={styles.endContainer}>
@@ -427,7 +391,6 @@ const MyPage = () => {
         </View>
       );
     }
-
     return (
       <View style={styles.endContainer}>
         <Text style={styles.endText}>더 올리면 더 내릴 수 있어요!</Text>
@@ -439,6 +402,7 @@ const MyPage = () => {
     );
   };
 
+  // ✅ 통일된 QuestionTile
   const QuestionTile = ({
     index,
     answer,
@@ -448,46 +412,52 @@ const MyPage = () => {
     answer: Answer;
     question: any;
   }) => (
-    <View style={styles.questionItem}>
-      <Image source={{ uri: answer.photo_url }} style={styles.questionThumb} />
+    <Pressable
+      style={styles.questionItem}
+      onPress={() =>
+        router.push({
+          pathname: "/myfeed/answerViewer",
+          params: { profileId, initialAnswerId: answer.answer_id },
+        })
+      }
+    >
+      {/* ✅ 썸네일 40x40 */}
+      <View style={styles.questionThumbWrapper}>
+        <Image
+          source={{ uri: answer.photo_url }}
+          style={styles.questionThumb}
+        />
+      </View>
+
+      {/* 텍스트 영역 */}
       <View style={styles.questionTextWrapper}>
-        <View style={styles.questionTopRow}>
-          <View style={styles.questionRow}>
-            <Text style={styles.questionNumber}>Q{index + 1}.</Text>
-            <Text style={styles.questionContent}>
-              {question?.question_text}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => {
-              if (!profile) return;
-              router.push({
-                pathname: "/myfeed/answerViewer",
-                params: {
-                  profileId: profileId,
-                  initialAnswerId: answer.answer_id,
-                },
-              });
-            }}
-          >
-            <ArrowIcon width={13.333} height={20} style={{ marginRight: 12 }} />
-          </Pressable>
-        </View>
+        {/* ✅ 질문 한 줄 + ... 처리 */}
+        <Text
+          style={styles.questionListText}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          <Text style={styles.questionNumber}>Q{index + 1}. </Text>
+          {question?.question_text ?? ""}
+        </Text>
+        {/* ✅ 날짜 포맷 통일 */}
         <Text style={styles.questionDate}>
-          {answer.question_date.replace(/-/g, ".")}
+          {formatDate(answer.question_date)}
         </Text>
       </View>
-    </View>
+
+      {/* ✅ 화살표 왼쪽 14 간격 */}
+      <View style={{ marginLeft: 14 }}>
+        <ArrowIcon width={13.333} height={20} />
+      </View>
+    </Pressable>
   );
 
   const currentListData = activeTab === "grid" ? blocks : questionsData;
-  // ---------------- render ----------------
-  // 커스텀 헤더 높이 계산
   const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
 
   return (
     <View style={styles.container}>
-      {/* 커스텀 헤더 */}
       <View
         style={[
           styles.headerOverlay,
@@ -499,17 +469,13 @@ const MyPage = () => {
           <Text style={styles.headerTitle}>나의 피드</Text>
         </View>
       </View>
-      {/* 헤더 높이만큼 여백 */}
       <View style={{ height: HEADER_HEIGHT }} />
       <FlatList<ListItem>
         data={currentListData as ListItem[]}
         keyExtractor={(item, index) => {
-          if (activeTab === "grid") {
-            return `block-${index}`;
-          } else {
-            const q = item as QuestionItem;
-            return q.answer.answer_id;
-          }
+          if (activeTab === "grid") return `block-${index}`;
+          const q = item as QuestionItem;
+          return q.answer.answer_id;
         }}
         showsVerticalScrollIndicator={false}
         ListFooterComponent={currentListData.length > 0 ? <ListFooter /> : null}
@@ -520,7 +486,6 @@ const MyPage = () => {
         }}
         ListHeaderComponent={
           <>
-            {/* 프로필 (스크롤됨) */}
             <View style={styles.profileWrapper}>
               <View style={styles.profileSection}>
                 <View style={styles.profileContent}>
@@ -532,20 +497,17 @@ const MyPage = () => {
                   ) : (
                     <View style={styles.profilePlaceholder} />
                   )}
-
                   <View
                     style={{
                       justifyContent: profile?.intro ? "flex-start" : "center",
                     }}
                   >
                     <Text style={styles.profileName}>{profile?.nickname}</Text>
-
                     {profile?.intro && (
                       <Text style={styles.profileBio}>{profile.intro}</Text>
                     )}
                   </View>
                 </View>
-
                 <Pressable
                   onPress={() => router.push("/myfeed/profileSetting")}
                   style={styles.editButton}
@@ -554,8 +516,6 @@ const MyPage = () => {
                 </Pressable>
               </View>
             </View>
-
-            {/* 👇 Sticky 대상 */}
             <View style={styles.tabsWrapper}>
               <Toggle
                 options={[
@@ -569,23 +529,16 @@ const MyPage = () => {
           </>
         }
         renderItem={({ item, index }) => {
-          // 그리드 탭
           if (activeTab === "grid") {
             const gridItem = item as GridItem;
             const width =
               Dimensions.get("window").width - HORIZONTAL_PADDING * 2;
-
-            // 공통 이동 함수
             const handleGridPress = (it: FeedItem) => {
               router.push({
                 pathname: "/myfeed/answerViewer",
-                params: {
-                  profileId: profileId,
-                  initialAnswerId: it.id, // 클릭한 이미지의 answer_id
-                },
+                params: { profileId, initialAnswerId: it.id },
               });
             };
-
             switch (gridItem.type) {
               case "Square3":
                 return (
@@ -595,7 +548,6 @@ const MyPage = () => {
                     onPressItem={handleGridPress}
                   />
                 );
-
               case "L3Left2":
                 return (
                   <L3Left2
@@ -604,16 +556,18 @@ const MyPage = () => {
                     onPressItem={handleGridPress}
                   />
                 );
-
               case "L3Right2":
-                return <L3Right2 items={gridItem.items} width={width} />;
-
+                return (
+                  <L3Right2
+                    items={gridItem.items}
+                    width={width}
+                    onPressItem={handleGridPress}
+                  />
+                );
               default:
                 return null;
             }
           }
-
-          // 질문 탭
           const qItem = item as QuestionItem;
           return (
             <QuestionTile
@@ -633,11 +587,8 @@ const MyPage = () => {
 export default MyPage;
 
 /* ---------------- styles ---------------- */
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-
-  // 커스텀 헤더 스타일
   headerOverlay: {
     position: "absolute",
     top: 0,
@@ -647,9 +598,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
-    backgroundColor: "#FEFEFE", // var(--Black-Black-00)
+    backgroundColor: "#FEFEFE",
     borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F2", // var(--Black-Black-10)
+    borderBottomColor: "#F2F2F2",
   },
   headerContent: {
     width: 342,
@@ -657,9 +608,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerSpacer: {
-    width: 24,
-  },
+  headerSpacer: { width: 24 },
   headerTitle: {
     fontFamily: "Pretendard-SemiBold",
     fontSize: 17,
@@ -668,16 +617,7 @@ const styles = StyleSheet.create({
     color: "#0D0D0D",
     textAlign: "center",
   },
-  headerIconWrapper: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  profileWrapper: {
-    paddingTop: 12,
-    backgroundColor: "#fff",
-  },
+  profileWrapper: { paddingTop: 12, backgroundColor: "#fff" },
   profileSection: {
     marginTop: 12,
     padding: 12,
@@ -687,7 +627,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   profileContent: { flexDirection: "row", alignItems: "center" },
   profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
   profilePlaceholder: {
@@ -708,26 +647,7 @@ const styles = StyleSheet.create({
     color: "#929292",
   },
   editButton: { padding: 8 },
-
   tabsWrapper: { paddingVertical: 20, alignItems: "center" },
-  tabsWrapperGrid: {
-    backgroundColor: "transparent",
-    pointerEvents: "box-none",
-  },
-  tabsContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F1F1F1",
-    borderRadius: 20,
-    padding: 2,
-  },
-  tabButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15 },
-  activeTabButton: { backgroundColor: "#fff" },
-  tabLabel: { fontFamily: "Pretendard-SemiBold", color: "#929292" },
-  activeTabLabel: {
-    fontFamily: "Pretendard-SemiBold",
-    color: "#5B8DEF",
-    fontWeight: "600",
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -738,15 +658,12 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 15,
     color: "#626262",
-    fontWeight: 400,
+    fontWeight: "400",
     lineHeight: 20,
     marginBottom: 20,
     letterSpacing: -0.45,
   },
-  emptyImage: {
-    width: 118,
-    height: 118,
-  },
+  emptyImage: { width: 118, height: 118 },
   footer: { paddingVertical: 20 },
   endContainer: {
     paddingVertical: 40,
@@ -760,69 +677,51 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "400",
   },
-
-  row: {
-    flexDirection: "row",
-    gap: 5,
-    marginBottom: 5,
-  },
-  gridItem: {
-    flex: 2,
-  },
-
+  // ✅ 통일된 질문 탭 스타일
   questionItem: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 11,
     paddingVertical: 10,
-    paddingHorizontal: 3,
-    alignItems: "center",
-    gap: 14,
-    borderRadius: 10,
   },
-  questionThumb: {
-    width: 40,
+  questionThumbWrapper: {
+    width: 40, // ✅ 40x40
     height: 40,
-    flexShrink: 0,
-    gap: 14,
     borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#F2F2F2",
+    flexShrink: 0,
+    marginRight: 12,
   },
-  questionTextWrapper: {
-    flex: 1,
-  },
-  questionTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  questionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    marginBottom: 2,
-    flexShrink: 1,
-  },
+  questionThumb: { width: "100%", height: "100%" },
+  questionTextWrapper: { flex: 1 },
   questionNumber: {
     fontFamily: "Pretendard-Regular",
     fontSize: 13,
     color: "#5B8DEF",
-    fontStyle: "normal",
-    fontWeight: 400,
+    fontWeight: "400",
     letterSpacing: -0.39,
-    marginRight: 4,
   },
-  questionContent: {
-    textOverflow: "ellipsis",
+  questionListText: {
     fontFamily: "HakgyoansimBadasseugi-L",
-    color: "#0D0D0D",
     fontSize: 13,
-    fontStyle: "normal",
-    fontWeight: 400,
+    color: "#0D0D0D",
+    fontWeight: "400",
     letterSpacing: -0.39,
   },
   questionDate: {
     fontFamily: "Pretendard-Regular",
     color: "#C3C3C3",
     fontSize: 13,
-    fontStyle: "normal",
-    fontWeight: 400,
+    fontWeight: "400",
+    marginTop: 4,
+  },
+  row: { flexDirection: "row", gap: 5, marginBottom: 5 },
+  gridItem: { flex: 2 },
+  headerIconWrapper: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
