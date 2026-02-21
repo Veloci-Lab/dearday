@@ -1,12 +1,11 @@
-import ArrowIcon from '@/components/icons/ArrowIcon';
-import EditIcon from '@/components/icons/EditIcon';
-import { commonHeaderOptions } from '@/styles/common';
+import ArrowIcon from "@/components/icons/ArrowIcon";
+import EditIcon from "@/components/icons/EditIcon";
 import { useAuthStore } from "@/utils/authStore";
-import { supabase } from '@/utils/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { supabase } from "@/utils/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -16,7 +15,8 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const HORIZONTAL_PADDING = 13;
 const PAGE_SIZE = 15;
@@ -53,15 +53,15 @@ type QuestionItem = {
 
 type ListItem = GridItem | QuestionItem;
 
-
 /* ---------------- utils ---------------- */
 
 const generateRandomRatios = (count: number) => {
   const ratios = [0.8, 1, 1.3, 1.6];
-  return Array.from({ length: count }, () =>
-    ratios[Math.floor(Math.random() * ratios.length)]
+  return Array.from(
+    { length: count },
+    () => ratios[Math.floor(Math.random() * ratios.length)],
   );
-}
+};
 
 /* ---------------- 패턴 컴포넌트 ---------------- */
 const Square3Row = ({
@@ -80,9 +80,16 @@ const Square3Row = ({
   const squareWidth = (width - gap * 2) / 3;
 
   return (
-    <View style={{ flexDirection: 'row', gap, marginBottom: gap }}>
+    <View style={{ flexDirection: "row", gap, marginBottom: gap }}>
       {items.map((item) => (
-        <Tile key={item.id} it={item} width={squareWidth} height={squareWidth} radius={8} onPressItem={onPressItem} />
+        <Tile
+          key={item.id}
+          it={item}
+          width={squareWidth}
+          height={squareWidth}
+          radius={8}
+          onPressItem={onPressItem}
+        />
       ))}
     </View>
   );
@@ -110,12 +117,30 @@ const L3Left2 = ({
   const largeSquare = rightWidth; // 큰 블록도 정사각형
 
   return (
-    <View style={{ flexDirection: 'row', gap, marginBottom: gap }}>
-      <View style={{ width: leftWidth, justifyContent: 'space-between', gap }}>
-        <Tile it={items[0]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
-        <Tile it={items[1]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
+    <View style={{ flexDirection: "row", gap, marginBottom: gap }}>
+      <View style={{ width: leftWidth, justifyContent: "space-between", gap }}>
+        <Tile
+          it={items[0]}
+          width={smallSquare}
+          height={smallSquare}
+          radius={6}
+          onPressItem={onPressItem}
+        />
+        <Tile
+          it={items[1]}
+          width={smallSquare}
+          height={smallSquare}
+          radius={6}
+          onPressItem={onPressItem}
+        />
       </View>
-      <Tile it={items[2]} width={largeSquare} height={largeSquare} radius={8} onPressItem={onPressItem} />
+      <Tile
+        it={items[2]}
+        width={largeSquare}
+        height={largeSquare}
+        radius={8}
+        onPressItem={onPressItem}
+      />
     </View>
   );
 };
@@ -140,37 +165,55 @@ const L3Right2 = ({
   const largeSquare = leftWidth;
 
   return (
-    <View style={{ flexDirection: 'row', gap, marginBottom: gap }}>
-      <Tile it={items[0]} width={largeSquare} height={largeSquare} radius={8} onPressItem={onPressItem} />
-      <View style={{ width: rightWidth, justifyContent: 'space-between', gap }}>
-        <Tile it={items[1]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
-        <Tile it={items[2]} width={smallSquare} height={smallSquare} radius={6} onPressItem={onPressItem} />
+    <View style={{ flexDirection: "row", gap, marginBottom: gap }}>
+      <Tile
+        it={items[0]}
+        width={largeSquare}
+        height={largeSquare}
+        radius={8}
+        onPressItem={onPressItem}
+      />
+      <View style={{ width: rightWidth, justifyContent: "space-between", gap }}>
+        <Tile
+          it={items[1]}
+          width={smallSquare}
+          height={smallSquare}
+          radius={6}
+          onPressItem={onPressItem}
+        />
+        <Tile
+          it={items[2]}
+          width={smallSquare}
+          height={smallSquare}
+          radius={6}
+          onPressItem={onPressItem}
+        />
       </View>
     </View>
   );
 };
 
-
 /* ---------------- 랜덤 빌드 ---------------- */
-const buildRandomBlocks = (items: FeedItem[]): { type: string; items: FeedItem[] }[] => {
+const buildRandomBlocks = (
+  items: FeedItem[],
+): { type: string; items: FeedItem[] }[] => {
   const blocks: { type: string; items: FeedItem[] }[] = [];
   for (let i = 0; i < items.length; i += 3) {
     const slice = items.slice(i, i + 3);
     while (slice.length < 3) {
-      slice.push({ id: `__ph__${i}`, imageUrl: '', dateISO: '', place: '' });
+      slice.push({ id: `__ph__${i}`, imageUrl: "", dateISO: "", place: "" });
     }
     // 랜덤으로 3가지 패턴 선택
     const rand = Math.random();
-    let type: 'Square3' | 'L3Left2' | 'L3Right2' = 'Square3';
-    if (rand < 0.33) type = 'Square3';
-    else if (rand < 0.66) type = 'L3Left2';
-    else type = 'L3Right2';
+    let type: "Square3" | "L3Left2" | "L3Right2" = "Square3";
+    if (rand < 0.33) type = "Square3";
+    else if (rand < 0.66) type = "L3Left2";
+    else type = "L3Right2";
 
     blocks.push({ type, items: slice });
   }
   return blocks;
 };
-
 
 /* ---------------- component ---------------- */
 const Tile = ({
@@ -203,6 +246,7 @@ const Tile = ({
 const MyPage = () => {
   const navigation = useNavigation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profileId } = useAuthStore();
 
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -212,9 +256,11 @@ const MyPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const [questionsData, setQuestionsData] = useState<{ answer: Answer; question: any }[]>([]);
+  const [questionsData, setQuestionsData] = useState<
+    { answer: Answer; question: any }[]
+  >([]);
 
-  const [activeTab, setActiveTab] = useState<'grid' | 'question'>('grid');
+  const [activeTab, setActiveTab] = useState<"grid" | "question">("grid");
 
   const isInitialMount = useRef(true);
   const cacheKey = `my_feed_${profileId}`;
@@ -229,16 +275,10 @@ const MyPage = () => {
 
   const blocks = answers.length > 0 ? buildRandomBlocks(feedItems) : [];
 
-  /* ---------------- header ---------------- */
-
+  // 헤더 숨기기 (기본 네비게이션 헤더)
   useEffect(() => {
     navigation.setOptions({
-      ...commonHeaderOptions,
-      headerShown: true,
-      headerShadowVisible: false,
-      headerTitle: () => <Text style={styles.headerTitle}>나의 피드</Text>,
-      headerLeft: () => null,
-      headerRight: () => null,
+      headerShown: false,
     });
   }, [navigation]);
 
@@ -246,9 +286,9 @@ const MyPage = () => {
 
   const fetchProfile = async () => {
     const { data } = await supabase
-      .from('profiles')
-      .select('avatar_url, nickname, intro')
-      .eq('profile_id', profileId)
+      .from("profiles")
+      .select("avatar_url, nickname, intro")
+      .eq("profile_id", profileId)
       .single();
 
     if (data) {
@@ -265,10 +305,10 @@ const MyPage = () => {
     const to = from + PAGE_SIZE - 1;
 
     const { data } = await supabase
-      .from('answers')
-      .select('answer_id, question_date, photo_url, caption, created_at')
-      .eq('owner_profile_id', profileId)
-      .order('question_date', { ascending: false })
+      .from("answers")
+      .select("answer_id, question_date, photo_url, caption, created_at")
+      .eq("owner_profile_id", profileId)
+      .order("question_date", { ascending: false })
       .range(from, to);
 
     const newAnswers = data || [];
@@ -299,35 +339,34 @@ const MyPage = () => {
       if (profileId) {
         fetchProfile();
       }
-    }, [profileId])
+    }, [profileId]),
   );
   useEffect(() => {
     if (profileId) {
-      fetchAnswers(0);  
+      fetchAnswers(0);
     }
   }, [profileId]);
-
 
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoading(true);
       // answers 가져오기
       const { data: answers } = await supabase
-        .from('answers')
-        .select('*')
-        .eq('owner_profile_id', profileId)
-        .order('question_date', { ascending: false });
+        .from("answers")
+        .select("*")
+        .eq("owner_profile_id", profileId)
+        .order("question_date", { ascending: false });
 
       // 각 answer에 대한 question 가져오기
       const combined = await Promise.all(
         (answers || []).map(async (a) => {
           const { data: q } = await supabase
-            .from('daily_questions')
-            .select('*')
-            .eq('question_date', a.question_date)
+            .from("daily_questions")
+            .select("*")
+            .eq("question_date", a.question_date)
             .single();
           return { answer: a, question: q };
-        })
+        }),
       );
 
       setQuestionsData(combined);
@@ -336,7 +375,6 @@ const MyPage = () => {
 
     fetchQuestions();
   }, []);
-
 
   /* ---------------- handlers ---------------- */
 
@@ -357,14 +395,13 @@ const MyPage = () => {
       fetchAnswers(next, true);
     }
   };
-  
 
   /* ---------------- render parts ---------------- */
   const ListEmptyView = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
       <Image
-        source={require('@/assets/images/DD/ver_board.png')} // 적절한 이미지 경로로 수정하세요
+        source={require("@/assets/images/DD/ver_board.png")} // 적절한 이미지 경로로 수정하세요
         style={styles.emptyImage}
       />
     </View>
@@ -378,12 +415,12 @@ const MyPage = () => {
       );
     }
 
-    if (activeTab === 'question') {
+    if (activeTab === "question") {
       return (
         <View style={styles.endContainer}>
           <Text style={styles.endText}>끝까지 오실 줄은 몰랐어요!</Text>
           <Image
-            source={require('@/assets/images/DD/ver_surprise.png')}
+            source={require("@/assets/images/DD/ver_surprise.png")}
             style={{ width: 120, height: 120, marginTop: 16 }}
           />
         </View>
@@ -394,28 +431,37 @@ const MyPage = () => {
       <View style={styles.endContainer}>
         <Text style={styles.endText}>더 올리면 더 내릴 수 있어요!</Text>
         <Image
-          source={require('@/assets/images/DD/ver_wink.png')}
+          source={require("@/assets/images/DD/ver_wink.png")}
           style={{ width: 120, height: 120, marginTop: 16 }}
         />
       </View>
     );
   };
 
-
-  const QuestionTile = ({ index, answer, question }: { index: number; answer: Answer; question: any }) => (
+  const QuestionTile = ({
+    index,
+    answer,
+    question,
+  }: {
+    index: number;
+    answer: Answer;
+    question: any;
+  }) => (
     <View style={styles.questionItem}>
       <Image source={{ uri: answer.photo_url }} style={styles.questionThumb} />
       <View style={styles.questionTextWrapper}>
         <View style={styles.questionTopRow}>
           <View style={styles.questionRow}>
             <Text style={styles.questionNumber}>Q{index + 1}.</Text>
-            <Text style={styles.questionContent}>{question?.question_text}</Text>
+            <Text style={styles.questionContent}>
+              {question?.question_text}
+            </Text>
           </View>
           <Pressable
             onPress={() => {
               if (!profile) return;
               router.push({
-                pathname: '/myfeed/answerViewer',
+                pathname: "/myfeed/answerViewer",
                 params: {
                   profileId: profileId,
                   initialAnswerId: answer.answer_id,
@@ -427,7 +473,7 @@ const MyPage = () => {
           </Pressable>
         </View>
         <Text style={styles.questionDate}>
-          {answer.question_date.replace(/-/g, '.')}
+          {answer.question_date.replace(/-/g, ".")}
         </Text>
       </View>
     </View>
@@ -435,11 +481,27 @@ const MyPage = () => {
 
   const currentListData = activeTab === "grid" ? blocks : questionsData;
   // ---------------- render ----------------
+  // 커스텀 헤더 높이 계산
+  const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
+
   return (
     <View style={styles.container}>
+      {/* 커스텀 헤더 */}
+      <View
+        style={[
+          styles.headerOverlay,
+          { paddingTop: insets.top + 18, paddingBottom: 18 },
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerSpacer} />
+          <Text style={styles.headerTitle}>나의 피드</Text>
+        </View>
+      </View>
+      {/* 헤더 높이만큼 여백 */}
+      <View style={{ height: HEADER_HEIGHT }} />
       <FlatList<ListItem>
         data={currentListData as ListItem[]}
-
         keyExtractor={(item, index) => {
           if (activeTab === "grid") {
             return `block-${index}`;
@@ -448,113 +510,103 @@ const MyPage = () => {
             return q.answer.answer_id;
           }
         }}
-
         showsVerticalScrollIndicator={false}
-
-        ListFooterComponent={
-          currentListData.length > 0 ? <ListFooter /> : null
-        }
+        ListFooterComponent={currentListData.length > 0 ? <ListFooter /> : null}
         ListEmptyComponent={<ListEmptyView />}
-
         contentContainerStyle={{
           paddingBottom: 12,
           paddingHorizontal: HORIZONTAL_PADDING,
         }}
-
         ListHeaderComponent={
-        <>
-          {/* 프로필 (스크롤됨) */}
-          <View style={styles.profileWrapper}>
-            <View style={styles.profileSection}>
-              <View style={styles.profileContent}>
-                {profile?.avatar_url ? (
-                  <Image
-                    source={{ uri: profile.avatar_url }}
-                    style={styles.profileImage}
-                  />
-                ) : (
-                  <View style={styles.profilePlaceholder} />
-                )}
-
-                <View
-                  style={{
-                    justifyContent: profile?.intro ? "flex-start" : "center",
-                  }}
-                >
-                  <Text style={styles.profileName}>
-                    {profile?.nickname}
-                  </Text>
-
-                  {profile?.intro && (
-                    <Text style={styles.profileBio}>
-                      {profile.intro}
-                    </Text>
+          <>
+            {/* 프로필 (스크롤됨) */}
+            <View style={styles.profileWrapper}>
+              <View style={styles.profileSection}>
+                <View style={styles.profileContent}>
+                  {profile?.avatar_url ? (
+                    <Image
+                      source={{ uri: profile.avatar_url }}
+                      style={styles.profileImage}
+                    />
+                  ) : (
+                    <View style={styles.profilePlaceholder} />
                   )}
+
+                  <View
+                    style={{
+                      justifyContent: profile?.intro ? "flex-start" : "center",
+                    }}
+                  >
+                    <Text style={styles.profileName}>{profile?.nickname}</Text>
+
+                    {profile?.intro && (
+                      <Text style={styles.profileBio}>{profile.intro}</Text>
+                    )}
+                  </View>
                 </View>
+
+                <Pressable
+                  onPress={() => router.push("/myfeed/profileSetting")}
+                  style={styles.editButton}
+                >
+                  <EditIcon width={20} height={20} />
+                </Pressable>
               </View>
-
-              <Pressable
-                onPress={() => router.push("/myfeed/profileSetting")}
-                style={styles.editButton}
-              >
-                <EditIcon width={20} height={20} />
-              </Pressable>
             </View>
-          </View>
 
-          {/* 👇 Sticky 대상 */}
-          <View style={styles.tabsWrapper}>
-            <View style={styles.tabsContainer}>
-              <Pressable
-                style={[
-                  styles.tabButton,
-                  activeTab === "grid" && styles.activeTabButton,
-                ]}
-                onPress={() => setActiveTab("grid")}
-              >
-                <Text
-                  style={
-                    activeTab === "grid"
-                      ? styles.activeTabLabel
-                      : styles.tabLabel
-                  }
+            {/* 👇 Sticky 대상 */}
+            <View style={styles.tabsWrapper}>
+              <View style={styles.tabsContainer}>
+                <Pressable
+                  style={[
+                    styles.tabButton,
+                    activeTab === "grid" && styles.activeTabButton,
+                  ]}
+                  onPress={() => setActiveTab("grid")}
                 >
-                  그리드
-                </Text>
-              </Pressable>
+                  <Text
+                    style={
+                      activeTab === "grid"
+                        ? styles.activeTabLabel
+                        : styles.tabLabel
+                    }
+                  >
+                    그리드
+                  </Text>
+                </Pressable>
 
-              <Pressable
-                style={[
-                  styles.tabButton,
-                  activeTab === "question" && styles.activeTabButton,
-                ]}
-                onPress={() => setActiveTab("question")}
-              >
-                <Text
-                  style={
-                    activeTab === "question"
-                      ? styles.activeTabLabel
-                      : styles.tabLabel
-                  }
+                <Pressable
+                  style={[
+                    styles.tabButton,
+                    activeTab === "question" && styles.activeTabButton,
+                  ]}
+                  onPress={() => setActiveTab("question")}
                 >
-                  질문
-                </Text>
-              </Pressable>
+                  <Text
+                    style={
+                      activeTab === "question"
+                        ? styles.activeTabLabel
+                        : styles.tabLabel
+                    }
+                  >
+                    질문
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        </>
-      }
-
+          </>
+        }
         renderItem={({ item, index }) => {
           // 그리드 탭
           if (activeTab === "grid") {
             const gridItem = item as GridItem;
-            const width = Dimensions.get("window").width - HORIZONTAL_PADDING*2;
+            const width =
+              Dimensions.get("window").width - HORIZONTAL_PADDING * 2;
 
             // 공통 이동 함수
             const handleGridPress = (it: FeedItem) => {
               router.push({
-                pathname: '/myfeed/answerViewer',
+                pathname: "/myfeed/answerViewer",
                 params: {
                   profileId: profileId,
                   initialAnswerId: it.id, // 클릭한 이미지의 answer_id
@@ -582,13 +634,7 @@ const MyPage = () => {
                 );
 
               case "L3Right2":
-                return (
-                  <L3Right2
-                    items={gridItem.items}
-                    width={width}
-                    
-                  />
-                );
+                return <L3Right2 items={gridItem.items} width={width} />;
 
               default:
                 return null;
@@ -605,13 +651,7 @@ const MyPage = () => {
             />
           );
         }}
-
-        onEndReached={
-          activeTab === "question"
-            ? handleLoadMore
-            : undefined
-        }
-
+        onEndReached={activeTab === "question" ? handleLoadMore : undefined}
         onEndReachedThreshold={0.5}
       />
     </View>
@@ -623,28 +663,60 @@ export default MyPage;
 /* ---------------- styles ---------------- */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: "#fff" },
 
+  // 커스텀 헤더 스타일
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+    backgroundColor: "#FEFEFE", // var(--Black-Black-00)
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F2", // var(--Black-Black-10)
+  },
+  headerContent: {
+    width: 342,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerSpacer: {
+    width: 24,
+  },
   headerTitle: {
+    fontFamily: "Pretendard-SemiBold",
     fontSize: 17,
-    fontFamily: 'Pretendard-Bold',
+    lineHeight: 22,
     letterSpacing: -0.51,
+    color: "#0D0D0D",
+    textAlign: "center",
+  },
+  headerIconWrapper: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
   profileWrapper: {
     paddingTop: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   profileSection: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: "#D8D8D833",
     borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
-  profileContent: { flexDirection: 'row', alignItems: 'center' },
+  profileContent: { flexDirection: "row", alignItems: "center" },
   profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
   profilePlaceholder: {
     width: 50,
@@ -653,35 +725,47 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: "#C2C2C2",
   },
-  profileName: { fontFamily: 'Pretendard-Bold', fontSize: 16, fontWeight: '600' },
-  profileBio: { fontFamily: 'Pretendard-Regular', fontSize: 14, color: '#929292' },
+  profileName: {
+    fontFamily: "Pretendard-Bold",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  profileBio: {
+    fontFamily: "Pretendard-Regular",
+    fontSize: 14,
+    color: "#929292",
+  },
   editButton: { padding: 8 },
 
-  tabsWrapper: { paddingVertical: 20, alignItems: 'center' },
+  tabsWrapper: { paddingVertical: 20, alignItems: "center" },
   tabsWrapperGrid: {
-    backgroundColor: 'transparent',    
-    pointerEvents: 'box-none', 
+    backgroundColor: "transparent",
+    pointerEvents: "box-none",
   },
   tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F1F1',
+    flexDirection: "row",
+    backgroundColor: "#F1F1F1",
     borderRadius: 20,
     padding: 2,
   },
   tabButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15 },
-  activeTabButton: { backgroundColor: '#fff' },
-  tabLabel: { fontFamily: 'Pretendard-SemiBold', color: '#929292' },
-  activeTabLabel: { fontFamily: 'Pretendard-SemiBold', color: '#5B8DEF', fontWeight: '600' },
+  activeTabButton: { backgroundColor: "#fff" },
+  tabLabel: { fontFamily: "Pretendard-SemiBold", color: "#929292" },
+  activeTabLabel: {
+    fontFamily: "Pretendard-SemiBold",
+    color: "#5B8DEF",
+    fontWeight: "600",
+  },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 100,
   },
   emptyText: {
-    fontFamily: 'Pretendard-Regular',
+    fontFamily: "Pretendard-Regular",
     fontSize: 15,
-    color: '#626262',
+    color: "#626262",
     fontWeight: 400,
     lineHeight: 20,
     marginBottom: 20,
@@ -692,71 +776,81 @@ const styles = StyleSheet.create({
     height: 118,
   },
   footer: { paddingVertical: 20 },
-  endContainer: { paddingVertical: 40, alignItems: 'center', marginBottom: 130 },
-  endText: { fontFamily: 'Pretendard-Regular', marginTop: 12, color: '#626262', fontSize: 15, fontWeight: '400' },
+  endContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    marginBottom: 130,
+  },
+  endText: {
+    fontFamily: "Pretendard-Regular",
+    marginTop: 12,
+    color: "#626262",
+    fontSize: 15,
+    fontWeight: "400",
+  },
 
   row: {
-    flexDirection: 'row',
-    gap: 5,           
+    flexDirection: "row",
+    gap: 5,
     marginBottom: 5,
   },
   gridItem: {
-    flex: 2,          
+    flex: 2,
   },
 
   questionItem: {
-    flexDirection: 'row',      
+    flexDirection: "row",
     paddingVertical: 10,
     paddingHorizontal: 3,
-    alignItems: 'center',   
-    gap: 14,                   
+    alignItems: "center",
+    gap: 14,
     borderRadius: 10,
   },
   questionThumb: {
     width: 40,
     height: 40,
     flexShrink: 0,
-    gap: 14,      
-    borderRadius: 10,           
+    gap: 14,
+    borderRadius: 10,
   },
   questionTextWrapper: {
-    flex: 1,                     
+    flex: 1,
   },
   questionTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',     
-    justifyContent: 'space-between',                              
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   questionRow: {
-    flexDirection: 'row',       
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',     
-    marginBottom: 2,     
+    flexDirection: "row",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    marginBottom: 2,
     flexShrink: 1,
   },
   questionNumber: {
-    fontFamily: 'Pretendard-Regular',
+    fontFamily: "Pretendard-Regular",
     fontSize: 13,
-    color: '#5B8DEF',
-    fontStyle: 'normal',
+    color: "#5B8DEF",
+    fontStyle: "normal",
     fontWeight: 400,
     letterSpacing: -0.39,
     marginRight: 4,
   },
   questionContent: {
-    textOverflow: 'ellipsis',
+    textOverflow: "ellipsis",
     fontFamily: "HakgyoansimBadasseugi-L",
-    color: '#0D0D0D',
+    color: "#0D0D0D",
     fontSize: 13,
-    fontStyle: 'normal',
+    fontStyle: "normal",
     fontWeight: 400,
     letterSpacing: -0.39,
   },
   questionDate: {
-    fontFamily: 'Pretendard-Regular',
-    color: '#C3C3C3',
+    fontFamily: "Pretendard-Regular",
+    color: "#C3C3C3",
     fontSize: 13,
-    fontStyle: 'normal',
+    fontStyle: "normal",
     fontWeight: 400,
   },
 });
