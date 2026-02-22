@@ -75,9 +75,12 @@ export default function OnboardingPrivacyScreen() {
     try {
       // 1. 알림 권한 + expo push token
       const expoPushToken = await registerForPushNotificationsAsync();
+      console.log("1. 토큰:", expoPushToken);
 
       // 2. 사진 권한
       await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log("2. 사진 권한 상태:", status);
 
       // 3. 현재 로그인된 유저 정보
       const { data: { user } } = await supabase.auth.getUser();
