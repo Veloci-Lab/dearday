@@ -4,7 +4,7 @@ import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -34,7 +34,9 @@ export default function RootLayout() {
 
   const [appReady, setAppReady] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const prevOnboarding = useRef(false);
 
+  // 알림 처리
   useEffect(() => {
     (async () => {
       try {
@@ -65,6 +67,7 @@ export default function RootLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 알림 딥링크 처리
   useEffect(() => {
     if (isLoggedIn && pendingRedirectUrl) {
       const tmp = pendingRedirectUrl;
@@ -73,33 +76,35 @@ export default function RootLayout() {
     }
   }, [isLoggedIn, pendingRedirectUrl, clearPendingRedirectUrl]);
 
+  // 로그인&온보딩 앱 시작: splash, 앱 준비
   useEffect(() => {
     if (fontsLoaded && !authLoading) {
+      const shouldShowVideo = isLoggedIn && hasCompletedOnboarding;
+      setShowVideo(shouldShowVideo);
+      setAppReady(true);
+      prevOnboarding.current = hasCompletedOnboarding;
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, authLoading]);
 
-  // if (!fontsLoaded || authLoading) {
-  //   return null;
-  // }
+  // 온보딩 완료: spashh
   useEffect(() => {
-    if (fontsLoaded && !authLoading) {
-      setAppReady(true);
-
-      // 로그인 + 온보딩 완료 유저 
-      if (isLoggedIn && hasCompletedOnboarding) {
-        setShowVideo(true);
-      }
-
-      SplashScreen.hideAsync();
+    if (!appReady) return;
+    if (!prevOnboarding.current && hasCompletedOnboarding) {
+      setShowVideo(true);
     }
-  }, [fontsLoaded, authLoading, isLoggedIn, hasCompletedOnboarding]);
+    prevOnboarding.current = hasCompletedOnboarding;
+  }, [hasCompletedOnboarding, appReady]);
 
   if (!appReady) return null;
+
   if (showVideo) {
-    return <VideoSplash onFinish={() => setShowVideo(false)} />;
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <VideoSplash onFinish={() => setShowVideo(false)} />
+      </GestureHandlerRootView>
+    );
   }
-  
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -119,32 +124,14 @@ export default function RootLayout() {
           {/* 3. 로그인&온보딩 완료한 유저만 접근 */}
           <Stack.Protected guard={isLoggedIn && hasCompletedOnboarding}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="notifications"
-              options={{ headerShown: false }}
-            />
+            <Stack.Screen name="notifications" options={{ headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="photo-organizer"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="making-dearday"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="dearday-editor"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="content-detail"
-              options={{ headerShown: false }}
-            />
+            <Stack.Screen name="photo-organizer" options={{ headerShown: false }} />
+            <Stack.Screen name="making-dearday" options={{ headerShown: false }} />
+            <Stack.Screen name="dearday-editor" options={{ headerShown: false }} />
+            <Stack.Screen name="content-detail" options={{ headerShown: false }} />
             <Stack.Screen name="photo/[id]" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="category/[id]"
-              options={{ headerShown: false }}
-            />
+            <Stack.Screen name="category/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="feed" options={{ headerShown: false }} />
             <Stack.Screen name="friends" options={{ title: "친구" }} />
           </Stack.Protected>

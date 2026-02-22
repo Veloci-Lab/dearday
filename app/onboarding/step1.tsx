@@ -157,7 +157,7 @@ export default function OnboardingPrivacyScreen() {
       resetOnboarding();
 
       setShowPermissionModal(false);
-      router.replace("/(tabs)");
+      // router.replace("/(tabs)");
     } catch (error) {
       console.error("온보딩 완료 실패:", error);
       Alert.alert("오류", "설정 저장 중 오류가 발생했습니다.");
