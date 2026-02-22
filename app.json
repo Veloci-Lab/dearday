@@ -80,7 +80,12 @@
       [
         "expo-image-picker"
       ],
-      "expo-video"
+      [
+        "expo-video"
+      ],
+      [
+        "expo-av"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
