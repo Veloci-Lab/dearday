@@ -6,6 +6,7 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { AVPlaybackStatus, ResizeMode, Video } from "expo-av";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
@@ -24,7 +25,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import Video from "react-native-video";
 
 /** 로고 비율 고정 (textmark_white.png 기준) */
 const LOGO_AR = 253 / 53;
@@ -224,11 +224,22 @@ export default function SignInScreen() {
       {/* 1. 배경 비디오 레이어 */}
       {!isVideoFinished && (
         <Video
-          source={{ uri: require("@/assets/videos/splash.mp4") }}
+          source={require("@/assets/videos/splash.mp4")}
           style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-          onEnd={() => setIsVideoFinished(true)}
-          muted={true}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isMuted
+          isLooping={false}
+          onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+            if (!status.isLoaded) {
+              if ((status as any).error) {
+                console.error("비디오 에러:", (status as any).error);
+                setIsVideoFinished(true); // 에러나도 넘어가게
+              }
+              return;
+            }
+            if (status.didJustFinish) setIsVideoFinished(true);
+          }}
         />
       )}
 

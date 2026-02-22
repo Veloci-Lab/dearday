@@ -80,12 +80,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded && !authLoading) {
       const shouldShowVideo = isLoggedIn && hasCompletedOnboarding;
-      setShowVideo(shouldShowVideo);
-      setAppReady(true);
-      prevOnboarding.current = hasCompletedOnboarding;
-      SplashScreen.hideAsync();
+      if (!appReady) {
+        setShowVideo(shouldShowVideo);
+        setAppReady(true);
+        prevOnboarding.current = hasCompletedOnboarding;
+        SplashScreen.hideAsync();
+      }
     }
-  }, [fontsLoaded, authLoading]);
+  }, [fontsLoaded, authLoading, isLoggedIn, hasCompletedOnboarding]);
 
   // 온보딩 완료: spashh
   useEffect(() => {
