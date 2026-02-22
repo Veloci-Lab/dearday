@@ -335,11 +335,13 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     color: "#0F172A",
     marginBottom: 8,
+    letterSpacing: -0.6,    
   },
   subtitle: {
     fontFamily: "Pretendard-Regular",
     fontSize: 14,
     color: "#929292",
+    letterSpacing: -0.51, 
   },
   optionList: {
     gap: 12,
@@ -383,6 +385,7 @@ const styles = StyleSheet.create({
   // },
   optionText: {
     flex: 1,
+    letterSpacing: -0.41, 
   },
   optionTitle: {
     fontFamily: "Pretendard-SemiBold",
@@ -399,6 +402,7 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 13,
     color: "#626262",
+    letterSpacing: -0.41, 
   },
   footer: {
     paddingHorizontal: 24,
@@ -418,6 +422,7 @@ const styles = StyleSheet.create({
     fontFamily: "Pretendard-Regular",
     fontSize: 17,
     color: "#FFFFFF",
+    letterSpacing: -0.51, 
   },
   modalOverlay: {
     flex: 1,
@@ -438,6 +443,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: "#0F172A",
     marginBottom: 8,
+    letterSpacing: -0.6, 
   },
   modalDesc: {
     fontFamily: "Pretendard-Regular",
