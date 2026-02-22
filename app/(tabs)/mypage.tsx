@@ -467,7 +467,7 @@ const MyPage = () => {
         ]}
       >
         <View style={styles.headerContent}>
-          <View style={styles.headerSpacer} />
+          {/* <View style={styles.headerSpacer} /> */}
           <Text style={styles.headerTitle}>나의 피드</Text>
         </View>
       </View>
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F2F2F2",
   },
   headerContent: {
-    width: 342,
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
