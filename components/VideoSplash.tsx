@@ -42,5 +42,5 @@ export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
+  container: { flex: 1, backgroundColor: "#fff" },
 });
