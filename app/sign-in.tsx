@@ -224,7 +224,7 @@ export default function SignInScreen() {
       {/* 1. 배경 비디오 레이어 */}
       {!isVideoFinished && (
         <Video
-          source={require("@/assets/videos/splash.mp4")}
+          source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/videos/splash.mp4`}}
           style={StyleSheet.absoluteFill}
           resizeMode={ResizeMode.COVER}
           shouldPlay
