@@ -15,6 +15,10 @@ export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    console.log("VideoSplash 마운트!");
+  }, []);
+
   return (
     <View style={styles.container}>
       <Video
@@ -30,18 +34,11 @@ export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
             onFinish();
           }
         }}
-        onError={() => {
-          // 비디오 로드 실패해도 넘어감
-          if (!hasFinished.current) {
-            hasFinished.current = true;
-            onFinish();
-          }
-        }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "black" },
+  container: { flex: 1, backgroundColor: "#000" },
 });
