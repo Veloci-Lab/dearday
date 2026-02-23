@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import { router, SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
+import { Image, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -98,7 +99,25 @@ export default function RootLayout() {
     prevOnboarding.current = hasCompletedOnboarding;
   }, [hasCompletedOnboarding, appReady]);
 
-  if (!appReady) return null;
+  if (!appReady) {
+    const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: "#fff",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingBottom: "20%",
+      }}>
+        <Image
+          source={{ uri: REMOTE_DD_LOGO_URL }}
+          style={{ width: 59, height: 59 }}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
 
   if (showVideo) {
     return (
