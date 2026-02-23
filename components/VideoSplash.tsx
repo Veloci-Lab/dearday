@@ -2,6 +2,8 @@ import { AVPlaybackStatus, ResizeMode, Video } from "expo-av";
 import { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+
 export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
   const hasFinished = useRef(false);
 
@@ -22,7 +24,7 @@ export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
   return (
     <View style={styles.container}>
       <Video
-        source={require("@/assets/videos/splash.mp4")}
+        source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/videos/splash.mp4`}}
         style={StyleSheet.absoluteFill}
         resizeMode={ResizeMode.COVER}
         shouldPlay
