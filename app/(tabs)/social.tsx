@@ -19,6 +19,7 @@ import {
   Dimensions,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -445,6 +446,15 @@ export default function SocialScreen() {
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
   const [shuffleKey, setShuffleKey] = useState(0); // 그리드 랜덤 재배치용
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 그리드 배치 새로고침 함수
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setShuffleKey((k) => k + 1);
+    await refreshFriendIds();
+    setRefreshing(false);
+  };
 
   // 친구 알림 확인 함수 (pending 요청 + 새 친구)
   const checkFriendNotification = async (profileId: number) => {
@@ -576,12 +586,12 @@ export default function SocialScreen() {
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
-    setShuffleKey((k) => k + 1); // 날짜 변경 시 그리드 재배치
+    //setShuffleKey((k) => k + 1); // 날짜 변경 시 그리드 재배치
   };
 
   const handleTabChange = (key: string) => {
     setActiveTab(key as TabType);
-    setShuffleKey((k) => k + 1); // 탭 변경 시 그리드 재배치
+    //setShuffleKey((k) => k + 1); // 탭 변경 시 그리드 재배치
   };
 
   useEffect(() => {
@@ -762,6 +772,12 @@ export default function SocialScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false },
         )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
       >
         {/* 그래디언트 배경: 스크롤 콘텐츠 안에서 absolute, 화면 높이만큼 */}
         <Image
