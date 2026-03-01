@@ -130,12 +130,12 @@ const PATTERN_ORDER: PatternType[] = [
 
 const ALL_PATTERNS: PatternType[] = ["large_left", "three_equal", "large_right"];
 
-function getRandomPattern(): PatternType {
-  return ALL_PATTERNS[Math.floor(Math.random() * ALL_PATTERNS.length)];
+function getPatternFromId(id: string): PatternType {
+  const sum = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return ALL_PATTERNS[sum % ALL_PATTERNS.length];
 }
 
 export default function PhotoGrid({ photos, onPressPhoto }: PhotoGridProps) {
-  // ✅ photos가 이미 SocialScreen에서 셔플된 상태로 오므로 그대로 사용
   // 패턴만 랜덤으로 배정 (photos 변경 시에만 재계산)
   const rows = useMemo(() => {
     const result: { pattern: PatternType; photos: PhotoGridItem[] }[] = [];
@@ -143,7 +143,7 @@ export default function PhotoGrid({ photos, onPressPhoto }: PhotoGridProps) {
     for (let i = 0; i + 2 < photos.length; i += 3) {
       const chunk = photos.slice(i, i + 3);
       result.push({
-        pattern: getRandomPattern(),
+        pattern: getPatternFromId(chunk[0].id),
         photos: chunk,
       });
     }

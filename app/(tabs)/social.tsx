@@ -32,7 +32,6 @@ const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SEEN_FRIENDS_KEY = "@seen_friend_ids";
 
-// 앱 출시일 (어제 날짜)
 const getAppLaunchDate = (): Date => {
   const d = new Date();
   d.setDate(d.getDate() - 1);
@@ -211,18 +210,8 @@ interface MonthNavProps {
 
 function MonthNav({ year, month, onPrev, onNext, canGoNext }: MonthNavProps) {
   const MONTH_NAMES = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
 
   return (
@@ -311,8 +300,6 @@ function DayScroller({
   canGoNext,
 }: DayScrollerProps) {
   const flatListRef = useRef<FlatList>(null);
-  const contentWidthRef = useRef(0);
-  const layoutWidthRef = useRef(0);
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -338,22 +325,16 @@ function DayScroller({
     return normalized < APP_LAUNCH_DATE || normalized > today;
   };
 
-  // 스크롤 드래그 종료 시 경계 감지 (오버스크롤 거리 기준)
   const handleScrollEndDrag = (event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const offsetX = contentOffset.x;
     const maxOffsetX = contentSize.width - layoutMeasurement.width;
-
-    // 오버스크롤 임계값 (50px 이상 당기면 월 변경)
     const THRESHOLD = 50;
 
-    // 왼쪽으로 오버스크롤 (음수 offset = 이전 달로)
     if (offsetX < -THRESHOLD) {
       onPrevMonth();
       return;
     }
-
-    // 오른쪽으로 오버스크롤 (최대값 초과 = 다음 달로)
     if (offsetX > maxOffsetX + THRESHOLD && canGoNext) {
       onNextMonth();
       return;
@@ -443,33 +424,31 @@ export default function SocialScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [questionMap, setQuestionMap] = useState<Record<string, DailyQuestion>>(
-    {},
-  );
+  const [questionMap, setQuestionMap] = useState<Record<string, DailyQuestion>>({});
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("social");
-  const [socialPhotos, setSocialPhotos] = useState<PhotoGridItem[]>([]);
-  const [friendPhotos, setFriendPhotos] = useState<PhotoGridItem[]>([]);
+  const [shuffledSocialPhotos, setShuffledSocialPhotos] = useState<PhotoGridItem[]>([]);
+  const [shuffledFriendPhotos, setShuffledFriendPhotos] = useState<PhotoGridItem[]>([]);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
-  const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [shuffledSocialPhotos, setShuffledSocialPhotos] = useState<PhotoGridItem[]>([]);
-  const [shuffledFriendPhotos, setShuffledFriendPhotos] = useState<PhotoGridItem[]>([]);
 
+  // ✅ friendProfileIds를 ref로 관리 → 변경돼도 사진 fetch useEffect 재트리거 안 함
+  const friendProfileIdsRef = useRef<number[]>([]);
+
+  // 새로고침: 현재 데이터를 다시 셔플
   const handleRefresh = async () => {
     setRefreshing(true);
-    setShuffledSocialPhotos(shuffleArray(socialPhotos));
-    setShuffledFriendPhotos(shuffleArray(friendPhotos));
-    await refreshFriendIds();
+    // 현재 날짜 사진을 새로 fetch해서 셔플 (ref 최신값 사용)
+    await fetchPhotosForDate(selectedDate, true);
+    await refreshFriendIds(false); // 사진 재fetch 없이 친구 목록/알림만 갱신
     setRefreshing(false);
   };
 
-  // 친구 알림 확인 함수 (pending 요청 + 새 친구)
+  // 친구 알림 확인 함수
   const checkFriendNotification = async (profileId: number) => {
     try {
-      // 1. pending 친구 요청 확인 (내가 받은 요청)
       const { data: pendingRequests } = await supabase
         .from("follows")
         .select("follower_profile_id")
@@ -481,7 +460,6 @@ export default function SocialScreen() {
         return;
       }
 
-      // 2. 새 친구 확인 (공개 계정에서 나를 팔로우한 사람 중 아직 안 본 사람)
       const { data: asFollowee } = await supabase
         .from("follows")
         .select("follower_profile_id")
@@ -489,7 +467,6 @@ export default function SocialScreen() {
         .eq("status", "accepted");
 
       if (asFollowee && asFollowee.length > 0) {
-        // 저장된 "본" 친구 ID 목록 가져오기
         let seenFriendIds: Set<number> = new Set();
         try {
           const stored = await AsyncStorage.getItem(SEEN_FRIENDS_KEY);
@@ -500,7 +477,6 @@ export default function SocialScreen() {
           console.error("AsyncStorage 읽기 오류:", e);
         }
 
-        // 안 본 친구가 있는지 확인
         const hasNewFriend = asFollowee.some(
           (r: any) => !seenFriendIds.has(r.follower_profile_id),
         );
@@ -517,7 +493,64 @@ export default function SocialScreen() {
     }
   };
 
-  // 내 프로필 + 친구 목록 로드
+  // ✅ 사진 fetch 함수 분리 (ref에서 friendProfileIds 읽음)
+  const fetchPhotosForDate = async (date: Date, forceReshuffle = false) => {
+    const dateStr = toDateString(date);
+
+    try {
+      const { data: allPhotos, error } = await supabase
+        .from("answers")
+        .select(
+          `
+          answer_id,
+          owner_profile_id,
+          photo_url,
+          profiles:owner_profile_id (is_public)
+        `,
+        )
+        .eq("question_date", dateStr)
+        .not("photo_url", "is", null)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (!error && allPhotos) {
+        const mapped: PhotoGridItem[] = allPhotos.map((item: any) => ({
+          id: item.answer_id,
+          image_url: item.photo_url,
+          user_id: String(item.owner_profile_id),
+          is_public: item.profiles?.is_public ?? false,
+        }));
+
+        // 소셜: 공개 계정만 셔플
+        const publicPhotos = mapped.filter((p) => p.is_public === true);
+        setShuffledSocialPhotos(shuffleArray(publicPhotos));
+
+        // 친구: ref에서 최신 친구 ID 읽기 → useEffect 의존성 불필요
+        const currentFriendIds = friendProfileIdsRef.current;
+        if (currentFriendIds.length > 0) {
+          const friendSet = new Set(currentFriendIds.map(String));
+          const friendFiltered = mapped.filter(
+            (p) => p.user_id && friendSet.has(p.user_id),
+          );
+          setShuffledFriendPhotos(shuffleArray(friendFiltered));
+        } else {
+          setShuffledFriendPhotos([]);
+        }
+
+        // 내 업로드 여부 확인
+        if (myProfileId) {
+          const myPhoto = allPhotos.find(
+            (item: any) => item.owner_profile_id === myProfileId,
+          );
+          setHasUploadedForDate(!!myPhoto);
+        }
+      }
+    } catch (error) {
+      console.error("사진 로드 오류:", error);
+    }
+  };
+
+  // 내 프로필 + 친구 목록 최초 로드
   useEffect(() => {
     const loadMyProfileAndFriends = async () => {
       try {
@@ -537,7 +570,6 @@ export default function SocialScreen() {
         const profileId = profileData.profile_id;
         setMyProfileId(profileId);
 
-        // 친구 목록: 양방향 accepted (FriendsScreen과 동일)
         const { data: asFollower } = await supabase
           .from("follows")
           .select("followee_profile_id")
@@ -554,9 +586,9 @@ export default function SocialScreen() {
         asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
         asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
 
-        setFriendProfileIds([...friendIds]);
+        // ✅ ref에 저장 (state 변경 없이)
+        friendProfileIdsRef.current = [...friendIds];
 
-        // 친구 알림 확인 (pending + 새 친구)
         await checkFriendNotification(profileId);
       } catch (error) {
         console.error("프로필/친구 로드 오류:", error);
@@ -565,6 +597,11 @@ export default function SocialScreen() {
 
     loadMyProfileAndFriends();
   }, []);
+
+  // ✅ 사진 fetch: selectedDate, myProfileId만 의존 → friendProfileIds 변경에 반응 안 함
+  useEffect(() => {
+    fetchPhotosForDate(selectedDate);
+  }, [selectedDate, myProfileId]);
 
   const daysInMonth = useMemo(
     () => getDaysInMonth(currentYear, currentMonth),
@@ -596,12 +633,10 @@ export default function SocialScreen() {
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
-    //setShuffleKey((k) => k + 1); // 날짜 변경 시 그리드 재배치
   };
 
   const handleTabChange = (key: string) => {
     setActiveTab(key as TabType);
-    //setShuffleKey((k) => k + 1); // 탭 변경 시 그리드 재배치
   };
 
   useEffect(() => {
@@ -639,95 +674,8 @@ export default function SocialScreen() {
     }
   };
 
-  // 선택된 날짜의 사진 가져오기
-  useEffect(() => {
-    const doFetch = async () => {
-      const dateStr = toDateString(selectedDate);
-
-      try {
-        // 모든 사용자의 사진 (프로필 정보 포함)
-        const { data: allPhotos, error } = await supabase
-          .from("answers")
-          .select(
-            `
-            answer_id, 
-            owner_profile_id, 
-            photo_url,
-            profiles:owner_profile_id (is_public)
-          `,
-          )
-          .eq("question_date", dateStr)
-          .not("photo_url", "is", null)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false });
-
-        if (!error && allPhotos) {
-          const mapped: PhotoGridItem[] = allPhotos.map((item: any) => ({
-            id: item.answer_id,
-            image_url: item.photo_url,
-            user_id: String(item.owner_profile_id),
-            is_public: item.profiles?.is_public ?? false,
-          }));
-
-          // 소셜 탭: 공개 계정만
-          // setSocialPhotos(mapped.filter((p) => p.is_public === true));
-          const shuffled = shuffleArray(mapped.filter((p) => p.is_public === true));
-          setSocialPhotos(shuffled);
-          setShuffledSocialPhotos(shuffled);
-
-          // 친구 탭: 친구의 사진만
-          if (friendProfileIds.length > 0) {
-            const friendSet = new Set(friendProfileIds.map(String));
-            // setFriendPhotos(
-            //   mapped.filter((p) => p.user_id && friendSet.has(p.user_id)),
-            // );
-            const friendFiltered = mapped.filter((p) => !p.is_public);
-            setFriendPhotos(friendFiltered);
-            setShuffledFriendPhotos(shuffleArray(friendFiltered));
-          } else {
-            setFriendPhotos([]);
-          }
-
-          // 선택된 날짜에 내 업로드 여부 확인
-          if (myProfileId) {
-            const myPhoto = allPhotos.find(
-              (item: any) => item.owner_profile_id === myProfileId,
-            );
-            setHasUploadedForDate(!!myPhoto);
-          }
-        }
-      } catch (error) {
-        console.error("사진 로드 오류:", error);
-      }
-    };
-
-    doFetch();
-  }, [selectedDate, friendProfileIds, myProfileId]);
-
-  const currentPhotos = activeTab === "social" ? socialPhotos : friendPhotos;
-
-  const currentQuestion =
-    questionMap[toDateString(selectedDate)]?.question_text?.replace(
-      /\\n/g,
-      "\n",
-    ) || "";
-
-  const TAB_BAR_HEIGHT = 72;
-  const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
-  const paddingBottom = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
-
-  // 헤더 높이
-  const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
-
-  // 헤더 배경색: 스크롤에 따라 투명 → 흰색
-  const headerBackgroundColor = scrollY.interpolate({
-    inputRange: [0, 200],
-    outputRange: ["rgba(255,255,255,0)", "rgba(255,255,255,1)"],
-    extrapolate: "clamp",
-  });
-
-  // 친구 목록 새로고침 함수
-  const refreshFriendIds = async () => {
+  // ✅ refreshFriendIds: fetchPhotos 여부를 파라미터로 제어
+  const refreshFriendIds = async (refetchPhotos = true) => {
     if (!myProfileId) return;
     try {
       const { data: asFollower } = await supabase
@@ -745,23 +693,57 @@ export default function SocialScreen() {
       const friendIds = new Set<number>();
       asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
       asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
-      setFriendProfileIds([...friendIds]);
 
-      // 친구 알림 확인 (pending + 새 친구)
+      const newIds = [...friendIds];
+
+      // 실제로 친구 목록이 바뀐 경우에만 ref 업데이트 + 사진 재fetch
+      const prevIds = friendProfileIdsRef.current;
+      const changed =
+        newIds.length !== prevIds.length ||
+        newIds.some((id) => !prevIds.includes(id));
+
+      if (changed) {
+        friendProfileIdsRef.current = newIds;
+        if (refetchPhotos) {
+          await fetchPhotosForDate(selectedDate);
+        }
+      }
+
       await checkFriendNotification(myProfileId);
     } catch (error) {
       console.error("친구 목록 새로고침 오류:", error);
     }
   };
 
-  // 화면에 포커스될 때마다 친구 목록 새로고침 (친구 화면에서 돌아왔을 때)
+  // ✅ useFocusEffect: 알림만 확인, 친구 목록 변경 시에만 사진 재fetch
   useFocusEffect(
     useCallback(() => {
       if (myProfileId) {
-        refreshFriendIds();
+        refreshFriendIds(true); // 친구 목록 바뀐 경우에만 내부에서 재fetch
       }
     }, [myProfileId]),
   );
+
+  const currentPhotos =
+    activeTab === "social" ? shuffledSocialPhotos : shuffledFriendPhotos;
+
+  const currentQuestion =
+    questionMap[toDateString(selectedDate)]?.question_text?.replace(
+      /\\n/g,
+      "\n",
+    ) || "";
+
+  const TAB_BAR_HEIGHT = 72;
+  const TAB_BAR_BOTTOM_OFFSET = Math.max(insets.bottom, 8) + 10;
+  const paddingBottom = TAB_BAR_BOTTOM_OFFSET + TAB_BAR_HEIGHT;
+
+  const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
+
+  const headerBackgroundColor = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: ["rgba(255,255,255,0)", "rgba(255,255,255,1)"],
+    extrapolate: "clamp",
+  });
 
   const handlePhotoPress = (photo: PhotoGridItem) => {
     const dateStr = toDateString(selectedDate);
@@ -777,8 +759,6 @@ export default function SocialScreen() {
     });
   };
 
-  // 사진이 충분히 많아서 스크롤이 필요한 경우에만 EndOfFeed 표시
-  // 대략 3열 그리드에서 4행(12개) 이상이면 스크롤 필요
   const showEndOfFeed = currentPhotos.length >= 12;
 
   return (
@@ -796,7 +776,6 @@ export default function SocialScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {/* 그래디언트 배경: 스크롤 콘텐츠 안에서 absolute, 화면 높이만큼 */}
         <Image
           source={SocialGradient}
           style={styles.backgroundImage}
@@ -805,7 +784,6 @@ export default function SocialScreen() {
           cachePolicy="disk"
         />
 
-        {/* 헤더 높이만큼 여백 */}
         <View style={{ height: HEADER_HEIGHT }} />
 
         <MonthNav
@@ -894,7 +872,6 @@ export default function SocialScreen() {
         )}
       </Animated.ScrollView>
 
-      {/* 헤더: 상단 고정 오버레이, 스크롤에 따라 투명 → 흰색 */}
       <Animated.View
         style={[
           styles.headerOverlay,
@@ -928,8 +905,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-
-  /* 배경 이미지: 그래디언트 영역 내부 absolute */
   backgroundImage: {
     position: "absolute",
     top: 0,
@@ -938,8 +913,6 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     width: "100%",
   },
-
-  /* 헤더 (상단 고정 오버레이) */
   headerOverlay: {
     position: "absolute",
     top: 0,
@@ -974,8 +947,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  /* 월 네비게이션 */
   monthNavContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -1009,8 +980,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.48,
     color: "#0D0D0D",
   },
-
-  /* 날짜 스크롤러 */
   dayScrollerList: {
     height: 93,
     marginTop: 12,
@@ -1072,8 +1041,6 @@ const styles = StyleSheet.create({
   dayLabelDisabled: {
     color: "#626262",
   },
-
-  /* 질문 */
   questionContainer: {
     paddingHorizontal: 32,
     marginTop: 47,
@@ -1090,27 +1057,19 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0.5,
   },
-
-  /* 소셜/친구 토글 */
   toggleContainer: {
     alignItems: "center",
     marginTop: 38,
     zIndex: 2,
   },
-
-  /* 사진 그리드 */
   photoGridContainer: {
     marginTop: 21,
   },
-
-  /* 잠금 섹션 (토글 + 그리드 + 오버레이) */
   lockedSection: {
     position: "relative",
     minHeight: 439,
     overflow: "hidden",
   },
-
-  /* 잠금 오버레이 */
   lockedContainer: {
     position: "absolute",
     top: 0,
@@ -1141,8 +1100,6 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
   },
-
-  /* 피드 끝 표시 */
   endOfFeedContainer: {
     alignItems: "center",
     paddingTop: 80,
@@ -1162,8 +1119,6 @@ const styles = StyleSheet.create({
     width: 118,
     height: 118,
   },
-
-  /* 친구 없음 표시 */
   emptyFriendsContainer: {
     alignItems: "center",
     paddingTop: 80,
