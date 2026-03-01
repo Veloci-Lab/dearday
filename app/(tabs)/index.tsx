@@ -403,7 +403,7 @@ export default function HomeScreen() {
         const defaultQuestion: DailyQuestion = {
           question_date: todayDate,
           question_text: "오늘 하루는 어땠나요?",
-          source: null,
+          source: "system",
         };
 
         const { data: insertedQuestion, error: insertError } = await supabase
@@ -748,7 +748,7 @@ export default function HomeScreen() {
       <Image
         source={HomeGradient}
         style={styles.backgroundImage}
-        resizeMode="cover"
+        contentFit="cover"
         cachePolicy="disk"
       />
       <View style={[styles.content, { paddingBottom }]}>
