@@ -4,9 +4,8 @@ import Toggle from "@/components/Toggle";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -330,16 +329,14 @@ const MyPage = () => {
     setQuestionsData(combined);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (profileId) {
-        fetchProfile();
-        setPage(0);
-        fetchAnswers(0);
-        fetchQuestions();
-      }
-    }, [profileId]),
-  );
+  useEffect(() => {
+    if (profileId) {
+      fetchProfile();
+      setPage(0);
+      fetchAnswers(0);
+      fetchQuestions();
+    }
+  }, [profileId]);
 
   /* ---------------- handlers ---------------- */
 
