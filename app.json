@@ -77,7 +77,6 @@
       ["expo-apple-authentication"],
       ["expo-image-picker"],
       ["expo-video"],
-      ["expo-av"]
       [
         "expo-apple-authentication"
       ],
