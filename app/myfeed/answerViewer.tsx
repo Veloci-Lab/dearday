@@ -1,6 +1,7 @@
 import { MoreIcon } from "@/app/social/friends";
 import EmojiPickerSheet, { EmojiOption } from "@/components/EmojiPickerSheet";
 import FeedCard from "@/components/FeedCard";
+import ReactionUserSheet from "@/components/ReactionUserSheet";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -17,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Svg, { Path } from "react-native-svg";
 
 const { width, height } = Dimensions.get("window");
@@ -111,7 +113,7 @@ export default function AnswerViewerScreen() {
   const emojiSheetRef = useRef<BottomSheet>(null);
   const reactionUserSheetRef = useRef<BottomSheet>(null);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
-  const hasScrolled = useRef(false); 
+  const hasScrolled = useRef(false);
 
   // 내 프로필 ID 로드
   useEffect(() => {
@@ -142,6 +144,108 @@ export default function AnswerViewerScreen() {
     return `${hours}시 ${minutes < 10 ? `0${minutes}` : minutes}분`;
   };
 
+  // 내가 누른 이모지 ID 목록 계산 (answerId별)
+  const getMyReactedEmojiIds = (
+    answerId: string,
+    answerReactions: any[],
+  ): number[] => {
+    if (!myProfileId) return [];
+    return (answerReactions || [])
+      .filter((r: any) => r.reactor_profile_id === myProfileId)
+      .map((r: any) => r.emoji_id);
+  };
+
+  // 리액션 칩 클릭 핸들러 (토글 추가/삭제)
+  const handlePressReaction = async (
+    answerId: string,
+    reaction: any,
+    isMyReaction: boolean,
+    currentAnswerReactions: any[],
+  ) => {
+    if (!myProfileId) return;
+
+    if (isMyReaction) {
+      // 이미 내가 누른 이모지 → 삭제
+      setAnswers((prevAnswers) =>
+        prevAnswers.map((a) => {
+          if (a.answer_id !== answerId) return a;
+          return {
+            ...a,
+            answer_reactions: (a.answer_reactions || []).filter(
+              (r: any) =>
+                !(
+                  r.reactor_profile_id === myProfileId &&
+                  r.emoji_id === reaction.emojiId
+                ),
+            ),
+          };
+        }),
+      );
+
+      await supabase
+        .from("answer_reactions")
+        .delete()
+        .eq("answer_id", answerId)
+        .eq("reactor_profile_id", myProfileId);
+    } else {
+      // 내가 안 누른 이모지 → 추가 (기존 리액션이 있으면 교체)
+      const existingReaction = currentAnswerReactions.find(
+        (r: any) => r.reactor_profile_id === myProfileId,
+      );
+
+      if (existingReaction) {
+        // 기존 리액션이 있으면 교체
+        setAnswers((prevAnswers) =>
+          prevAnswers.map((a) => {
+            if (a.answer_id !== answerId) return a;
+            return {
+              ...a,
+              answer_reactions: (a.answer_reactions || []).map((r: any) =>
+                r.reactor_profile_id === myProfileId
+                  ? {
+                      ...r,
+                      emoji_id: reaction.emojiId,
+                      emojis: { value: reaction.emoji },
+                    }
+                  : r,
+              ),
+            };
+          }),
+        );
+
+        await supabase
+          .from("answer_reactions")
+          .update({ emoji_id: reaction.emojiId })
+          .eq("answer_id", answerId)
+          .eq("reactor_profile_id", myProfileId);
+      } else {
+        // 신규 추가
+        setAnswers((prevAnswers) =>
+          prevAnswers.map((a) => {
+            if (a.answer_id !== answerId) return a;
+            const newReaction = {
+              answer_id: answerId,
+              reactor_profile_id: myProfileId,
+              emoji_id: reaction.emojiId,
+              emojis: { value: reaction.emoji },
+              profiles: { nickname: nickname, avatar_url: null },
+            };
+            return {
+              ...a,
+              answer_reactions: [...(a.answer_reactions || []), newReaction],
+            };
+          }),
+        );
+
+        await supabase.from("answer_reactions").insert({
+          answer_id: answerId,
+          reactor_profile_id: myProfileId,
+          emoji_id: reaction.emojiId,
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     navigation.setOptions({
       ...commonHeaderOptions,
@@ -154,7 +258,7 @@ export default function AnswerViewerScreen() {
       ),
       headerLeft: () => (
         <TouchableOpacity
-          style={{ paddingHorizontal: 4}}
+          style={{ paddingHorizontal: 4 }}
           onPress={() => navigation.goBack()}
         >
           <ArrowLeft />
@@ -349,7 +453,19 @@ export default function AnswerViewerScreen() {
             count: r.count,
           }))}
           answerReactionsRaw={item.answer_reactions}
+          myReactedEmojiIds={getMyReactedEmojiIds(
+            item.answer_id,
+            item.answer_reactions ?? [],
+          )}
           onPressNickname={() => {}}
+          onPressReaction={(reaction, isMyReaction) =>
+            handlePressReaction(
+              item.answer_id,
+              reaction,
+              isMyReaction,
+              item.answer_reactions ?? [],
+            )
+          }
           onPressAddReaction={() => {
             setSelectedAnswerId(item.answer_id);
             emojiSheetRef.current?.expand();
@@ -410,7 +526,7 @@ export default function AnswerViewerScreen() {
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <FlatList
         ref={flatListRef}
         data={answers}
@@ -418,7 +534,7 @@ export default function AnswerViewerScreen() {
         renderItem={renderItem}
         onLayout={() => {
           if (initialIndex > 0 && !hasScrolled.current) {
-            hasScrolled.current = true; 
+            hasScrolled.current = true;
             flatListRef.current?.scrollToIndex({
               index: initialIndex,
               animated: false,
@@ -517,7 +633,22 @@ export default function AnswerViewerScreen() {
           }
         }}
       />
-    </>
+      {/* 리액션 유저 목록 BottomSheet */}
+      <ReactionUserSheet
+        ref={reactionUserSheetRef}
+        onClose={() => {}}
+        tabs={reactionSheetTabs}
+        selectedTab={reactionSheetSelectedTab}
+        onSelectTab={setReactionSheetSelectedTab}
+        users={
+          reactionSheetSelectedTab === "all"
+            ? reactionSheetUsers
+            : reactionSheetUsers.filter(
+                (u) => String(u.emojiId) === reactionSheetSelectedTab,
+              )
+        }
+      />
+    </GestureHandlerRootView>
   );
 }
 
