@@ -410,6 +410,15 @@ function QuestionDisplay({ question, isLoading }: QuestionDisplayProps) {
   );
 }
 
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 /* ====== 소셜/친구 탭 타입 ====== */
 type TabType = "social" | "friend";
 
@@ -445,13 +454,14 @@ export default function SocialScreen() {
   const [friendProfileIds, setFriendProfileIds] = useState<number[]>([]);
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
-  const [shuffleKey, setShuffleKey] = useState(0); // 그리드 랜덤 재배치용
   const [refreshing, setRefreshing] = useState(false);
+  const [shuffledSocialPhotos, setShuffledSocialPhotos] = useState<PhotoGridItem[]>([]);
+  const [shuffledFriendPhotos, setShuffledFriendPhotos] = useState<PhotoGridItem[]>([]);
 
-  // 그리드 배치 새로고침 함수
   const handleRefresh = async () => {
     setRefreshing(true);
-    setShuffleKey((k) => k + 1);
+    setShuffledSocialPhotos(shuffleArray(socialPhotos));
+    setShuffledFriendPhotos(shuffleArray(friendPhotos));
     await refreshFriendIds();
     setRefreshing(false);
   };
@@ -660,14 +670,20 @@ export default function SocialScreen() {
           }));
 
           // 소셜 탭: 공개 계정만
-          setSocialPhotos(mapped.filter((p) => p.is_public === true));
+          // setSocialPhotos(mapped.filter((p) => p.is_public === true));
+          const shuffled = shuffleArray(mapped.filter((p) => p.is_public === true));
+          setSocialPhotos(shuffled);
+          setShuffledSocialPhotos(shuffled);
 
           // 친구 탭: 친구의 사진만
           if (friendProfileIds.length > 0) {
             const friendSet = new Set(friendProfileIds.map(String));
-            setFriendPhotos(
-              mapped.filter((p) => p.user_id && friendSet.has(p.user_id)),
-            );
+            // setFriendPhotos(
+            //   mapped.filter((p) => p.user_id && friendSet.has(p.user_id)),
+            // );
+            const friendFiltered = mapped.filter((p) => !p.is_public);
+            setFriendPhotos(friendFiltered);
+            setShuffledFriendPhotos(shuffleArray(friendFiltered));
           } else {
             setFriendPhotos([]);
           }
@@ -827,8 +843,6 @@ export default function SocialScreen() {
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
-                randomize
-                shuffleKey={shuffleKey}
               />
             </View>
             <LockedOverlay />
@@ -846,8 +860,6 @@ export default function SocialScreen() {
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
-                randomize
-                shuffleKey={shuffleKey}
               />
             </View>
             {showEndOfFeed && <EndOfFeed />}
@@ -876,8 +888,6 @@ export default function SocialScreen() {
               <PhotoGrid
                 photos={currentPhotos}
                 onPressPhoto={handlePhotoPress}
-                randomize
-                shuffleKey={shuffleKey}
               />
             </View>
           </>
