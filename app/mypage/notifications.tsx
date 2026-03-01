@@ -260,7 +260,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
-    marginRight: 12,
   },
   title: {
     fontFamily: "Pretendard-SemiBold",
