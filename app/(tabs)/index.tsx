@@ -594,6 +594,9 @@ export default function HomeScreen() {
       const asset = result.assets[0];
       setIsUploading(true);
 
+      // 사진 변경 여부 확인 (기존 답변이 있으면 변경)
+      const isPhotoChange = !!todayAnswer?.photo_url;
+
       try {
         const finalUri = await cropToSquare(
           asset.uri,
@@ -612,6 +615,18 @@ export default function HomeScreen() {
 
           if (success) {
             setSelectedImage(uploadedUrl);
+
+            // 사진 변경 시 기존 리액션 모두 삭제
+            if (isPhotoChange && todayAnswer?.answer_id) {
+              const { error: deleteReactionsError } = await supabase
+                .from("answer_reactions")
+                .delete()
+                .eq("answer_id", todayAnswer.answer_id);
+
+              if (deleteReactionsError) {
+                console.error("리액션 삭제 실패:", deleteReactionsError);
+              }
+            }
           } else {
             Alert.alert("오류", "사진 저장에 실패했어요. 다시 시도해주세요.");
           }

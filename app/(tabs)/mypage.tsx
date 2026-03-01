@@ -16,7 +16,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -286,6 +286,8 @@ const MyPage = () => {
       .from("answers")
       .select("answer_id, question_date, photo_url, caption, created_at")
       .eq("owner_profile_id", profileId)
+      .not("photo_url", "is", null)
+      .is("deleted_at", null)
       .order("question_date", { ascending: false })
       .range(from, to);
     const newAnswers = data || [];
@@ -305,43 +307,39 @@ const MyPage = () => {
     setRefreshing(false);
   };
 
+  const fetchQuestions = async () => {
+    const { data } = await supabase
+      .from("answers")
+      .select("*, daily_questions:question_date(question_text)")
+      .eq("owner_profile_id", profileId)
+      .not("photo_url", "is", null)
+      .is("deleted_at", null)
+      .order("question_date", { ascending: false });
+
+    const combined: QuestionItem[] = (data || []).map((a: any) => {
+      const dq = a.daily_questions;
+      const questionText = Array.isArray(dq)
+        ? (dq[0]?.question_text ?? "")
+        : (dq?.question_text ?? "");
+      return {
+        answer: a,
+        question: { question_text: questionText },
+      };
+    });
+
+    setQuestionsData(combined);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      if (profileId) fetchProfile();
+      if (profileId) {
+        fetchProfile();
+        setPage(0);
+        fetchAnswers(0);
+        fetchQuestions();
+      }
     }, [profileId]),
   );
-
-  useEffect(() => {
-    if (profileId) fetchAnswers(0);
-  }, [profileId]);
-
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("answers")
-        .select("*, daily_questions:question_date(question_text)")
-        .eq("owner_profile_id", profileId)
-        .not("photo_url", "is", null)
-        .is("deleted_at", null)
-        .order("question_date", { ascending: false });
-
-      const combined: QuestionItem[] = (data || []).map((a: any) => {
-        const dq = a.daily_questions;
-        const questionText = Array.isArray(dq)
-          ? (dq[0]?.question_text ?? "")
-          : (dq?.question_text ?? "");
-        return {
-          answer: a,
-          question: { question_text: questionText },
-        };
-      });
-
-      setQuestionsData(combined);
-      setLoading(false);
-    };
-    if (profileId) fetchQuestions();
-  }, [profileId]);
 
   /* ---------------- handlers ---------------- */
 
@@ -544,9 +542,7 @@ const MyPage = () => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        ListFooterComponent={
-          currentListData.length > 0 ? <ListFooter /> : null
-        }
+        ListFooterComponent={currentListData.length > 0 ? <ListFooter /> : null}
         ListEmptyComponent={<ListEmptyView />}
         contentContainerStyle={{
           paddingBottom: 12,
@@ -577,10 +573,7 @@ const MyPage = () => {
             {/* 탭 버튼: 그리드 탭에서는 스크롤 시 사라짐 (sticky tab bar가 대신 보임) */}
             {activeTab === "grid" ? (
               <Animated.View
-                style={[
-                  styles.tabsWrapper,
-                  { opacity: profileOpacity },
-                ]}
+                style={[styles.tabsWrapper, { opacity: profileOpacity }]}
               >
                 <Toggle
                   options={[
