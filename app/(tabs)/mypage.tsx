@@ -379,19 +379,23 @@ const MyPage = () => {
       );
     }
     if (activeTab === "question") {
-      return (
-        <View style={styles.endContainer}>
-          <Text style={styles.endText}>끝까지 오실 줄은 몰랐어요!</Text>
-          <Image
-            source={{ uri: REMOTE_DD_SURPRISE_URL }}
-            style={{ width: 120, height: 120, marginTop: 16 }}
-          />
-        </View>
-      );
+      // 질문 탭에서 사진이 12장 이상일 때만 디디 표시
+      if (questionsData.length >= 12) {
+        return (
+          <View style={styles.endContainer}>
+            <Text style={styles.endText}>끝까지 오실 줄은 몰랐어요!</Text>
+            <Image
+              source={{ uri: REMOTE_DD_SURPRISE_URL }}
+              style={{ width: 120, height: 120, marginTop: 16 }}
+            />
+          </View>
+        );
+      }
+      return null;
     }
     return (
       <View style={styles.endContainer}>
-        <Text style={styles.endText}>더 올리면 더 내릴 수 있어요!</Text>
+        <Text style={styles.endText}>사진을 올리면 더 내릴 수 있어요!</Text>
         <Image
           source={{ uri: REMOTE_DD_WINK_URL }}
           style={{ width: 120, height: 120, marginTop: 16 }}
