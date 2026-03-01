@@ -441,7 +441,7 @@ export default function SocialScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     // 현재 날짜 사진을 새로 fetch해서 셔플 (ref 최신값 사용)
-    await fetchPhotosForDate(selectedDate, true);
+    await fetchPhotosForDate(selectedDate);
     await refreshFriendIds(false); // 사진 재fetch 없이 친구 목록/알림만 갱신
     setRefreshing(false);
   };
@@ -494,8 +494,10 @@ export default function SocialScreen() {
   };
 
   // ✅ 사진 fetch 함수 분리 (ref에서 friendProfileIds 읽음)
-  const fetchPhotosForDate = async (date: Date, forceReshuffle = false) => {
+  // currentProfileId: state 타이밍 문제 방지용 (최초 로드 시 직접 전달)
+  const fetchPhotosForDate = async (date: Date, currentProfileId?: number | null) => {
     const dateStr = toDateString(date);
+    const profileId = currentProfileId !== undefined ? currentProfileId : myProfileId;
 
     try {
       const { data: allPhotos, error } = await supabase
@@ -537,10 +539,10 @@ export default function SocialScreen() {
           setShuffledFriendPhotos([]);
         }
 
-        // 내 업로드 여부 확인
-        if (myProfileId) {
+        // 내 업로드 여부 확인 (직접 전달받은 profileId 우선 사용)
+        if (profileId) {
           const myPhoto = allPhotos.find(
-            (item: any) => item.owner_profile_id === myProfileId,
+            (item: any) => item.owner_profile_id === profileId,
           );
           setHasUploadedForDate(!!myPhoto);
         }
@@ -586,9 +588,10 @@ export default function SocialScreen() {
         asFollower?.forEach((r: any) => friendIds.add(r.followee_profile_id));
         asFollowee?.forEach((r: any) => friendIds.add(r.follower_profile_id));
 
-        // ✅ ref에 저장 (state 변경 없이)
+        // ✅ ref에 저장 후 즉시 사진 fetch (친구 ID + profileId 모두 준비된 상태로)
         friendProfileIdsRef.current = [...friendIds];
 
+        await fetchPhotosForDate(today, profileId);
         await checkFriendNotification(profileId);
       } catch (error) {
         console.error("프로필/친구 로드 오류:", error);
@@ -598,10 +601,11 @@ export default function SocialScreen() {
     loadMyProfileAndFriends();
   }, []);
 
-  // ✅ 사진 fetch: selectedDate, myProfileId만 의존 → friendProfileIds 변경에 반응 안 함
+  // 날짜 변경 시 사진 fetch (최초 로드는 위 useEffect에서 처리)
   useEffect(() => {
+    if (myProfileId === null) return; // 프로필 로드 전엔 스킵 (위에서 처리)
     fetchPhotosForDate(selectedDate);
-  }, [selectedDate, myProfileId]);
+  }, [selectedDate]);
 
   const daysInMonth = useMemo(
     () => getDaysInMonth(currentYear, currentMonth),
