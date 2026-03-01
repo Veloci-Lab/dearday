@@ -369,7 +369,7 @@ const MyPage = () => {
 
   const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
-  const REMOTE_DD_SURPRISE_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprize.png`;
+  const REMOTE_DD_SURPRISE_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/surprise.png`;
   const REMOTE_DD_WINK_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/wink.png`;
 
   /* ---------------- render parts ---------------- */
