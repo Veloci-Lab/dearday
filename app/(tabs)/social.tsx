@@ -455,13 +455,12 @@ export default function SocialScreen() {
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [shuffledSocialPhotos, setShuffledSocialPhotos] = useState<PhotoGridItem[]>([]);
-  const [shuffledFriendPhotos, setShuffledFriendPhotos] = useState<PhotoGridItem[]>([]);
+  const [patternKey, setPatternKey] = useState(0);
 
+  // 랜덤 재배치 함수
   const handleRefresh = async () => {
     setRefreshing(true);
-    setShuffledSocialPhotos(shuffleArray(socialPhotos));
-    setShuffledFriendPhotos(shuffleArray(friendPhotos));
+    setPatternKey((k) => k + 1); // 패턴만 재랜덤
     await refreshFriendIds();
     setRefreshing(false);
   };
@@ -673,7 +672,6 @@ export default function SocialScreen() {
           // setSocialPhotos(mapped.filter((p) => p.is_public === true));
           const shuffled = shuffleArray(mapped.filter((p) => p.is_public === true));
           setSocialPhotos(shuffled);
-          setShuffledSocialPhotos(shuffled);
 
           // 친구 탭: 친구의 사진만
           if (friendProfileIds.length > 0) {
@@ -681,9 +679,8 @@ export default function SocialScreen() {
             // setFriendPhotos(
             //   mapped.filter((p) => p.user_id && friendSet.has(p.user_id)),
             // );
-            const friendFiltered = mapped.filter((p) => !p.is_public);
+            const friendFiltered = mapped.filter((p) => p.user_id && friendSet.has(p.user_id));
             setFriendPhotos(friendFiltered);
-            setShuffledFriendPhotos(shuffleArray(friendFiltered));
           } else {
             setFriendPhotos([]);
           }
@@ -703,9 +700,8 @@ export default function SocialScreen() {
 
     doFetch();
   }, [selectedDate, friendProfileIds, myProfileId]);
-
+  
   const currentPhotos = activeTab === "social" ? socialPhotos : friendPhotos;
-
   const currentQuestion =
     questionMap[toDateString(selectedDate)]?.question_text?.replace(
       /\\n/g,
@@ -758,7 +754,8 @@ export default function SocialScreen() {
   useFocusEffect(
     useCallback(() => {
       if (myProfileId) {
-        refreshFriendIds();
+        // 친구 알림만 확인, friendProfileIds는 건드리지 않음
+        checkFriendNotification(myProfileId);
       }
     }, [myProfileId]),
   );
