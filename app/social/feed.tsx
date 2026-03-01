@@ -199,6 +199,169 @@ export default function FeedScreen() {
     setSelectedTab(key);
   }, []);
 
+  // 내가 누른 이모지 ID 목록 계산 (answerId별)
+  const getMyReactedEmojiIds = useCallback(
+    (answerId: string): number[] => {
+      if (!myProfileId) return [];
+      return answerReactionsRaw
+        .filter(
+          (r) =>
+            String(r.answer_id) === answerId &&
+            r.reactor_profile_id === myProfileId,
+        )
+        .map((r) => r.emoji_id);
+    },
+    [answerReactionsRaw, myProfileId],
+  );
+
+  // 리액션 칩 클릭 핸들러 (토글 추가/삭제)
+  const handlePressReaction = useCallback(
+    async (answerId: string, reaction: any, isMyReaction: boolean) => {
+      if (!myProfileId) return;
+
+      if (isMyReaction) {
+        // 이미 내가 누른 이모지 → 삭제
+        // 낙관적 UI 업데이트
+        setAnswerReactionsRaw((prev) =>
+          prev.filter(
+            (r) =>
+              !(
+                String(r.answer_id) === answerId &&
+                r.reactor_profile_id === myProfileId &&
+                r.emoji_id === reaction.emojiId
+              ),
+          ),
+        );
+        setReactions((prev) => {
+          const prevForAnswer = prev[answerId] || [];
+          return {
+            ...prev,
+            [answerId]: prevForAnswer
+              .map((r) =>
+                r.emojiId === reaction.emojiId
+                  ? { ...r, count: r.count - 1 }
+                  : r,
+              )
+              .filter((r) => r.count > 0),
+          };
+        });
+
+        // DB 삭제
+        await supabase
+          .from("answer_reactions")
+          .delete()
+          .eq("answer_id", answerId)
+          .eq("reactor_profile_id", myProfileId);
+      } else {
+        // 내가 안 누른 이모지 → 추가 (기존 리액션이 있으면 교체)
+        const existingReaction = answerReactionsRaw.find(
+          (r) =>
+            String(r.answer_id) === answerId &&
+            r.reactor_profile_id === myProfileId,
+        );
+
+        if (existingReaction) {
+          // 기존 리액션이 있으면 교체
+          setAnswerReactionsRaw((prev) =>
+            prev.map((r) =>
+              String(r.answer_id) === answerId &&
+              r.reactor_profile_id === myProfileId
+                ? {
+                    ...r,
+                    emoji_id: reaction.emojiId,
+                    emojis: { value: reaction.emoji },
+                  }
+                : r,
+            ),
+          );
+          setReactions((prev) => {
+            const prevForAnswer = prev[answerId] || [];
+            // 기존 이모지 count 감소, 새 이모지 count 증가
+            let updated = prevForAnswer
+              .map((r) =>
+                r.emojiId === existingReaction.emoji_id
+                  ? { ...r, count: r.count - 1 }
+                  : r,
+              )
+              .filter((r) => r.count > 0);
+            const existing = updated.find(
+              (r) => r.emojiId === reaction.emojiId,
+            );
+            if (existing) {
+              updated = updated.map((r) =>
+                r.emojiId === reaction.emojiId
+                  ? { ...r, count: r.count + 1 }
+                  : r,
+              );
+            } else {
+              updated.push({
+                emojiId: reaction.emojiId,
+                emoji: reaction.emoji,
+                emojiName: reaction.emojiName || "",
+                count: 1,
+              });
+            }
+            return { ...prev, [answerId]: updated };
+          });
+
+          await supabase
+            .from("answer_reactions")
+            .update({ emoji_id: reaction.emojiId })
+            .eq("answer_id", answerId)
+            .eq("reactor_profile_id", myProfileId);
+        } else {
+          // 신규 추가
+          setAnswerReactionsRaw((prev) => [
+            ...prev,
+            {
+              answer_id: answerId,
+              reactor_profile_id: myProfileId,
+              emoji_id: reaction.emojiId,
+              emojis: { value: reaction.emoji },
+              profiles: { nickname: "나", avatar_url: null },
+            },
+          ]);
+          setReactions((prev) => {
+            const prevForAnswer = prev[answerId] || [];
+            const existing = prevForAnswer.find(
+              (r) => r.emojiId === reaction.emojiId,
+            );
+            if (existing) {
+              return {
+                ...prev,
+                [answerId]: prevForAnswer.map((r) =>
+                  r.emojiId === reaction.emojiId
+                    ? { ...r, count: r.count + 1 }
+                    : r,
+                ),
+              };
+            } else {
+              return {
+                ...prev,
+                [answerId]: [
+                  ...prevForAnswer,
+                  {
+                    emojiId: reaction.emojiId,
+                    emoji: reaction.emoji,
+                    emojiName: reaction.emojiName || "",
+                    count: 1,
+                  },
+                ],
+              };
+            }
+          });
+
+          await supabase.from("answer_reactions").insert({
+            answer_id: answerId,
+            reactor_profile_id: myProfileId,
+            emoji_id: reaction.emojiId,
+          });
+        }
+      }
+    },
+    [myProfileId, answerReactionsRaw],
+  );
+
   const filteredUsers =
     selectedTab === "all"
       ? reactionUsers
@@ -329,7 +492,7 @@ export default function FeedScreen() {
             photo_url,
             created_at,
             updated_at,
-            profiles:owner_profile_id (nickname)
+            profiles:owner_profile_id (nickname, avatar_url)
           `,
           )
           .eq("question_date", params.date)
@@ -353,6 +516,7 @@ export default function FeedScreen() {
               id: item.answer_id,
               imageUrl: item.photo_url,
               nickname: item.profiles?.nickname || "익명",
+              avatarUrl: item.profiles?.avatar_url || null,
               createdAt: formatTimeAgo(item.created_at),
               ownerProfileId: item.owner_profile_id,
               isEdited,
@@ -579,6 +743,7 @@ export default function FeedScreen() {
               answerReactionsRaw={answerReactionsRaw.filter(
                 (r) => String(r.answer_id) === String(card.id),
               )}
+              myReactedEmojiIds={getMyReactedEmojiIds(String(card.id))}
               onPressNickname={(item) => {
                 router.push({
                   pathname: "/social/user/[id]",
@@ -588,6 +753,9 @@ export default function FeedScreen() {
                   },
                 });
               }}
+              onPressReaction={(reaction, isMyReaction) =>
+                handlePressReaction(String(card.id), reaction, isMyReaction)
+              }
               onPressAddReaction={() => handlePressAddReaction(String(card.id))}
               onLongPressReaction={() =>
                 handleLongPressReaction(String(card.id))

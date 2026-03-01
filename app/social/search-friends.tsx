@@ -4,17 +4,20 @@ import { Image } from "expo-image";
 import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import { useFriendsStore } from "../store/friendsStore";
 
 /* ====== SVG 아이콘 ====== */
@@ -53,6 +56,14 @@ const CloseIcon = () => (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </Svg>
+);
+
+const MoreIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Circle cx={12} cy={5} r={1.5} fill="#0D0D0D" />
+    <Circle cx={12} cy={12} r={1.5} fill="#0D0D0D" />
+    <Circle cx={12} cy={19} r={1.5} fill="#0D0D0D" />
   </Svg>
 );
 
@@ -138,13 +149,17 @@ function SearchResultItem({
   status,
   onRequest,
   onProfilePress,
+  onDeleteFriend,
 }: {
   profile: SearchResult;
   status: RequestStatus;
   onRequest: (profile: SearchResult) => void;
   onProfilePress: (profile: SearchResult) => void;
+  onDeleteFriend: (profile: SearchResult) => void;
 }) {
-  const isDisabled = status !== "none";
+  // 친구 상태일 때는 점 세개 아이콘 표시
+  const isFriend = status === "accepted";
+  const isDisabled = status !== "none" && status !== "accepted";
 
   const buttonStyle = isDisabled
     ? styles.statusButtonGray
@@ -155,8 +170,6 @@ function SearchResultItem({
 
   const label = (() => {
     switch (status) {
-      case "accepted":
-        return "친구";
       case "pending":
         return "친구 요청됨";
       case "sending":
@@ -165,6 +178,32 @@ function SearchResultItem({
         return profile.is_public ? "친구 추가" : "친구 요청";
     }
   })();
+
+  const handleMorePress = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["취소", "삭제하기"],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            onDeleteFriend(profile);
+          }
+        },
+      );
+    } else {
+      Alert.alert("", "", [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제하기",
+          style: "destructive",
+          onPress: () => onDeleteFriend(profile),
+        },
+      ]);
+    }
+  };
 
   return (
     <Pressable
@@ -183,13 +222,23 @@ function SearchResultItem({
         </View>
         <Text style={styles.resultName}>{profile.nickname}</Text>
       </View>
-      <Pressable
-        style={buttonStyle}
-        onPress={() => onRequest(profile)}
-        disabled={isDisabled}
-      >
-        <Text style={textStyle}>{label}</Text>
-      </Pressable>
+      {isFriend ? (
+        <Pressable
+          style={styles.moreButton}
+          onPress={handleMorePress}
+          hitSlop={8}
+        >
+          <MoreIcon />
+        </Pressable>
+      ) : (
+        <Pressable
+          style={buttonStyle}
+          onPress={() => onRequest(profile)}
+          disabled={isDisabled}
+        >
+          <Text style={textStyle}>{label}</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -349,8 +398,8 @@ export default function SearchFriendsScreen() {
 
   /* ── 친구 요청 버튼 → 팝업 열기 ── */
   const handleRequestPress = (profile: SearchResult) => {
-    setSelectedProfile(profile);   // 팝업에 선택한 친구 정보 전달
-    setPopupVisible(true);         // 팝업 열기
+    setSelectedProfile(profile); // 팝업에 선택한 친구 정보 전달
+    setPopupVisible(true); // 팝업 열기
   };
 
   const handleConfirmRequest = async () => {
@@ -389,8 +438,8 @@ export default function SearchFriendsScreen() {
       // results 배열 업데이트 (FlatList 재렌더링)
       setResults((prev) =>
         prev.map((r) =>
-          r.profile_id === targetId ? { ...r, is_public: true } : r
-        )
+          r.profile_id === targetId ? { ...r, is_public: true } : r,
+        ),
       );
     } else {
       // 에러 발생 시 이전 상태로 롤백
@@ -398,8 +447,32 @@ export default function SearchFriendsScreen() {
       console.error("친구 요청 실패:", error);
     }
   };
-    
-  
+
+  /* ── 친구 삭제 ── */
+  const handleDeleteFriend = async (profile: SearchResult) => {
+    if (!myProfileId) return;
+
+    const targetId = profile.profile_id;
+
+    // follows 테이블에서 양방향 삭제
+    await supabase
+      .from("follows")
+      .delete()
+      .eq("follower_profile_id", myProfileId)
+      .eq("followee_profile_id", targetId);
+
+    await supabase
+      .from("follows")
+      .delete()
+      .eq("follower_profile_id", targetId)
+      .eq("followee_profile_id", myProfileId);
+
+    // Zustand 전역 상태 업데이트
+    useFriendsStore.getState().removeFriend(targetId);
+
+    // 로컬 상태 업데이트
+    setRelationMap((prev) => ({ ...prev, [targetId]: "none" }));
+  };
 
   /* ── 팝업 취소 ── */
   const handleCancelPopup = () => {
@@ -468,6 +541,7 @@ export default function SearchFriendsScreen() {
                   },
                 });
               }}
+              onDeleteFriend={handleDeleteFriend}
             />
           )}
           ListEmptyComponent={
@@ -592,6 +666,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.39,
     color: "#FFFFFF",
     textAlign: "center",
+  },
+
+  /* 더보기 아이콘 */
+  moreButton: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   /* 빈 상태 */

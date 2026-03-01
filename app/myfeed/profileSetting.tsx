@@ -25,48 +25,67 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
 const AVATAR_BUCKET = "avatars";
 
+const ArrowLeft = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12.5659 19.4341C12.8783 19.7465 12.8783 20.2531 12.5659 20.5655C12.2535 20.8779 11.7469 20.8779 11.4345 20.5655L3.43451 12.5655C3.12209 12.2531 3.12209 11.7465 3.43451 11.4341L11.4345 3.43412C11.7469 3.1217 12.2535 3.1217 12.5659 3.43412C12.8783 3.74654 12.8783 4.25307 12.5659 4.56549L5.93157 11.1998L19.9998 11.1998C20.4416 11.1998 20.7998 11.558 20.7998 11.9998C20.7998 12.4416 20.4416 12.7998 19.9998 12.7998L5.93157 12.7998L12.5659 19.4341Z"
+      fill="#0D0D0D"
+    />
+  </Svg>
+);
+
 export default function ProfileEditScreen() {
-    const navigation = useNavigation();
-    const profileId  = useAuthStore().profileId;
-    const router = useRouter();
+  const navigation = useNavigation();
+  const profileId = useAuthStore().profileId;
+  const router = useRouter();
 
-    const [nickname, setNickname] = useState("");
-    const [intro, setIntro] = useState("");
-    const [originalNickname, setOriginalNickname] = useState("");
-    const [originalIntro, setOriginalIntro] = useState<string | null>(null);
-    const [nicknameEdited, setNicknameEdited] = useState(false);
-    const [originalProfileImage, setOriginalProfileImage] = useState<string | null>(null);
-    const [originalVisibility, setOriginalVisibility] = useState<VisibilityOption>("public");
+  const [nickname, setNickname] = useState("");
+  const [intro, setIntro] = useState("");
+  const [originalNickname, setOriginalNickname] = useState("");
+  const [originalIntro, setOriginalIntro] = useState<string | null>(null);
+  const [nicknameEdited, setNicknameEdited] = useState(false);
+  const [originalProfileImage, setOriginalProfileImage] = useState<
+    string | null
+  >(null);
+  const [originalVisibility, setOriginalVisibility] =
+    useState<VisibilityOption>("public");
 
-    const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
-    const [loading, setLoading] = useState(false);
-    const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [status, setStatus] = useState<
+    "idle" | "checking" | "available" | "unavailable"
+  >("idle");
+  const [loading, setLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
-    const [visibility, setVisibility] = useState<VisibilityOption>("public");
+  const [visibility, setVisibility] = useState<VisibilityOption>("public");
 
-    useEffect(() => {
-        navigation.setOptions({
-        ...commonHeaderOptions,
-        headerShown: true,
-        headerShadowVisible: true,
-        headerTitle: () => <Text style={styles.headerTitle}>프로필 편집</Text>,
-        headerLeft: () => null,
-        headerRight: () => null,
-        });
-    }, [navigation]);
+  useEffect(() => {
+    navigation.setOptions({
+      ...commonHeaderOptions,
+      headerShown: true,
+      headerShadowVisible: true,
+      headerTitle: () => <Text style={styles.headerTitle}>프로필 편집</Text>,
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()}>
+          <ArrowLeft />
+        </Pressable>
+      ),
+      headerRight: () => null,
+    });
+  }, [navigation]);
 
   useEffect(() => {
     const fetchProfile = async () => {
-        if (!profileId) return;
-        try {
+      if (!profileId) return;
+      try {
         const { data, error } = await supabase
-            .from("profiles")
-            .select("nickname, avatar_url, intro, is_public")
-            .eq("profile_id", profileId)
-            .single();
+          .from("profiles")
+          .select("nickname, avatar_url, intro, is_public")
+          .eq("profile_id", profileId)
+          .single();
 
         if (error) throw error;
 
@@ -82,13 +101,12 @@ export default function ProfileEditScreen() {
         const initialVisibility = data.is_public ? "public" : "friends";
         setVisibility(initialVisibility);
         setOriginalVisibility(initialVisibility);
-
-        } catch (error) {
+      } catch (error) {
         console.error("프로필 로드 실패:", error);
-        }
+      }
     };
     fetchProfile();
-    }, [profileId]);
+  }, [profileId]);
 
   /** 프로필 이미지 선택 */
   const handlePickImage = async () => {
@@ -130,7 +148,9 @@ export default function ProfileEditScreen() {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("유저 정보를 찾을 수 없습니다.");
 
       let avatarUrl = profileImage;
@@ -140,7 +160,7 @@ export default function ProfileEditScreen() {
         const manip = await ImageManipulator.manipulateAsync(
           profileImage,
           [{ resize: { width: 320, height: 320 } }],
-          { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG }
+          { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG },
         );
 
         const base64 = await FileSystem.readAsStringAsync(manip.uri, {
@@ -190,7 +210,6 @@ export default function ProfileEditScreen() {
 
       console.log("프로필 업데이트 성공");
       router.back();
-
     } catch (error) {
       console.error("프로필 업데이트 실패:", error);
       Alert.alert("오류", "프로필 저장 중 오류가 발생했습니다.");
@@ -218,7 +237,8 @@ export default function ProfileEditScreen() {
     return validatedText;
   };
 
-  const isCheckDisabled = !nicknameEdited || !nickname.trim() || status === "checking";
+  const isCheckDisabled =
+    !nicknameEdited || !nickname.trim() || status === "checking";
   const isIntroEdited = intro !== (originalIntro ?? "");
   const isVisibilityEdited = visibility !== originalVisibility;
   const isProfileImageEdited = profileImage !== originalProfileImage;
@@ -248,7 +268,10 @@ export default function ProfileEditScreen() {
           {/* 프로필 이미지 */}
           <Pressable onPress={handlePickImage} style={styles.imageWrapper}>
             {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+              <Image
+                source={{ uri: profileImage }}
+                style={styles.profileImage}
+              />
             ) : (
               <View style={styles.profilePlaceholder} />
             )}
@@ -265,22 +288,22 @@ export default function ProfileEditScreen() {
             <View style={styles.inputRow}>
               <TextInput
                 style={[
-                    styles.input,
-                    !nicknameEdited && { color: "#C3C3C3" },
-                    nicknameEdited && { borderColor: "#5B8DEF" },
-                    status === "available" && { borderColor: "#5B8DEF" },
-                    status === "unavailable" && { borderColor: "#FF5A5A" },
+                  styles.input,
+                  !nicknameEdited && { color: "#C3C3C3" },
+                  nicknameEdited && { borderColor: "#5B8DEF" },
+                  status === "available" && { borderColor: "#5B8DEF" },
+                  status === "unavailable" && { borderColor: "#FF5A5A" },
                 ]}
                 value={nickname}
                 onChangeText={(t) => {
-                    setNickname(t);
-                    setStatus("idle");
+                  setNickname(t);
+                  setStatus("idle");
 
-                    if (t !== originalNickname) {
-                        setNicknameEdited(true);
-                    } else {
-                        setNicknameEdited(false);
-                    }
+                  if (t !== originalNickname) {
+                    setNicknameEdited(true);
+                  } else {
+                    setNicknameEdited(false);
+                  }
                 }}
                 placeholder="닉네임을 입력해주세요"
                 placeholderTextColor="#C3C3C3"
@@ -288,7 +311,7 @@ export default function ProfileEditScreen() {
                 autoCorrect={false}
                 maxLength={10}
                 returnKeyType="done"
-                />
+              />
               <Pressable
                 onPress={handleCheckNickname}
                 disabled={isCheckDisabled}
@@ -297,8 +320,8 @@ export default function ProfileEditScreen() {
                   status === "available"
                     ? styles.checkBtnActive
                     : isCheckDisabled
-                    ? styles.checkBtnDisabled
-                    : styles.checkBtnEnabled,
+                      ? styles.checkBtnDisabled
+                      : styles.checkBtnEnabled,
                 ]}
               >
                 {status === "checking" ? (
@@ -310,8 +333,8 @@ export default function ProfileEditScreen() {
                       status === "available"
                         ? { color: "#FFFFFF" }
                         : isCheckDisabled
-                        ? { color: "#FEFEFE" }
-                        : { color: "#FFFFFF" },
+                          ? { color: "#FEFEFE" }
+                          : { color: "#FFFFFF" },
                     ]}
                   >
                     중복확인
@@ -321,14 +344,18 @@ export default function ProfileEditScreen() {
             </View>
             {nicknameEdited && status === "idle" && (
               <Text style={styles.helperInfo}>
-                  최대 10글자까지 입력 가능합니다.
+                최대 10글자까지 입력 가능합니다.
               </Text>
             )}
             {status === "available" && (
-              <Text style={styles.helperSuccess}>사용 가능한 닉네임이에요!</Text>
+              <Text style={styles.helperSuccess}>
+                사용 가능한 닉네임이에요!
+              </Text>
             )}
             {status === "unavailable" && (
-              <Text style={styles.helperError}>이미 사용 중인 닉네임이에요.</Text>
+              <Text style={styles.helperError}>
+                이미 사용 중인 닉네임이에요.
+              </Text>
             )}
           </View>
 
@@ -336,34 +363,34 @@ export default function ProfileEditScreen() {
           <View style={styles.inputSection}>
             <Text style={styles.label}>한 줄 소개(선택)</Text>
             <View style={styles.inputRow}>
-                <TextInput
-                    style={[
-                        styles.input,
-                        !isIntroEdited && { color: "#C3C3C3" },
-                        isIntroEdited && { borderColor: "#5B8DEF" },
-                    ]}
-                    value={intro}
-                    onChangeText={(t) => {
-                      const validated = getValidatedIntro(t);
-                      setIntro(validated);
-                    }}
-                    placeholder={
-                        originalIntro
-                        ? "내용을 입력해주세요"
-                        : "현재 한 줄 소개가 없어요"
-                    }
-                    placeholderTextColor="#C3C3C3"
-                    maxLength={36}
-                    />
+              <TextInput
+                style={[
+                  styles.input,
+                  !isIntroEdited && { color: "#C3C3C3" },
+                  isIntroEdited && { borderColor: "#5B8DEF" },
+                ]}
+                value={intro}
+                onChangeText={(t) => {
+                  const validated = getValidatedIntro(t);
+                  setIntro(validated);
+                }}
+                placeholder={
+                  originalIntro
+                    ? "내용을 입력해주세요"
+                    : "현재 한 줄 소개가 없어요"
+                }
+                placeholderTextColor="#C3C3C3"
+                maxLength={36}
+              />
 
-                {intro !== "현재 한 줄 소개가 없어요" && (
+              {intro !== "현재 한 줄 소개가 없어요" && (
                 <Pressable
-                    onPress={() => setIntro("")}
-                    style={styles.clearButton}
+                  onPress={() => setIntro("")}
+                  style={styles.clearButton}
                 >
-                    <Ionicons name="close" size={17} color="#C3C3C3" />
+                  <Ionicons name="close" size={17} color="#C3C3C3" />
                 </Pressable>
-                )}
+              )}
             </View>
             {isIntroEdited && (
               <Text style={styles.helperLimit}>
@@ -374,10 +401,7 @@ export default function ProfileEditScreen() {
 
           {/* 공개 설정 */}
           <Text style={styles.label}>공개 설정</Text>
-          <PrivacySelector
-            value={visibility}
-            onChange={setVisibility}
-          />
+          <PrivacySelector value={visibility} onChange={setVisibility} />
         </ScrollView>
 
         {/* 하단 버튼 — ScrollView 밖에 고정 */}
@@ -385,7 +409,10 @@ export default function ProfileEditScreen() {
           <Pressable
             onPress={handleSave}
             disabled={isSaveDisabled}
-            style={[styles.completeBtn, isSaveDisabled && styles.completeBtnDisabled]}
+            style={[
+              styles.completeBtn,
+              isSaveDisabled && styles.completeBtnDisabled,
+            ]}
           >
             {loading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
@@ -407,29 +434,29 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontFamily: 'Pretendard-SemiBold',
+    fontFamily: "Pretendard-SemiBold",
     letterSpacing: -0.51,
   },
   imageWrapper: { alignSelf: "center", marginBottom: 24 },
   profileImage: { width: 100, height: 100, borderRadius: 50 },
-  profilePlaceholder: { 
-    width: 100, 
-    height: 100, 
-    borderRadius: 50, 
+  profilePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: "#C2C2C2",
- },
-  cameraIcon: { 
-    position: "absolute", 
-    bottom: 0, 
-    right: 0, 
-    width: 28, 
-    height: 28, 
-    borderRadius: 14, 
-    backgroundColor: "#5B8DEF", 
-    alignItems: "center", 
-    justifyContent: "center", 
-    borderWidth: 2, 
-    borderColor: "#5B8DEF"
+  },
+  cameraIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#5B8DEF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#5B8DEF",
   },
   deleteIcon: {
     position: "absolute",
@@ -454,29 +481,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#0F172A",
-    marginBottom: 8,   
+    marginBottom: 8,
     lineHeight: 20,
     letterSpacing: -0.42,
   },
   inputRow: { flexDirection: "row", gap: 6, alignItems: "center" },
-  input: 
-  { fontFamily: "Pretendard-Regular", 
-    flex: 1, 
-    height: 52, 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: "#E2E8F0", 
-    paddingHorizontal: 16, 
-    backgroundColor: "#FFFFFF", 
-    fontSize: 15, 
+  input: {
+    fontFamily: "Pretendard-Regular",
+    flex: 1,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    fontSize: 15,
     color: "#333",
     letterSpacing: -0.45,
   },
-  checkBtn: { height: 52, paddingHorizontal: 15, borderRadius: 12, alignItems: "center", justifyContent: "center", minWidth: 90 },
+  checkBtn: {
+    height: 52,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 90,
+  },
   checkBtnEnabled: { backgroundColor: "#5B8DEF" },
   checkBtnDisabled: { backgroundColor: "#F2F2F2" },
   checkBtnActive: { backgroundColor: "#5B8DEF" },
-  checkBtnText: { fontFamily: "Pretendard-SemiBold", fontSize: 15, letterSpacing: -0.51},
+  checkBtnText: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 15,
+    letterSpacing: -0.51,
+  },
   helperInfo: {
     fontFamily: "Pretendard-Regular",
     marginTop: 8,
@@ -491,8 +529,20 @@ const styles = StyleSheet.create({
     color: "#626262",
     letterSpacing: -0.45,
   },
-  helperSuccess: { fontFamily: "Pretendard-Regular", marginTop: 8, fontSize: 13, color: "#5B8DEF", letterSpacing: -0.45 },
-  helperError: { fontFamily: "Pretendard-Regular", marginTop: 8, fontSize: 13, color: "#FF5A5A", letterSpacing: -0.45},
+  helperSuccess: {
+    fontFamily: "Pretendard-Regular",
+    marginTop: 8,
+    fontSize: 13,
+    color: "#5B8DEF",
+    letterSpacing: -0.45,
+  },
+  helperError: {
+    fontFamily: "Pretendard-Regular",
+    marginTop: 8,
+    fontSize: 13,
+    color: "#FF5A5A",
+    letterSpacing: -0.45,
+  },
   clearButton: {
     position: "absolute",
     right: 12,
@@ -502,7 +552,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   footer: { paddingHorizontal: 24, paddingBottom: 20 },
-  completeBtn: { height: 56, borderRadius: 12, backgroundColor: "#5B8DEF", alignItems: "center", justifyContent: "center" },
+  completeBtn: {
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: "#5B8DEF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   completeBtnDisabled: { backgroundColor: "#F2F2F2" },
-  completeBtnText: { fontFamily: "Pretendard-SemiBold", fontSize: 17, color: "#FFFFFF", letterSpacing: -0.51 },
+  completeBtnText: {
+    fontFamily: "Pretendard-SemiBold",
+    fontSize: 17,
+    color: "#FFFFFF",
+    letterSpacing: -0.51,
+  },
 });

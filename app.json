@@ -2,7 +2,7 @@
   "expo": {
     "name": "dearday",
     "slug": "dearday",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dearday",
@@ -20,9 +20,7 @@
         "NSLocationWhenInUseUsageDescription": "기록에 장소를 자동으로 남겨, 추억의 순간을 더 생생하게 기억할 수 있어요. 예: 촬영 위치의 주소가 자동 입력."
       },
       "usesAppleSignIn": true,
-      "assetBundlePatterns": [
-        "**/*"
-      ]
+      "assetBundlePatterns": ["**/*"]
     },
     "android": {
       "adaptiveIcon": {
@@ -37,9 +35,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "assetBundlePatterns": [
-        "**/*"
-      ]
+      "assetBundlePatterns": ["**/*"]
     },
     "plugins": [
       "expo-router",
@@ -64,9 +60,7 @@
           "recordAudioAndroid": false
         }
       ],
-      [
-        "expo-location"
-      ],
+      ["expo-location"],
       [
         "expo-media-library",
         {
@@ -80,6 +74,10 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
+      ["expo-apple-authentication"],
+      ["expo-image-picker"],
+      ["expo-video"],
+      ["expo-av"]
       [
         "expo-apple-authentication"
       ],

@@ -61,6 +61,7 @@ const SearchIcon = () => (
       strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
+      ㅍ
     />
   </Svg>
 );
@@ -279,6 +280,7 @@ export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const [myNickname, setMyNickname] = useState("");
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
+  const [isPublic, setIsPublic] = useState<boolean>(false); // 공개 계정 여부
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [friendRelations, setFriendRelations] = useState<FriendRelation[]>([]);
   const zustandFriends = useFriendsStore((state) => state.friends);
@@ -299,15 +301,17 @@ export default function FriendsScreen() {
     } = await supabase.auth.getUser();
     if (!user) return null;
 
+    // 공개 계정 여부도 함께 조회
     const { data, error } = await supabase
       .from("profiles")
-      .select("profile_id, nickname")
+      .select("profile_id, nickname, is_public")
       .eq("uid", user.id)
       .single();
 
     if (!error && data) {
       setMyNickname(data.nickname ?? "");
       setMyProfileId(data.profile_id);
+      setIsPublic(!!data.is_public); // 공개 계정 여부 저장
       return data.profile_id as number;
     }
     return null;
@@ -633,7 +637,8 @@ export default function FriendsScreen() {
       <SearchBarButton />
       <MyIdCard myId={myNickname} />
 
-      {friendRequests.length > 0 && (
+      {/* 친구 요청: 공개 계정일 때만 노출 */}
+      {isPublic && friendRequests.length > 0 && (
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>친구 요청</Text>
