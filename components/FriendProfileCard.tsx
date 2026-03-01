@@ -33,6 +33,8 @@ interface FriendProfileCardProps {
   sentFollow?: FollowRelation | null;
   // 내가 받은 요청 (followee = 나)
   receivedFollow?: FollowRelation | null;
+  // 상대방이 공개 계정인지 여부
+  isTargetPublic?: boolean;
   isProcessing?: boolean;
   onSendRequest?: () => void;
   onCancelRequest?: () => void;
@@ -55,6 +57,7 @@ export default function FriendProfileCard({
   myProfileId,
   sentFollow,
   receivedFollow,
+  isTargetPublic = true,
   isProcessing = false,
   onSendRequest,
   onCancelRequest,
@@ -65,7 +68,8 @@ export default function FriendProfileCard({
   // follows 테이블 데이터 기반으로 관계 상태 판단
   const isFriend =
     sentFollow?.status === "accepted" || receivedFollow?.status === "accepted";
-  const hasSentRequest = sentFollow?.status === "pending";
+  // 비공개 계정에만 pending 상태 표시 (공개 계정은 바로 친구가 됨)
+  const hasSentRequest = !isTargetPublic && sentFollow?.status === "pending";
   const hasReceivedRequest = receivedFollow?.status === "pending";
 
   const handleMorePress = () => {
