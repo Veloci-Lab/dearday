@@ -93,16 +93,6 @@ interface EmojiPickerSheetProps {
   onClose?: () => void;
 }
 
-/* ====== 기본 이모지 목록 (자주 사용한 이모지 - 임시) ====== */
-const DEFAULT_EMOJIS: EmojiOption[] = [
-  { emojiId: 101, emoji: "👍", name: "최고" },
-  { emojiId: 102, emoji: "🥹", name: "감동" },
-  { emojiId: 103, emoji: "😀", name: "웃음" },
-  { emojiId: 104, emoji: "🥺", name: "애교" },
-  { emojiId: 105, emoji: "💀", name: "해골" },
-  { emojiId: 106, emoji: "😭", name: "울음" },
-];
-
 /* ====== 메인 컴포넌트 ====== */
 const EmojiPickerSheet = forwardRef<BottomSheet, EmojiPickerSheetProps>(
   ({ onSelectEmoji, onClose }, ref) => {
@@ -335,21 +325,5 @@ const styles = StyleSheet.create({
   deardayEmojiImage: {
     width: DEARDAY_IMAGE_SIZE,
     height: DEARDAY_IMAGE_SIZE,
-  },
-
-  /* 일반 이모지 그리드 */
-  emojiGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  emojiButton: {
-    width: 48,
-    height: 48,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emojiText: {
-    fontSize: 32,
   },
 });
