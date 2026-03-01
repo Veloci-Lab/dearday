@@ -101,6 +101,7 @@ export default function AnswerViewerScreen() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
   const [nickname, setNickname] = useState<string>("사용자");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isMyFeed, setIsMyFeed] = useState<boolean>(true);
   const [initialIndex, setInitialIndex] = useState(0);
   const flatListRef = useRef<FlatList<Answer>>(null);
@@ -275,11 +276,14 @@ export default function AnswerViewerScreen() {
 
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("nickname")
+          .select("nickname, avatar_url")
           .eq("profile_id", profileId)
           .single();
 
-        if (profileData) setNickname(profileData.nickname);
+        if (profileData) {
+          setNickname(profileData.nickname);
+          setAvatarUrl(profileData.avatar_url);
+        }
 
         const { data: myProfile } = await supabase.auth.getUser();
         if (myProfile?.user?.id) {
@@ -442,6 +446,7 @@ export default function AnswerViewerScreen() {
             id: item.answer_id,
             imageUrl: item.photo_url,
             nickname: nickname,
+            avatarUrl: avatarUrl,
             createdAt: formatTime(item.updated_at),
             ownerProfileId: Number(profileId),
             isEdited,
