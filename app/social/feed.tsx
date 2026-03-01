@@ -622,41 +622,82 @@ export default function FeedScreen() {
         return;
       }
 
-      setAnswerReactionsRaw((prev) => [
-        ...prev,
-        {
-          answer_id: selectedAnswerId,
-          reactor_profile_id: myProfileId,
-          emoji_id: emoji.emojiId,
-          emojis: { value: emoji.emoji, name: emoji.name },
-          profiles: { nickname: "나", avatar_url: null },
-        },
-      ]);
+      // 내 기존 반응이 있는지 확인
+      const myExistingReaction = answerReactionsRaw.find(
+        (r) =>
+          r.answer_id === selectedAnswerId &&
+          r.reactor_profile_id === myProfileId,
+      );
+      const oldEmojiId = myExistingReaction?.emoji_id;
+
+      // 기존 반응이 있으면 교체, 없으면 추가
+      setAnswerReactionsRaw((prev) => {
+        if (myExistingReaction) {
+          // 기존 반응을 새 이모지로 교체
+          return prev.map((r) =>
+            r.answer_id === selectedAnswerId &&
+            r.reactor_profile_id === myProfileId
+              ? {
+                  ...r,
+                  emoji_id: emoji.emojiId,
+                  emojis: { value: emoji.emoji, name: emoji.name },
+                }
+              : r,
+          );
+        } else {
+          // 새 반응 추가
+          return [
+            ...prev,
+            {
+              answer_id: selectedAnswerId,
+              reactor_profile_id: myProfileId,
+              emoji_id: emoji.emojiId,
+              emojis: { value: emoji.emoji, name: emoji.name },
+              profiles: { nickname: "나", avatar_url: null },
+            },
+          ];
+        }
+      });
 
       setReactions((prev) => {
         const prevForAnswer = prev[selectedAnswerId] || [];
-        const existing = prevForAnswer.find((r) => r.emojiId === emoji.emojiId);
-        if (existing) {
-          return {
-            ...prev,
-            [selectedAnswerId]: prevForAnswer.map((r) =>
-              r.emojiId === emoji.emojiId ? { ...r, count: r.count + 1 } : r,
-            ),
-          };
-        } else {
-          return {
-            ...prev,
-            [selectedAnswerId]: [
-              ...prevForAnswer,
-              {
-                emojiId: emoji.emojiId,
-                emoji: emoji.emoji,
-                emojiName: emoji.name,
-                count: 1,
-              },
-            ],
-          };
+
+        let updatedReactions = [...prevForAnswer];
+
+        // 기존 반응이 있으면 해당 이모지 count 감소
+        if (oldEmojiId && oldEmojiId !== emoji.emojiId) {
+          updatedReactions = updatedReactions
+            .map((r) =>
+              r.emojiId === oldEmojiId ? { ...r, count: r.count - 1 } : r,
+            )
+            .filter((r) => r.count > 0); // count가 0이면 제거
         }
+
+        // 새 이모지 count 증가 또는 추가
+        const existingNew = updatedReactions.find(
+          (r) => r.emojiId === emoji.emojiId,
+        );
+        if (existingNew) {
+          // 기존 반응과 같은 이모지면 count 변경 없음 (이미 반응한 것)
+          if (oldEmojiId === emoji.emojiId) {
+            return { ...prev, [selectedAnswerId]: updatedReactions };
+          }
+          updatedReactions = updatedReactions.map((r) =>
+            r.emojiId === emoji.emojiId ? { ...r, count: r.count + 1 } : r,
+          );
+        } else {
+          updatedReactions = [
+            ...updatedReactions,
+            {
+              emojiId: emoji.emojiId,
+              emoji: emoji.emoji,
+              emojiName: emoji.name,
+              count: 1,
+            },
+          ];
+        }
+
+        return { ...prev, [selectedAnswerId]: updatedReactions };
       });
 
       emojiSheetRef.current?.close();
@@ -686,14 +727,11 @@ export default function FeedScreen() {
           // 다른 에러는 그대로 출력
           console.error("insert 오류:", insertError);
         }
-
-        emojiSheetRef.current?.close();
-        fetchReactions();
       } catch (error) {
         console.error("리액션 추가 오류:", error);
       }
     },
-    [selectedAnswerId, myProfileId, fetchReactions],
+    [selectedAnswerId, myProfileId, answerReactionsRaw],
   );
 
   return (

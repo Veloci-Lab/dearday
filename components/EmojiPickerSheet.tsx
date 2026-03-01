@@ -173,51 +173,8 @@ const EmojiPickerSheet = forwardRef<BottomSheet, EmojiPickerSheetProps>(
       setSearchText("");
     };
 
-    // 같은 유저가 같은 피드에 이미 반응한 경우, 기존 반응을 update(이모지 변경)
-    const handleSelectEmoji = async (emojiOption: EmojiOption) => {
-      try {
-        const answerId = global.selectedAnswerId;
-        const reactorProfileId = global.myProfileId;
-        if (!answerId || !reactorProfileId) {
-          onSelectEmoji(emojiOption);
-          return;
-        }
-        // 기존 반응이 있는지 확인
-        const { data: existing, error: selectError } = await supabase
-          .from("answer_reactions")
-          .select("*")
-          .eq("answer_id", answerId)
-          .eq("reactor_profile_id", reactorProfileId)
-          .maybeSingle();
-        if (selectError) {
-          console.error("기존 반응 조회 오류:", selectError);
-        }
-        if (existing) {
-          // 이미 반응한 경우: emoji_id만 update
-          const { error: updateError } = await supabase
-            .from("answer_reactions")
-            .update({ emoji_id: emojiOption.emojiId })
-            .eq("answer_id", answerId)
-            .eq("reactor_profile_id", reactorProfileId);
-          if (updateError) {
-            console.error("이모지 변경 오류:", updateError);
-          }
-        } else {
-          // 없으면 insert
-          const { error: insertError } = await supabase
-            .from("answer_reactions")
-            .insert({
-              answer_id: answerId,
-              reactor_profile_id: reactorProfileId,
-              emoji_id: emojiOption.emojiId,
-            });
-          if (insertError) {
-            console.error("이모지 저장 오류:", insertError);
-          }
-        }
-      } catch (e) {
-        console.error("supabase 오류:", e);
-      }
+    // 이모지 선택 핸들러 - DB 작업은 부모 컴포넌트에서 처리
+    const handleSelectEmoji = (emojiOption: EmojiOption) => {
       onSelectEmoji(emojiOption);
     };
 
@@ -281,22 +238,6 @@ const EmojiPickerSheet = forwardRef<BottomSheet, EmojiPickerSheetProps>(
                     </Pressable>
                   );
                 })}
-              </View>
-            </View>
-
-            {/* 자주 사용한 이모지 섹션 */}
-            <View style={styles.emojiSection}>
-              <Text style={styles.sectionTitle}>자주 사용한 이모지</Text>
-              <View style={styles.emojiGrid}>
-                {DEFAULT_EMOJIS.map((emojiOption) => (
-                  <Pressable
-                    key={emojiOption.emojiId}
-                    style={styles.emojiButton}
-                    onPress={() => handleSelectEmoji(emojiOption)}
-                  >
-                    <Text style={styles.emojiText}>{emojiOption.emoji}</Text>
-                  </Pressable>
-                ))}
               </View>
             </View>
           </ScrollView>

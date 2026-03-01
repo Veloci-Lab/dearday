@@ -584,7 +584,7 @@ export default function AnswerViewerScreen() {
                   updatedReactions[existingReactionIndex] = {
                     ...updatedReactions[existingReactionIndex],
                     emoji_id: emoji.emojiId,
-                    emojis: { value: emoji.emojiUrl },
+                    emojis: { value: emoji.emoji },
                   };
                   return { ...a, answer_reactions: updatedReactions };
                 } else {
