@@ -87,7 +87,7 @@ export default function SignInScreen() {
   };
 
   const player = useVideoPlayer(
-    `${SUPABASE_URL}/storage/v1/object/public/videos/splash.mp4`,
+    `${SUPABASE_URL}/storage/v1/object/public/videos/splash_fixed.mp4`,
     (p) => {
       p.muted = true;
       p.loop = false;

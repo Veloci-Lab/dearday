@@ -8,7 +8,7 @@ export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
   const hasFinished = useRef(false);
 
   const player = useVideoPlayer(
-    `${SUPABASE_URL}/storage/v1/object/public/videos/splash.mp4`,
+    `${SUPABASE_URL}/storage/v1/object/public/videos/splash_fixed.mp4`,
     (player) => {
       player.loop = false;
       player.play();
