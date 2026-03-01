@@ -18,7 +18,8 @@ export interface ReactionLongPressPayload {
 interface ReactionBarProps {
   answerId: string;
   reactions: ReactionItem[];
-  onPressReaction?: (reaction: ReactionItem) => void;
+  myReactedEmojiIds?: number[]; // 내가 누른 이모지 ID 목록
+  onPressReaction?: (reaction: ReactionItem, isMyReaction: boolean) => void;
   onPressMore?: () => void;
   onPressAdd?: () => void;
   onLongPress?: (payload: ReactionLongPressPayload) => void; // ← Sheet 열기를 부모로 위임
@@ -28,10 +29,12 @@ interface ReactionBarProps {
 /* ====== 개별 리액션 칩 ====== */
 function ReactionChip({
   reaction,
+  isMyReaction,
   onPress,
   onLongPress,
 }: {
   reaction: ReactionItem;
+  isMyReaction?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
 }) {
@@ -44,7 +47,10 @@ function ReactionChip({
 
   return (
     <Pressable
-      style={styles.reactionChip}
+      style={[
+        styles.reactionChip,
+        isMyReaction && styles.reactionChipHighlighted,
+      ]}
       onPress={onPress}
       onLongPress={onLongPress}
     >
@@ -64,7 +70,9 @@ function ReactionChip({
       ) : (
         <Text style={styles.emoji}>{reaction.emoji}</Text>
       )}
-      <Text style={styles.count}>{reaction.count}</Text>
+      <Text style={[styles.count, isMyReaction && styles.countHighlighted]}>
+        {reaction.count}
+      </Text>
     </Pressable>
   );
 }
@@ -101,6 +109,7 @@ function AddButton({ onPress }: { onPress?: () => void }) {
 export default function ReactionBar({
   answerId,
   reactions,
+  myReactedEmojiIds = [],
   onPressReaction,
   onPressMore,
   onPressAdd,
@@ -121,16 +130,20 @@ export default function ReactionBar({
       )}
 
       {/* 리액션 칩들 */}
-      {visibleReactions.map((reaction) => (
-        <ReactionChip
-          key={reaction.emojiId}
-          reaction={reaction}
-          onPress={() => onPressReaction?.(reaction)}
-          onLongPress={() =>
-            onLongPress?.({ answerId, initialTab: String(reaction.emojiId) })
-          }
-        />
-      ))}
+      {visibleReactions.map((reaction) => {
+        const isMyReaction = myReactedEmojiIds.includes(reaction.emojiId);
+        return (
+          <ReactionChip
+            key={reaction.emojiId}
+            reaction={reaction}
+            isMyReaction={isMyReaction}
+            onPress={() => onPressReaction?.(reaction, isMyReaction)}
+            onLongPress={() =>
+              onLongPress?.({ answerId, initialTab: String(reaction.emojiId) })
+            }
+          />
+        );
+      })}
 
       {/* 이모지 추가 버튼 */}
       <AddButton onPress={onPressAdd} />
@@ -159,6 +172,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#F2F2F2",
   },
+  reactionChipHighlighted: {
+    backgroundColor: "#E3EDFF",
+    borderWidth: 1,
+    borderColor: "#5B8DEF",
+  },
   emoji: {
     fontSize: 18,
   },
@@ -170,6 +188,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.42,
     color: "#0D0D0D",
     textAlign: "center",
+  },
+  countHighlighted: {
+    color: "#5B8DEF",
   },
   moreButton: {
     flexDirection: "row",

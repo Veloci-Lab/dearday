@@ -300,17 +300,21 @@ export default function UserFeedScreen() {
   const handleSendRequest = async () => {
     if (!myProfileId || !profileId) return;
     setIsProcessing(true);
+
+    // 공개 계정이면 바로 accepted, 비공개 계정이면 pending
+    const status = isPublic ? "accepted" : "pending";
+
     const { error } = await supabase.from("follows").insert({
       follower_profile_id: myProfileId,
       followee_profile_id: profileId,
-      status: "pending",
+      status,
     });
     if (error) Alert.alert("오류", "친구 요청에 실패했어요.");
     else
       setSentFollow({
         follower_profile_id: myProfileId,
         followee_profile_id: profileId,
-        status: "pending",
+        status,
       });
     setIsProcessing(false);
   };
@@ -455,6 +459,7 @@ export default function UserFeedScreen() {
               myProfileId={myProfileId}
               sentFollow={sentFollow}
               receivedFollow={receivedFollow}
+              isTargetPublic={isPublic}
               isProcessing={isProcessing}
               onSendRequest={handleSendRequest}
               onCancelRequest={handleCancelRequest}
@@ -561,7 +566,7 @@ export default function UserFeedScreen() {
               )}
             </View>
 
-            {activeTab === "grid" && photos.length > 0 && <EndOfFeed />}
+            {activeTab === "grid" && photos.length >= 12 && <EndOfFeed />}
           </>
         )}
       </ScrollView>

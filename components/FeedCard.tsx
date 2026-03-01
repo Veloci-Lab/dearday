@@ -12,6 +12,7 @@ export interface FeedCardData {
   id: string;
   imageUrl: string;
   nickname: string;
+  avatarUrl?: string | null;
   createdAt: string;
   ownerProfileId: number;
   reactions?: ReactionItem[];
@@ -23,9 +24,10 @@ interface FeedCardProps {
   data: FeedCardData;
   reactions: ReactionItem[]; // ← 별도 prop으로 받기
   answerReactionsRaw?: any[];
+  myReactedEmojiIds?: number[]; // 내가 누른 이모지 ID 목록
   onPress?: () => void;
   onPressNickname?: (data: FeedCardData) => void;
-  onPressReaction?: (reaction: ReactionItem) => void;
+  onPressReaction?: (reaction: ReactionItem, isMyReaction: boolean) => void;
   onPressMoreReactions?: () => void;
   onPressAddReaction?: () => void;
   onLongPressReaction?: (payload: ReactionLongPressPayload) => void;
@@ -35,6 +37,7 @@ export default function FeedCard({
   data,
   reactions,
   answerReactionsRaw,
+  myReactedEmojiIds = [],
   onPress,
   onPressNickname,
   onPressReaction,
@@ -57,15 +60,31 @@ export default function FeedCard({
 
       <View style={styles.infoContainer}>
         <View style={styles.userInfo}>
-          <Pressable onPress={() => onPressNickname?.(data)} hitSlop={4}>
-            <Text style={styles.nickname}>{data.nickname}</Text>
+          <Pressable
+            style={styles.userProfile}
+            onPress={() => onPressNickname?.(data)}
+            hitSlop={4}
+          >
+            <View style={styles.avatarContainer}>
+              {data.avatarUrl ? (
+                <Image
+                  source={{ uri: data.avatarUrl }}
+                  style={styles.avatarImage}
+                  cachePolicy="disk"
+                />
+              ) : null}
+            </View>
+            <View style={styles.userTextInfo}>
+              <Text style={styles.nickname}>{data.nickname}</Text>
+              <Text style={styles.createdAt}>{data.createdAt}</Text>
+            </View>
           </Pressable>
-          <Text style={styles.createdAt}>{data.createdAt}</Text>
         </View>
 
         <ReactionBar
           answerId={data.id}
           reactions={reactions}
+          myReactedEmojiIds={myReactedEmojiIds}
           onPressReaction={onPressReaction}
           onPressMore={onPressMoreReactions}
           onPressAdd={onPressAddReaction}
@@ -94,10 +113,31 @@ const styles = StyleSheet.create({
     minHeight: 32,
   },
   userInfo: {
-    flexDirection: "column",
-    gap: 1,
+    flexDirection: "row",
+    alignItems: "center",
     flexShrink: 0,
     marginRight: 36,
+  },
+  userProfile: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  avatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E8E8E8",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  userTextInfo: {
+    flexDirection: "column",
+    gap: 1,
   },
   nickname: {
     fontFamily: "Pretendard-SemiBold",

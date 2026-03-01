@@ -761,6 +761,10 @@ export default function SocialScreen() {
     });
   };
 
+  // 사진이 충분히 많아서 스크롤이 필요한 경우에만 EndOfFeed 표시
+  // 대략 3열 그리드에서 4행(12개) 이상이면 스크롤 필요
+  const showEndOfFeed = currentPhotos.length >= 12;
+
   return (
     <View style={styles.container}>
       <Animated.ScrollView
@@ -773,10 +777,7 @@ export default function SocialScreen() {
           { useNativeDriver: false },
         )}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
         {/* 그래디언트 배경: 스크롤 콘텐츠 안에서 absolute, 화면 높이만큼 */}
@@ -849,7 +850,7 @@ export default function SocialScreen() {
                 shuffleKey={shuffleKey}
               />
             </View>
-            <EndOfFeed />
+            {showEndOfFeed && <EndOfFeed />}
           </>
         ) : activeTab === "friend" ? (
           <>
