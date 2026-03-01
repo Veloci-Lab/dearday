@@ -6,17 +6,17 @@ import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
-  FlatList,
   Image,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -57,15 +57,6 @@ type ListItem = GridItem | QuestionItem;
 
 /* ---------------- utils ---------------- */
 
-const generateRandomRatios = (count: number) => {
-  const ratios = [0.8, 1, 1.3, 1.6];
-  return Array.from(
-    { length: count },
-    () => ratios[Math.floor(Math.random() * ratios.length)],
-  );
-};
-
-// ✅ 통일된 날짜 포맷 (점 사이 공백 있게)
 function formatDate(dateString: string): string {
   if (!dateString) return "";
   const d = new Date(dateString);
@@ -237,6 +228,11 @@ const Tile = ({
   );
 };
 
+// 프로필 섹션 높이 (paddingTop:12 + marginTop:12 + padding:12*2 + image:50 + paddingBottom:12 정도)
+const PROFILE_SECTION_HEIGHT = 110;
+// 탭 영역 높이 (paddingVertical:20*2 + Toggle 높이 약 36)
+const TAB_SECTION_HEIGHT = 76;
+
 const MyPage = () => {
   const navigation = useNavigation();
   const router = useRouter();
@@ -245,26 +241,23 @@ const MyPage = () => {
 
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [layoutRatios, setLayoutRatios] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [questionsData, setQuestionsData] = useState<QuestionItem[]>([]);
   const [activeTab, setActiveTab] = useState<"grid" | "question">("grid");
+  const [blocks, setBlocks] = useState<GridItem[]>([]);
+
+  // 스크롤 추적용 (그리드 탭에서만 사용)
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // FlatList ref for scrollToTop
+  const flatListRef = useRef<any>(null);
+  // 프로필 섹션이 사라지는 threshold
+  const profileThreshold = PROFILE_SECTION_HEIGHT;
 
   const cacheKey = `my_feed_${profileId}`;
   const profileCacheKey = `profile_${profileId}`;
-
-  const feedItems: FeedItem[] = answers.map((a) => ({
-    id: a.answer_id,
-    imageUrl: a.photo_url,
-    dateISO: a.question_date,
-    place: a.caption ?? "",
-  }));
-
-  //새로고침 할 때마다 랜덤하게 블록 패턴 생성
-  const [blocks, setBlocks] = useState<GridItem[]>([]);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -322,7 +315,6 @@ const MyPage = () => {
     if (profileId) fetchAnswers(0);
   }, [profileId]);
 
-  // ✅ N+1 제거: join으로 한 번에 가져오기
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoading(true);
@@ -353,12 +345,12 @@ const MyPage = () => {
 
   /* ---------------- handlers ---------------- */
 
-  const [patternSeed, setPatternSeed] = useState(0);
   const handleRefresh = async () => {
     setRefreshing(true);
     setPage(0);
-    await fetchAnswers(0); 
+    await fetchAnswers(0);
   };
+
   const handleLoadMore = () => {
     if (!loading && hasMore) {
       const next = page + 1;
@@ -410,7 +402,6 @@ const MyPage = () => {
     );
   };
 
-  // ✅ 통일된 QuestionTile
   const QuestionTile = ({
     index,
     answer,
@@ -429,17 +420,13 @@ const MyPage = () => {
         })
       }
     >
-      {/* ✅ 썸네일 40x40 */}
       <View style={styles.questionThumbWrapper}>
         <Image
           source={{ uri: answer.photo_url }}
           style={styles.questionThumb}
         />
       </View>
-
-      {/* 텍스트 영역 */}
       <View style={styles.questionTextWrapper}>
-        {/* ✅ 질문 한 줄 + ... 처리 */}
         <Text
           style={styles.questionListText}
           numberOfLines={1}
@@ -448,24 +435,55 @@ const MyPage = () => {
           <Text style={styles.questionNumber}>Q{index + 1}. </Text>
           {question?.question_text ?? ""}
         </Text>
-        {/* ✅ 날짜 포맷 통일 */}
         <Text style={styles.questionDate}>
           {formatDate(answer.question_date)}
         </Text>
       </View>
-
-      {/* ✅ 화살표 왼쪽 14 간격 */}
       <View style={{ marginLeft: 14 }}>
         <ArrowIcon width={13.333} height={20} />
       </View>
     </Pressable>
   );
 
-  const currentListData = activeTab === "grid" ? blocks : questionsData;
   const HEADER_HEIGHT = insets.top + 18 + 22 + 18;
+
+  // 그리드 탭에서 스크롤 시 탭이 헤더 아래 고정되는 위치
+  // 탭 sticky top = 헤더 높이
+  const stickyTabTop = HEADER_HEIGHT;
+
+  // 그리드 탭에서 프로필 opacity/translate 애니메이션
+  const profileOpacity = scrollY.interpolate({
+    inputRange: [0, profileThreshold * 0.6, profileThreshold],
+    outputRange: [1, 0.3, 0],
+    extrapolate: "clamp",
+  });
+  const profileTranslateY = scrollY.interpolate({
+    inputRange: [0, profileThreshold],
+    outputRange: [0, -20],
+    extrapolate: "clamp",
+  });
+
+  // 헤더 하단에 탭이 고정되어야 하는 시점 (그리드 탭 전용)
+  // 탭이 헤더에 붙어야 하는 scrollY 값 = 프로필 높이
+  // 우리는 absolute positioned sticky tab bar를 사용
+  const stickyTabOpacity = scrollY.interpolate({
+    inputRange: [profileThreshold * 0.8, profileThreshold],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const currentListData = activeTab === "grid" ? blocks : questionsData;
+
+  // 탭 변경 시 scrollY 리셋 + 최상단 이동
+  const handleTabChange = (key: string) => {
+    setActiveTab(key as "grid" | "question");
+    scrollY.setValue(0);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  };
 
   return (
     <View style={styles.container}>
+      {/* 고정 헤더 */}
       <View
         style={[
           styles.headerOverlay,
@@ -473,12 +491,40 @@ const MyPage = () => {
         ]}
       >
         <View style={styles.headerContent}>
-          {/* <View style={styles.headerSpacer} /> */}
           <Text style={styles.headerTitle}>나의 피드</Text>
         </View>
       </View>
+
+      {/* 그리드 탭에서만: 스크롤 후 탭 고정 영역 */}
+      {activeTab === "grid" && (
+        <Animated.View
+          style={[
+            styles.stickyTabBar,
+            {
+              top: stickyTabTop,
+              opacity: stickyTabOpacity,
+            },
+          ]}
+          pointerEvents={
+            // 투명할 때 터치 막기
+            undefined
+          }
+        >
+          <Toggle
+            options={[
+              { key: "grid", label: "그리드" },
+              { key: "question", label: "질문" },
+            ]}
+            activeKey={activeTab}
+            onChangeKey={handleTabChange}
+          />
+        </Animated.View>
+      )}
+
       <View style={{ height: HEADER_HEIGHT }} />
-      <FlatList<ListItem>
+
+      <Animated.FlatList<ListItem>
+        ref={flatListRef}
         data={currentListData as ListItem[]}
         keyExtractor={(item, index) => {
           if (activeTab === "grid") return `block-${index}`;
@@ -486,13 +532,21 @@ const MyPage = () => {
           return q.answer.answer_id;
         }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
+        onScroll={
+          activeTab === "grid"
+            ? Animated.event(
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                { useNativeDriver: true },
+              )
+            : undefined
         }
-        ListFooterComponent={currentListData.length > 0 ? <ListFooter /> : null}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        ListFooterComponent={
+          currentListData.length > 0 ? <ListFooter /> : null
+        }
         ListEmptyComponent={<ListEmptyView />}
         contentContainerStyle={{
           paddingBottom: 12,
@@ -500,46 +554,55 @@ const MyPage = () => {
         }}
         ListHeaderComponent={
           <>
-            <View style={styles.profileWrapper}>
-              <View style={styles.profileSection}>
-                <View style={styles.profileContent}>
-                  {profile?.avatar_url ? (
-                    <Image
-                      source={{ uri: profile.avatar_url }}
-                      style={styles.profileImage}
-                    />
-                  ) : (
-                    <View style={styles.profilePlaceholder} />
-                  )}
-                  <View
-                    style={{
-                      justifyContent: profile?.intro ? "flex-start" : "center",
-                    }}
-                  >
-                    <Text style={styles.profileName}>{profile?.nickname}</Text>
-                    {profile?.intro && (
-                      <Text style={styles.profileBio}>{profile.intro}</Text>
-                    )}
-                  </View>
-                </View>
-                <Pressable
-                  onPress={() => router.push("/myfeed/profileSetting")}
-                  style={styles.editButton}
-                >
-                  <EditIcon width={20} height={20} />
-                </Pressable>
-              </View>
-            </View>
-            <View style={styles.tabsWrapper}>
-              <Toggle
-                options={[
-                  { key: "grid", label: "그리드" },
-                  { key: "question", label: "질문" },
-                ]}
-                activeKey={activeTab}
-                onChangeKey={(key) => setActiveTab(key as "grid" | "question")}
+            {/* 프로필: 그리드 탭에서는 스크롤 시 사라짐 */}
+            {activeTab === "grid" ? (
+              <Animated.View
+                style={{
+                  opacity: profileOpacity,
+                  transform: [{ translateY: profileTranslateY }],
+                }}
+              >
+                <ProfileSection
+                  profile={profile}
+                  onEditPress={() => router.push("/myfeed/profileSetting")}
+                />
+              </Animated.View>
+            ) : (
+              <ProfileSection
+                profile={profile}
+                onEditPress={() => router.push("/myfeed/profileSetting")}
               />
-            </View>
+            )}
+
+            {/* 탭 버튼: 그리드 탭에서는 스크롤 시 사라짐 (sticky tab bar가 대신 보임) */}
+            {activeTab === "grid" ? (
+              <Animated.View
+                style={[
+                  styles.tabsWrapper,
+                  { opacity: profileOpacity },
+                ]}
+              >
+                <Toggle
+                  options={[
+                    { key: "grid", label: "그리드" },
+                    { key: "question", label: "질문" },
+                  ]}
+                  activeKey={activeTab}
+                  onChangeKey={handleTabChange}
+                />
+              </Animated.View>
+            ) : (
+              <View style={styles.tabsWrapper}>
+                <Toggle
+                  options={[
+                    { key: "grid", label: "그리드" },
+                    { key: "question", label: "질문" },
+                  ]}
+                  activeKey={activeTab}
+                  onChangeKey={handleTabChange}
+                />
+              </View>
+            )}
           </>
         }
         renderItem={({ item, index }) => {
@@ -598,6 +661,46 @@ const MyPage = () => {
   );
 };
 
+/* ---------------- ProfileSection 분리 ---------------- */
+const ProfileSection = ({
+  profile,
+  onEditPress,
+}: {
+  profile: Profile | null;
+  onEditPress: () => void;
+}) => {
+  const router = useRouter();
+  return (
+    <View style={styles.profileWrapper}>
+      <View style={styles.profileSection}>
+        <View style={styles.profileContent}>
+          {profile?.avatar_url ? (
+            <Image
+              source={{ uri: profile.avatar_url }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profilePlaceholder} />
+          )}
+          <View
+            style={{
+              justifyContent: profile?.intro ? "flex-start" : "center",
+            }}
+          >
+            <Text style={styles.profileName}>{profile?.nickname}</Text>
+            {profile?.intro && (
+              <Text style={styles.profileBio}>{profile.intro}</Text>
+            )}
+          </View>
+        </View>
+        <Pressable onPress={onEditPress} style={styles.editButton}>
+          <EditIcon width={20} height={20} />
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
 export default MyPage;
 
 /* ---------------- styles ---------------- */
@@ -622,7 +725,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerSpacer: { width: 24 },
   headerTitle: {
     fontFamily: "Pretendard-SemiBold",
     fontSize: 17,
@@ -630,6 +732,16 @@ const styles = StyleSheet.create({
     letterSpacing: -0.51,
     color: "#0D0D0D",
     textAlign: "center",
+  },
+  // 스크롤 후 헤더 아래 고정되는 탭 바 (그리드 탭 전용)
+  stickyTabBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 9,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    paddingVertical: 10,
   },
   profileWrapper: { paddingTop: 12, backgroundColor: "#fff" },
   profileSection: {
@@ -691,7 +803,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "400",
   },
-  // ✅ 통일된 질문 탭 스타일
   questionItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -699,7 +810,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   questionThumbWrapper: {
-    width: 40, // ✅ 40x40
+    width: 40,
     height: 40,
     borderRadius: 10,
     overflow: "hidden",
