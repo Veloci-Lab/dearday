@@ -13,6 +13,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -262,7 +263,8 @@ const MyPage = () => {
     place: a.caption ?? "",
   }));
 
-  const blocks = answers.length > 0 ? buildRandomBlocks(feedItems) : [];
+  //새로고침 할 때마다 랜덤하게 블록 패턴 생성
+  const [blocks, setBlocks] = useState<GridItem[]>([]);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -296,7 +298,14 @@ const MyPage = () => {
     const newAnswers = data || [];
     const merged = append ? [...answers, ...newAnswers] : newAnswers;
     setAnswers(merged);
-    setLayoutRatios(generateRandomRatios(merged.length));
+
+    const newFeedItems = merged.map((a) => ({
+      id: a.answer_id,
+      imageUrl: a.photo_url,
+      dateISO: a.question_date,
+      place: a.caption ?? "",
+    }));
+    setBlocks(buildRandomBlocks(newFeedItems));
     setHasMore(newAnswers.length === PAGE_SIZE);
     await AsyncStorage.setItem(cacheKey, JSON.stringify(merged));
     setLoading(false);
@@ -346,13 +355,10 @@ const MyPage = () => {
 
   const [patternSeed, setPatternSeed] = useState(0);
   const handleRefresh = async () => {
-    setPatternSeed(Math.random());
     setRefreshing(true);
     setPage(0);
-    setLayoutRatios(generateRandomRatios(answers.length));
-    await fetchAnswers(0);
+    await fetchAnswers(0); 
   };
-
   const handleLoadMore = () => {
     if (!loading && hasMore) {
       const next = page + 1;
@@ -480,6 +486,12 @@ const MyPage = () => {
           return q.answer.answer_id;
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
         ListFooterComponent={currentListData.length > 0 ? <ListFooter /> : null}
         ListEmptyComponent={<ListEmptyView />}
         contentContainerStyle={{
