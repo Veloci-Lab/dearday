@@ -6,10 +6,10 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { AVPlaybackStatus, ResizeMode, Video } from "expo-av";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -65,6 +65,10 @@ const DeardayTextLogo = () => (
   </Svg>
 );
 
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
+
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -72,6 +76,44 @@ export default function SignInScreen() {
 
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
+  const [isVideoFinished, setIsVideoFinished] = useState(false);
+
+  const hasFinished = useRef(false);
+
+  const finish = () => {
+    if (hasFinished.current) return;
+    hasFinished.current = true;
+    setIsVideoFinished(true);
+  };
+
+  const player = useVideoPlayer(
+    `${SUPABASE_URL}/storage/v1/object/public/videos/splash.mp4`,
+    (p) => {
+      p.muted = true;
+      p.loop = false;
+      p.play();
+    }
+  );
+
+  useEffect(() => {
+    // 영상 재생 완료 감지
+    const sub = player.addListener("playingChange", (payload) => {
+      if (!payload.isPlaying) {
+        const { currentTime, duration } = player;
+        if (duration > 0 && Math.abs(currentTime - duration) < 0.5) {
+          finish();
+        }
+      }
+    });
+
+    // 5초 fallback (네트워크 오류 등 대비)
+    const timer = setTimeout(finish, 5000);
+
+    return () => {
+      sub.remove();
+      clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -98,15 +140,12 @@ export default function SignInScreen() {
     setLoadingGoogle(true);
     try {
       if (Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices({
-          showPlayServicesUpdateDialog: true,
-        });
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
       const userInfo = await GoogleSignin.signIn();
       const idToken =
         (userInfo as any)?.data?.idToken ?? (userInfo as any)?.idToken;
       if (!idToken) throw new Error("No Google ID token");
-
       await signInWithGoogle(idToken);
       await afterLoginRoute();
     } catch (error: any) {
@@ -132,9 +171,7 @@ export default function SignInScreen() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-
       if (!credential.identityToken) throw new Error("No Apple identityToken");
-
       await signInWithApple(credential.identityToken);
       await afterLoginRoute();
     } catch (e: any) {
@@ -146,107 +183,23 @@ export default function SignInScreen() {
     }
   };
 
-  const [isVideoFinished, setIsVideoFinished] = useState(false);
-
-  //   return (
-  //     <SafeAreaView style={commonStyles.container}>
-  //       <StatusBar style="light" />
-
-  //       {/* 중앙 로고 */}
-  //       <View style={s.logoContainer}>
-  //         <Image
-  //           source={require("@/assets/images/textmark_blue.png")}
-  //           style={{ width: LOGO_W, height: LOGO_H }}
-  //           resizeMode="contain"
-  //         />
-  //       </View>
-
-  //       {/* 하단 버튼 영역 */}
-  //       <View style={[s.footer, { paddingBottom: insets.bottom + 24 }]}>
-  //         {/* Google 버튼 */}
-  //         <Pressable
-  //           onPress={handleGoogleSignIn}
-  //           disabled={loadingGoogle || loadingApple}
-  //           style={({ pressed }) => [
-  //             s.socialBtn,
-  //             s.googleBtn,
-  //             pressed && { opacity: 0.9 },
-  //             (loadingGoogle || loadingApple) && { opacity: 0.7 },
-  //           ]}
-  //         >
-  //           <Image
-  //             source={require("@/assets/images/google_logo.png")}
-  //             style={s.socialIcon}
-  //             resizeMode="contain"
-  //           />
-  //           <Text style={[s.socialText, s.googleText]}>Google로 계속하기</Text>
-  //           <View style={s.rightArea}>
-  //             {loadingGoogle && <ActivityIndicator size="small" color="#5B8DEF" />}
-  //           </View>
-  //         </Pressable>
-
-  //         {/* Apple 버튼 */}
-  //         {Platform.OS === "ios" && (
-  //           <Pressable
-  //             onPress={handleAppleSignIn}
-  //             disabled={loadingGoogle || loadingApple}
-  //             style={({ pressed }) => [
-  //               s.socialBtn,
-  //               s.appleBtn,
-  //               { marginTop: 12 },
-  //               pressed && { opacity: 0.9 },
-  //               (loadingGoogle || loadingApple) && { opacity: 0.7 },
-  //             ]}
-  //           >
-  //             <Image
-  //               source={require("@/assets/images/apple_logo.png")}
-  //               style={s.socialIcon}
-  //               resizeMode="contain"
-  //             />
-  //             <Text style={[s.socialText, s.appleText]}>Apple로 계속하기</Text>
-  //             <View style={s.rightArea}>
-  //               {loadingApple && <ActivityIndicator size="small" color="#5B8DEF" />}
-  //             </View>
-  //           </Pressable>
-  //         )}
-  //       </View>
-  //     </SafeAreaView>
-  //   );
-  // }
-
-  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
-
   return (
     <View style={s.mainContainer}>
       <StatusBar style={isVideoFinished ? "dark" : "light"} />
 
       {/* 1. 배경 비디오 레이어 */}
       {!isVideoFinished && (
-        <Video
-          source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/videos/splash.mp4`}}
+        <VideoView
+          player={player}
           style={StyleSheet.absoluteFill}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay
-          isMuted
-          isLooping={false}
-          onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
-            if (!status.isLoaded) {
-              if ((status as any).error) {
-                console.error("비디오 에러:", (status as any).error);
-                setIsVideoFinished(true); // 에러나도 넘어가게
-              }
-              return;
-            }
-            if (status.didJustFinish) setIsVideoFinished(true);
-          }}
+          contentFit="cover"
+          nativeControls={false}
         />
       )}
 
-      {/* 2. 메인 콘텐츠 (비디오가 끝난 후에만 렌더링되도록 처리) */}
+      {/* 2. 메인 콘텐츠 */}
       {isVideoFinished && (
         <SafeAreaView style={s.overlay}>
-          {/* 중앙 로고 영역: 이미지와 SVG가 가로로 나열됨 */}
           <View style={s.logoContainer}>
             <View style={s.rowLogo}>
               <Image
@@ -254,7 +207,6 @@ export default function SignInScreen() {
                 style={s.characterIcon}
                 resizeMode="contain"
               />
-              {/* SVG 텍스트 로고 */}
               <View style={s.svgWrapper}>
                 <DeardayTextLogo />
               </View>
@@ -263,7 +215,6 @@ export default function SignInScreen() {
 
           {/* 3. 하단 버튼 영역 */}
           <View style={[s.footer, { paddingBottom: insets.bottom + 24 }]}>
-            {/* Google 버튼 */}
             <Pressable
               onPress={handleGoogleSignIn}
               disabled={loadingGoogle || loadingApple}
@@ -279,16 +230,12 @@ export default function SignInScreen() {
                 style={s.socialIcon}
                 resizeMode="contain"
               />
-              <Text style={[s.socialText, s.googleText]}>
-                Google로 계속하기
-              </Text>
+              <Text style={[s.socialText, s.googleText]}>Google로 계속하기</Text>
               <View style={s.rightArea}>
-                {loadingGoogle && (
-                  <ActivityIndicator size="small" color="#5B8DEF" />
-                )}
+                {loadingGoogle && <ActivityIndicator size="small" color="#5B8DEF" />}
               </View>
             </Pressable>
-            {/* Apple 버튼 */}
+
             {Platform.OS === "ios" && (
               <Pressable
                 onPress={handleAppleSignIn}
@@ -306,13 +253,9 @@ export default function SignInScreen() {
                   style={s.socialIcon}
                   resizeMode="contain"
                 />
-                <Text style={[s.socialText, s.appleText]}>
-                  Apple로 계속하기
-                </Text>
+                <Text style={[s.socialText, s.appleText]}>Apple로 계속하기</Text>
                 <View style={s.rightArea}>
-                  {loadingApple && (
-                    <ActivityIndicator size="small" color="#5B8DEF" />
-                  )}
+                  {loadingApple && <ActivityIndicator size="small" color="#5B8DEF" />}
                 </View>
               </Pressable>
             )}

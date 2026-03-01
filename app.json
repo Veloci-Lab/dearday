@@ -88,9 +88,6 @@
       ],
       [
         "expo-video"
-      ],
-      [
-        "expo-av"
       ]
     ],
     "experiments": {
