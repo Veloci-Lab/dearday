@@ -398,11 +398,26 @@ export default function HomeScreen() {
 
       if (questionError) {
         console.error("질문 로드 실패:", questionError);
-        setTodayQuestion({
+
+        // 기본 질문을 DB에 추가
+        const defaultQuestion: DailyQuestion = {
           question_date: todayDate,
           question_text: "오늘 하루는 어땠나요?",
           source: null,
-        });
+        };
+
+        const { data: insertedQuestion, error: insertError } = await supabase
+          .from("daily_questions")
+          .insert(defaultQuestion)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("기본 질문 추가 실패:", insertError);
+          setTodayQuestion(defaultQuestion);
+        } else {
+          setTodayQuestion(insertedQuestion);
+        }
       } else {
         setTodayQuestion(questionData);
       }
