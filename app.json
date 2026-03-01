@@ -84,7 +84,11 @@
         "expo-image-picker"
       ],
       [
-        "expo-video"
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
       ]
     ],
     "experiments": {
