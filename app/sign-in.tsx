@@ -66,10 +66,10 @@ const DeardayTextLogo = () => (
 );
 
 
-  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
-  
-  export default function SignInScreen() {
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
+
+export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logIn, pendingRedirectUrl, clearPendingRedirectUrl } = useAuthStore();
