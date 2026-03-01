@@ -111,6 +111,7 @@ export default function AnswerViewerScreen() {
   const emojiSheetRef = useRef<BottomSheet>(null);
   const reactionUserSheetRef = useRef<BottomSheet>(null);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
+  const hasScrolled = useRef(false); 
 
   // 내 프로필 ID 로드
   useEffect(() => {
@@ -415,20 +416,25 @@ export default function AnswerViewerScreen() {
         data={answers}
         keyExtractor={(item) => item.answer_id}
         renderItem={renderItem}
-        initialScrollIndex={initialIndex}
-        getItemLayout={(_, index) => ({
-          length: 550,
-          offset: 550 * index,
-          index,
-        })}
+        onLayout={() => {
+          if (initialIndex > 0 && !hasScrolled.current) {
+            hasScrolled.current = true; // ✅ 첫 번째 호출에만 실행
+            flatListRef.current?.scrollToIndex({
+              index: initialIndex,
+              animated: false,
+              viewPosition: 0,
+            });
+          }
+        }}
         onScrollToIndexFailed={(info) => {
-          const wait = new Promise((resolve) => setTimeout(resolve, 500));
-          wait.then(() => {
+          setTimeout(() => {
+            if (!hasScrolled.current) return;
             flatListRef.current?.scrollToIndex({
               index: info.index,
               animated: false,
+              viewPosition: 0,
             });
-          });
+          }, 500);
         }}
         contentContainerStyle={{
           backgroundColor: "#fff",
@@ -436,7 +442,6 @@ export default function AnswerViewerScreen() {
           paddingBottom: 40,
         }}
       />
-
       {/* 이모지 피커 BottomSheet */}
       <EmojiPickerSheet
         ref={emojiSheetRef}
