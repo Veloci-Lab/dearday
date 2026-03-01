@@ -77,7 +77,7 @@ const ReactionUserSheet = forwardRef<BottomSheet, ReactionUserSheetProps>(
                   style={[
                     styles.tabItem,
                     { backgroundColor: isSelected ? "#F2F2F2" : "#FFFFFF" },
-                    tab.key === "all" && { gap: 0 },
+                    tab.key === "all" && { gap: 0, paddingLeft: 8 },
                   ]}
                   onPress={() => onSelectTab(tab.key)}
                 >
