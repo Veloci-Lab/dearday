@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -39,8 +40,6 @@ export default function ProfileEditScreen() {
     const [nicknameEdited, setNicknameEdited] = useState(false);
     const [originalProfileImage, setOriginalProfileImage] = useState<string | null>(null);
     const [originalVisibility, setOriginalVisibility] = useState<VisibilityOption>("public");
-
-
 
     const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
     const [loading, setLoading] = useState(false);
@@ -76,7 +75,6 @@ export default function ProfileEditScreen() {
 
         setProfileImage(data.avatar_url || null);
         setOriginalProfileImage(data.avatar_url || null);
-
 
         setOriginalIntro(data.intro ?? "");
         setIntro(data.intro ?? "");
@@ -190,7 +188,6 @@ export default function ProfileEditScreen() {
 
       if (error) throw error;
 
-      //Alert.alert("완료", "프로필이 성공적으로 업데이트되었습니다.");
       console.log("프로필 업데이트 성공");
       router.back();
 
@@ -201,6 +198,7 @@ export default function ProfileEditScreen() {
       setLoading(false);
     }
   };
+
   /** 한 줄 소개 글자 수 제한 함수 */
   const getValidatedIntro = (text: string) => {
     let totalScore = 0;
@@ -208,20 +206,17 @@ export default function ProfileEditScreen() {
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-      // 한글(자음, 모음 포함)은 2점, 나머지는 1점
       const score = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(char) ? 2 : 1;
 
       if (totalScore + score <= 36) {
         totalScore += score;
         validatedText += char;
       } else {
-        // 36점을 넘으면 루프 종료
         break;
       }
     }
     return validatedText;
   };
-
 
   const isCheckDisabled = !nicknameEdited || !nickname.trim() || status === "checking";
   const isIntroEdited = intro !== (originalIntro ?? "");
@@ -236,14 +231,20 @@ export default function ProfileEditScreen() {
 
   const isSaveDisabled = !canSave || loading;
 
-
   return (
     <SafeAreaView style={commonStyles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <View style={styles.content}>
+        {/* 스크롤 가능한 콘텐츠 영역 */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* 프로필 이미지 */}
           <Pressable onPress={handlePickImage} style={styles.imageWrapper}>
             {profileImage ? (
@@ -256,18 +257,7 @@ export default function ProfileEditScreen() {
             <View style={styles.cameraIcon}>
               <Ionicons name="camera" size={14} color="#FFFFFF" />
             </View>
-
-            {/* 삭제 아이콘 */}
-            {/* {profileImage && (
-              <Pressable
-                onPress={() => setProfileImage(null)}
-                style={styles.deleteIcon}
-              >
-                <Ionicons name="trash" size={16} color="#FF5A5A" />
-              </Pressable>
-            )} */}
           </Pressable>
-
 
           {/* 닉네임 입력 */}
           <View style={styles.inputSection}>
@@ -330,9 +320,9 @@ export default function ProfileEditScreen() {
               </Pressable>
             </View>
             {nicknameEdited && status === "idle" && (
-            <Text style={styles.helperInfo}>
-                최대 10글자까지 입력 가능합니다.
-            </Text>
+              <Text style={styles.helperInfo}>
+                  최대 10글자까지 입력 가능합니다.
+              </Text>
             )}
             {status === "available" && (
               <Text style={styles.helperSuccess}>사용 가능한 닉네임이에요!</Text>
@@ -353,9 +343,7 @@ export default function ProfileEditScreen() {
                         isIntroEdited && { borderColor: "#5B8DEF" },
                     ]}
                     value={intro}
-                    // onChangeText={setIntro}
                     onChangeText={(t) => {
-                      // 유효한 길이까지만 잘라서 상태 업데이트
                       const validated = getValidatedIntro(t);
                       setIntro(validated);
                     }}
@@ -383,15 +371,16 @@ export default function ProfileEditScreen() {
               </Text>
             )}
           </View>
-          {/* 공개 설정*/}
+
+          {/* 공개 설정 */}
           <Text style={styles.label}>공개 설정</Text>
           <PrivacySelector
             value={visibility}
             onChange={setVisibility}
           />
-        </View>
+        </ScrollView>
 
-        {/* 하단 버튼 */}
+        {/* 하단 버튼 — ScrollView 밖에 고정 */}
         <View style={styles.footer}>
           <Pressable
             onPress={handleSave}
@@ -411,7 +400,11 @@ export default function ProfileEditScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10 },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    paddingBottom: 24,
+  },
   headerTitle: {
     fontSize: 17,
     fontFamily: 'Pretendard-SemiBold',
@@ -508,7 +501,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  footer: { paddingHorizontal: 24, paddingBottom: 10},
+  footer: { paddingHorizontal: 24, paddingBottom: 20 },
   completeBtn: { height: 56, borderRadius: 12, backgroundColor: "#5B8DEF", alignItems: "center", justifyContent: "center" },
   completeBtnDisabled: { backgroundColor: "#F2F2F2" },
   completeBtnText: { fontFamily: "Pretendard-SemiBold", fontSize: 17, color: "#FFFFFF", letterSpacing: -0.51 },
