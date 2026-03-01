@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10 },
   headerTitle: {
     fontSize: 17,
-    fontFamily: 'Pretendard-Bold',
+    fontFamily: 'Pretendard-SemiBold',
     letterSpacing: -0.51,
   },
   imageWrapper: { alignSelf: "center", marginBottom: 24 },

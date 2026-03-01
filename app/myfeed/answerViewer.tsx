@@ -154,7 +154,7 @@ export default function AnswerViewerScreen() {
       ),
       headerLeft: () => (
         <TouchableOpacity
-          style={{ paddingHorizontal: 8 }}
+          style={{ paddingHorizontal: 4}}
           onPress={() => navigation.goBack()}
         >
           <ArrowLeft />
@@ -418,7 +418,7 @@ export default function AnswerViewerScreen() {
         renderItem={renderItem}
         onLayout={() => {
           if (initialIndex > 0 && !hasScrolled.current) {
-            hasScrolled.current = true; // ✅ 첫 번째 호출에만 실행
+            hasScrolled.current = true; 
             flatListRef.current?.scrollToIndex({
               index: initialIndex,
               animated: false,
@@ -524,7 +524,8 @@ export default function AnswerViewerScreen() {
 const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
-    fontWeight: "bold",
+    fontFamily: "Pretendard-SemiBold",
+    fontWeight: "400",
     letterSpacing: -0.51,
   },
   feedItem: {
