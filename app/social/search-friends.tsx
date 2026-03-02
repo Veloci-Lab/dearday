@@ -416,7 +416,8 @@ export default function SearchFriendsScreen() {
     setRelationMap((prev) => ({ ...prev, [targetId]: "sending" }));
 
     const newStatus: RequestStatus = isTargetPublic ? "accepted" : "pending";
-
+    const notifType = isTargetPublic ? "follow" : "follow_request";
+    
     const { error } = await supabase.from("follows").insert({
       follower_profile_id: myProfileId,
       followee_profile_id: targetId,
@@ -424,6 +425,18 @@ export default function SearchFriendsScreen() {
     });
 
     if (!error) {
+      // 알림 insert
+      const { error: notifError } = await supabase
+        .from("follow_notifications")
+        .insert({
+          user_profile_id: targetId,       // 알림 받는 사람
+          actor_profile_id: myProfileId,   // 행동한 사람 (나)
+          type: notifType,                 // 공개: "follow" / 친구공개: "follow_request"
+          entity_id: null,
+          is_read: false,
+        });
+      if (notifError) console.error("알림 생성 오류:", notifError);
+      
       // Zustand 전역 상태 업데이트
       if (newStatus === "accepted") {
         useFriendsStore.getState().addFriend({
