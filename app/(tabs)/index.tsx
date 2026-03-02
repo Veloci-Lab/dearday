@@ -441,8 +441,9 @@ export default function HomeScreen() {
         const { count, error: notifError } = await supabase
           .from("follow_notifications")
           .select("*", { count: "exact", head: true })
-          .eq("profile_id", profileData.profile_id)
-          .eq("is_read", false);
+          .eq("user_profile_id", profileData.profile_id)
+          .eq("is_read", false)
+          .eq("type", "emoji");
 
         if (!notifError && count !== null) {
           setHasUnreadNotifications(count > 0);
