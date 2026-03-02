@@ -106,6 +106,7 @@ export default function OnboardingScreen() {
                 style={[
                   styles.input,
                   status === "available" && { borderColor: "#5B8DEF" },
+                  status === "unavailable" && { borderColor: "#FF5A5A" },
                 ]}
                 value={nickname}
                 onChangeText={(t) => {
@@ -284,6 +285,7 @@ const styles = StyleSheet.create({
   },
   helperInfo: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#C3C3C3",
@@ -291,14 +293,15 @@ const styles = StyleSheet.create({
   },
   helperSuccess: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#5B8DEF",
     letterSpacing: -0.45,
-
   },
   helperError: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#FF5A5A",
