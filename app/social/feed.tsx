@@ -614,6 +614,38 @@ export default function FeedScreen() {
     }
   }, [params.date, params.mode, friendProfileIds, fetchReactionsForAnswerIds]);
 
+  // 이모지 알림 생성 함수
+  const sendEmojiNotification = useCallback(
+    async (answerId: string, emojiValue: string) => {
+      const ownerProfileId = feedCards.find(
+        (c) => String(c.id) === answerId
+      )?.ownerProfileId;
+
+      if (!ownerProfileId || ownerProfileId === myProfileId) return;
+
+      const { data: existingNotif } = await supabase
+        .from("follow_notifications")
+        .select("notification_id")
+        .eq("actor_profile_id", myProfileId)
+        .eq("entity_id", answerId)
+        .eq("type", "emoji")
+        .maybeSingle();
+
+      if (!existingNotif) {
+        const { error } = await supabase.from("follow_notifications").insert({
+          user_profile_id: ownerProfileId,
+          actor_profile_id: myProfileId,
+          type: "emoji",
+          entity_id: answerId,
+          emoji_value: emojiValue,
+          is_read: false,
+        });
+        if (error) console.error("알림 생성 오류:", error);
+      }
+    },
+    [feedCards, myProfileId],
+  );
+
   // 이모지 선택 핸들러
   const handleSelectEmoji = useCallback(
     async (emoji: EmojiOption) => {
@@ -726,6 +758,9 @@ export default function FeedScreen() {
         } else if (insertError) {
           // 다른 에러는 그대로 출력
           console.error("insert 오류:", insertError);
+        }else {
+          // 신규 insert 성공 → 알림 생성
+          await sendEmojiNotification(selectedAnswerId, emoji.emoji);
         }
       } catch (error) {
         console.error("리액션 추가 오류:", error);

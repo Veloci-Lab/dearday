@@ -526,6 +526,34 @@ export default function AnswerViewerScreen() {
     );
   };
 
+  // 알림 중복 체크 후 생성 (공통 헬퍼로 빼면 더 깔끔)
+  const sendEmojiNotification = async (answerId: string, emojiValue: string) => {
+    const ownerProfileId = answers.find(
+      (a) => a.answer_id === answerId
+    )?.owner_profile_id;
+
+    if (!ownerProfileId || ownerProfileId === myProfileId) return;
+
+    const { data: existingNotif } = await supabase
+      .from("follow_notifications")
+      .select("notification_id")
+      .eq("actor_profile_id", myProfileId)
+      .eq("entity_id", answerId)
+      .eq("type", "emoji")
+      .maybeSingle();
+
+    if (!existingNotif) {
+      await supabase.from("follow_notifications").insert({
+        user_profile_id: ownerProfileId,
+        actor_profile_id: myProfileId,
+        type: "emoji",
+        entity_id: answerId,
+        emoji_value: emojiValue,
+        is_read: false,
+      });
+    }
+  };
+
   if (loading) {
     return <View style={{ flex: 1, backgroundColor: "white" }} />;
   }
@@ -630,6 +658,7 @@ export default function AnswerViewerScreen() {
                 reactor_profile_id: myProfileId,
                 emoji_id: emoji.emojiId,
               });
+              await sendEmojiNotification(selectedAnswerId, emoji.emoji);
             }
           } catch (e) {
             console.error("이모지 선택 오류:", e);
