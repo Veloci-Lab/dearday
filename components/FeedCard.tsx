@@ -5,6 +5,7 @@ import ReactionBar, {
   ReactionItem,
   ReactionLongPressPayload,
 } from "./ReactionBar";
+import DefaultAvatar from "./avatar/DefaultAvatar";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -72,7 +73,7 @@ export default function FeedCard({
                   style={styles.avatarImage}
                   cachePolicy="disk"
                 />
-              ) : null}
+              ) : <DefaultAvatar size={36}/>}
             </View>
             <View style={styles.userTextInfo}>
               <Text style={styles.nickname}>{data.nickname}</Text>

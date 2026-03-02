@@ -1,10 +1,11 @@
+import DefaultAvatar from "@/components/avatar/DefaultAvatar";
 import { commonHeaderOptions } from "@/styles/common";
 import { useAuthStore } from "@/utils/authStore";
+import { Image } from "expo-image";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
-  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -149,8 +150,13 @@ function NotificationItem({
           <Animated.View style={[styles.cardWrapper, animatedStyle]}>
             {!item.is_read && <View style={styles.unreadDot} />}
             <View style={styles.item}>
-              <View style={styles.avatar} />
-
+              {item.actor.avatar_url ?(
+                <Image
+                  source={{ uri: item.actor.avatar_url }}
+                  style={styles.avatar}
+                />
+                ) : <DefaultAvatar size={36}/>
+              }
               <View style={styles.content}>
                 <Text
                   style={[styles.text, item.is_read && { color: "#929292" }]}
@@ -163,6 +169,7 @@ function NotificationItem({
                     <Image
                       source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/emoji/${item.emoji}`}}
                       style={{ width: 20, height: 20, marginLeft: 4}}
+                      cachePolicy={"disk"}
                     />
                   )}
                 </Text>

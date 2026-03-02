@@ -5,11 +5,12 @@ import BottomSheet, {
 import { Image } from "expo-image";
 import React, { forwardRef, useCallback, useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import DefaultAvatar from "./avatar/DefaultAvatar";
 
 export interface ReactionUser {
   id: number;
   nickname: string;
-  profileImageUrl?: string | null;
+  profileImageUrl: string | null;
   emojiId?: number;
 }
 
@@ -157,7 +158,7 @@ const ReactionUserSheet = forwardRef<BottomSheet, ReactionUserSheetProps>(
                   cachePolicy="disk"
                 />
               ) : (
-                <View style={styles.profilePlaceholder} />
+                <DefaultAvatar size={40} style={{ marginRight: 12 }} />                
               )}
               <Text style={styles.nickname}>{item.nickname}</Text>
             </View>

@@ -5,13 +5,13 @@ import Toggle from "@/components/Toggle";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "expo-image";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -223,6 +223,7 @@ const Tile = ({
       <Image
         source={{ uri: it.imageUrl }}
         style={{ width: "100%", height: "100%", borderRadius: radius }}
+        cachePolicy={"disk"}
       />
     </Pressable>
   );
@@ -372,7 +373,7 @@ const MyPage = () => {
   const ListEmptyView = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>아직 사진이 없어요.</Text>
-      <Image source={{ uri: REMOTE_DD_LOGO_URL }} style={styles.emptyImage} />
+      <Image source={{ uri: REMOTE_DD_LOGO_URL }} style={styles.emptyImage} cachePolicy={"disk"} />
     </View>
   );
 
@@ -393,6 +394,7 @@ const MyPage = () => {
             <Image
               source={{ uri: REMOTE_DD_SURPRISE_URL }}
               style={{ width: 120, height: 120, marginTop: 16 }}
+              cachePolicy={"disk"}
             />
           </View>
         );
@@ -405,6 +407,7 @@ const MyPage = () => {
         <Image
           source={{ uri: REMOTE_DD_WINK_URL }}
           style={{ width: 120, height: 120, marginTop: 16 }}
+          cachePolicy={"disk"}
         />
       </View>
     );
@@ -432,6 +435,8 @@ const MyPage = () => {
         <Image
           source={{ uri: answer.photo_url }}
           style={styles.questionThumb}
+          cachePolicy={"disk"}
+          transition={100}
         />
       </View>
       <View style={styles.questionTextWrapper}>
@@ -681,6 +686,7 @@ const ProfileSection = ({
             <Image
               source={{ uri: profile.avatar_url }}
               style={styles.profileImage}
+              cachePolicy={"disk"}
             />
           ) : (
             <DefaultAvatar size={50} style={{ marginRight: 12 }} />  

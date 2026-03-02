@@ -503,7 +503,7 @@ export default function AnswerViewerScreen() {
                 count,
               })),
             ];
-
+            
             const users = raw.map((r) => ({
               id: r.reactor_profile_id,
               nickname:

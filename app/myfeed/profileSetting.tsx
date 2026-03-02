@@ -9,6 +9,7 @@ import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
+import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
@@ -16,7 +17,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -311,7 +311,7 @@ export default function ProfileEditScreen() {
           {/* 프로필 이미지 */}
           <Pressable onPress={handlePickImage} style={styles.imageWrapper}>
             {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+              <Image source={{ uri: profileImage }} style={styles.profileImage} cachePolicy={"disk"}/>
             ) : (
               <DefaultAvatar size={100} />
             )}

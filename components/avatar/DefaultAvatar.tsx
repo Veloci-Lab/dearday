@@ -1,30 +1,24 @@
-import React from "react";
-import { View } from "react-native";
+import React, { useId } from "react";
+import { View, ViewStyle } from "react-native";
 import Svg, { Circle, ClipPath, Defs, Path, Rect } from "react-native-svg";
 
 interface Props {
   size?: number;
-  style?: object;
+  style?: ViewStyle;
 }
 
 export default function DefaultAvatar({ size = 100, style }: Props) {
+  const clipId = useId(); 
+
   return (
     <View style={[{ width: size, height: size }, style]}>
       <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
         <Defs>
-          <ClipPath id="clip0_4407_25952">
+          <ClipPath id={clipId}>
             <Rect width="100" height="100" fill="white" />
           </ClipPath>
         </Defs>
-        <Rect
-          x="0.5"
-          y="0.5"
-          width="99"
-          height="99"
-          rx="49.5"
-          fill="#C3C3C3"
-          stroke="#F2F2F2"
-        />
+        <Rect x="0.5" y="0.5" width="99" height="99" rx="49.5" fill="#C3C3C3" stroke="#F2F2F2" />
         <Path
           fillRule="evenodd"
           clipRule="evenodd"
@@ -32,14 +26,7 @@ export default function DefaultAvatar({ size = 100, style }: Props) {
           fill="#FEFEFE"
         />
         <Circle cx="49.5" cy="40.5" r="18.5" fill="#FEFEFE" />
-        <Rect
-          x="0.5"
-          y="0.5"
-          width="99"
-          height="99"
-          rx="49.5"
-          stroke="#F2F2F2"
-        />
+        <Rect x="0.5" y="0.5" width="99" height="99" rx="49.5" stroke="#F2F2F2" />
       </Svg>
     </View>
   );
