@@ -210,8 +210,18 @@ interface MonthNavProps {
 
 function MonthNav({ year, month, onPrev, onNext, canGoNext }: MonthNavProps) {
   const MONTH_NAMES = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   return (
@@ -424,11 +434,17 @@ export default function SocialScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [questionMap, setQuestionMap] = useState<Record<string, DailyQuestion>>({});
+  const [questionMap, setQuestionMap] = useState<Record<string, DailyQuestion>>(
+    {},
+  );
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("social");
-  const [shuffledSocialPhotos, setShuffledSocialPhotos] = useState<PhotoGridItem[]>([]);
-  const [shuffledFriendPhotos, setShuffledFriendPhotos] = useState<PhotoGridItem[]>([]);
+  const [shuffledSocialPhotos, setShuffledSocialPhotos] = useState<
+    PhotoGridItem[]
+  >([]);
+  const [shuffledFriendPhotos, setShuffledFriendPhotos] = useState<
+    PhotoGridItem[]
+  >([]);
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
@@ -495,9 +511,13 @@ export default function SocialScreen() {
 
   // ✅ 사진 fetch 함수 분리 (ref에서 friendProfileIds 읽음)
   // currentProfileId: state 타이밍 문제 방지용 (최초 로드 시 직접 전달)
-  const fetchPhotosForDate = async (date: Date, currentProfileId?: number | null) => {
+  const fetchPhotosForDate = async (
+    date: Date,
+    currentProfileId?: number | null,
+  ) => {
     const dateStr = toDateString(date);
-    const profileId = currentProfileId !== undefined ? currentProfileId : myProfileId;
+    const profileId =
+      currentProfileId !== undefined ? currentProfileId : myProfileId;
 
     try {
       const { data: allPhotos, error } = await supabase
@@ -617,22 +637,45 @@ export default function SocialScreen() {
     (currentYear === today.getFullYear() && currentMonth < today.getMonth());
 
   const handlePrevMonth = () => {
+    let newYear = currentYear;
+    let newMonth = currentMonth;
+
     if (currentMonth === 0) {
-      setCurrentYear((y) => y - 1);
-      setCurrentMonth(11);
+      newYear = currentYear - 1;
+      newMonth = 11;
     } else {
-      setCurrentMonth((m) => m - 1);
+      newMonth = currentMonth - 1;
     }
+
+    setCurrentYear(newYear);
+    setCurrentMonth(newMonth);
+
+    // 이전 달의 마지막 날짜로 선택
+    const lastDayOfPrevMonth = new Date(newYear, newMonth + 1, 0);
+    lastDayOfPrevMonth.setHours(0, 0, 0, 0);
+    setSelectedDate(lastDayOfPrevMonth);
   };
 
   const handleNextMonth = () => {
     if (!canGoNext) return;
+
+    let newYear = currentYear;
+    let newMonth = currentMonth;
+
     if (currentMonth === 11) {
-      setCurrentYear((y) => y + 1);
-      setCurrentMonth(0);
+      newYear = currentYear + 1;
+      newMonth = 0;
     } else {
-      setCurrentMonth((m) => m + 1);
+      newMonth = currentMonth + 1;
     }
+
+    setCurrentYear(newYear);
+    setCurrentMonth(newMonth);
+
+    // 다음 달의 첫 번째 날짜로 선택
+    const firstDayOfNextMonth = new Date(newYear, newMonth, 1);
+    firstDayOfNextMonth.setHours(0, 0, 0, 0);
+    setSelectedDate(firstDayOfNextMonth);
   };
 
   const handleSelectDate = (date: Date) => {
