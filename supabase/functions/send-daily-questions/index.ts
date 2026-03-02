@@ -12,7 +12,7 @@ serve(async () => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    /* 1️⃣ 오늘 날짜 (KST 기준) */
+    /* 1️⃣ 오늘 날짜 (KST 기준) 질문 조회 */
     const today = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
     )
@@ -20,6 +20,21 @@ serve(async () => {
       .slice(0, 10)
 
     console.log('[daily-question-push] today:', today)
+
+    /* 오늘의 질문 조회 */
+    const { data: questionData, error: questionError } = await supabase
+      .from('daily_questions')
+      .select('question_text')
+      .eq('question_date', today)
+      .single()
+
+    if (questionError || !questionData) {
+      console.error('[daily-question-push] question not found:', questionError)
+      return new Response('question not found', { status: 404 })
+    }
+
+    const questionText = questionData.question_text
+    console.log('[daily-question-push] question:', questionText)
 
     /* 2️⃣ 푸시 대상 조회 */
     const { data: users, error } = await supabase.rpc(
@@ -41,8 +56,8 @@ serve(async () => {
     const payloads = users.map((u: any) => ({
       to: u.push_token,
       sound: 'default',
-      title: 'Dearday',
-      body: '오늘의 질문이 도착했어요 ✨',
+      title: '오늘의 질문이 도착해 있어요.💌',
+      body: questionText,
       data: {
         type: 'daily_question',
         date: today,
