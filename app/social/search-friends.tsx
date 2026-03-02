@@ -1,3 +1,4 @@
+import DefaultAvatar from "@/components/avatar/DefaultAvatar";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
 import { Image } from "expo-image";
@@ -109,7 +110,7 @@ function FriendRequestPopup({
                   style={styles.popupAvatarImage}
                   cachePolicy="disk"
                 />
-              ) : null}
+              ) : <DefaultAvatar size={36} />}
             </View>
             <Text style={styles.popupProfileName}>{profile.nickname}</Text>
           </View>
@@ -218,7 +219,7 @@ function SearchResultItem({
               style={styles.avatarImage}
               cachePolicy="disk"
             />
-          ) : null}
+          ) : <DefaultAvatar size={50} />}
         </View>
         <Text style={styles.resultName}>{profile.nickname}</Text>
       </View>

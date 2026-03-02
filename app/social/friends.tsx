@@ -1,3 +1,4 @@
+import DefaultAvatar from "@/components/avatar/DefaultAvatar";
 import { commonHeaderOptions } from "@/styles/common";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -61,7 +62,6 @@ const SearchIcon = () => (
       strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
-      ㅍ
     />
   </Svg>
 );
@@ -134,7 +134,7 @@ function ConfirmPopup({
                   style={styles.popupAvatarImage}
                   cachePolicy="disk"
                 />
-              ) : null}
+              ) : <DefaultAvatar size={36} />}
             </View>
             <Text style={styles.popupProfileName}>{profile.nickname}</Text>
           </View>
@@ -205,7 +205,7 @@ function FriendRequestItem({
               style={styles.avatarImage}
               cachePolicy="disk"
             />
-          ) : null}
+          ) : <DefaultAvatar size={50} />}
         </View>
         <Text style={styles.profileName}>{request.profile.nickname}</Text>
       </View>
@@ -255,7 +255,7 @@ function FriendItem({
               source={{ uri: friend.profile.avatar_url }}
               style={styles.avatarImage}
             />
-          ) : null}
+          ) : <DefaultAvatar size={50} />}
         </View>
         <View style={styles.nameContainer}>
           <Text style={styles.profileName}>{friend.profile.nickname}</Text>
