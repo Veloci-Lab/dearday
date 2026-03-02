@@ -1,3 +1,5 @@
+import DefaultAvatar from "@/components/avatar/DefaultAvatar";
+import { EditPenIcon } from "@/components/icons/EditPenIcon";
 import PrivacySelector, {
   VisibilityOption,
 } from "@/components/PrivacySelector";
@@ -108,8 +110,27 @@ export default function ProfileEditScreen() {
     fetchProfile();
   }, [profileId]);
 
-  /** 프로필 이미지 선택 */
-  const handlePickImage = async () => {
+  /** 프로필 이미지 선택/삭제 */
+  const handlePickImage = () => {
+    Alert.alert(
+      "프로필 사진 변경",
+      undefined,
+      [
+        {
+          text: "라이브러리에서 선택",
+          onPress: handleSelectFromLibrary,
+        },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: handleDeleteImage,
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleSelectFromLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -122,6 +143,28 @@ export default function ProfileEditScreen() {
     }
   };
 
+  const handleDeleteImage = async () => {
+    // 버킷에서 현재 이미지 삭제
+    if (originalProfileImage && originalProfileImage.startsWith("http")) {
+      try {
+        // URL에서 파일명 추출
+        // 예: https://xxx.supabase.co/storage/v1/object/public/avatars/avatar_xxx.jpg
+        const urlParts = originalProfileImage.split(`/${AVATAR_BUCKET}/`);
+        if (urlParts.length > 1) {
+          const fileName = urlParts[1];
+          const { error } = await supabase.storage
+            .from(AVATAR_BUCKET)
+            .remove([fileName]);
+          if (error) console.error("이미지 삭제 실패:", error);
+        }
+      } catch (e) {
+        console.error("이미지 삭제 중 오류:", e);
+      }
+    }
+    setProfileImage(null); // null이면 SVG 플레이스홀더 렌더링
+  };
+
+  
   /** 닉네임 중복 확인 */
   const handleCheckNickname = async () => {
     const trimmed = nickname.trim();
@@ -268,17 +311,14 @@ export default function ProfileEditScreen() {
           {/* 프로필 이미지 */}
           <Pressable onPress={handlePickImage} style={styles.imageWrapper}>
             {profileImage ? (
-              <Image
-                source={{ uri: profileImage }}
-                style={styles.profileImage}
-              />
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
-              <View style={styles.profilePlaceholder} />
+              <DefaultAvatar size={100} />
             )}
 
             {/* 카메라 아이콘 */}
-            <View style={styles.cameraIcon}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            <View style={styles.editIcon}>
+              <EditPenIcon />
             </View>
           </Pressable>
 
@@ -344,8 +384,8 @@ export default function ProfileEditScreen() {
             </View>
             {nicknameEdited && status === "idle" && (
               <Text style={styles.helperInfo}>
-                최대 10글자까지 입력 가능합니다.
-              </Text>
+                최대 10글자까지 가능해요!
+                </Text>
             )}
             {status === "available" && (
               <Text style={styles.helperSuccess}>
@@ -445,18 +485,19 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: "#C2C2C2",
   },
-  cameraIcon: {
+  editIcon: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: 14,
-    backgroundColor: "#5B8DEF",
+    backgroundColor: "#F2F2F2",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#5B8DEF",
+    borderWidth: 1,
+    borderColor: "#F2F2F2",
+    elevation: 2,
   },
   deleteIcon: {
     position: "absolute",
@@ -517,6 +558,7 @@ const styles = StyleSheet.create({
   },
   helperInfo: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#626262",
@@ -524,6 +566,7 @@ const styles = StyleSheet.create({
   },
   helperLimit: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#626262",
@@ -531,6 +574,7 @@ const styles = StyleSheet.create({
   },
   helperSuccess: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#5B8DEF",
@@ -538,6 +582,7 @@ const styles = StyleSheet.create({
   },
   helperError: {
     fontFamily: "Pretendard-Regular",
+    marginLeft: 8,
     marginTop: 8,
     fontSize: 13,
     color: "#FF5A5A",

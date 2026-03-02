@@ -1,11 +1,12 @@
+import DefaultAvatar from "@/components/avatar/DefaultAvatar";
 import ArrowIcon from "@/components/icons/ArrowIcon";
 import EditIcon from "@/components/icons/EditIcon";
 import Toggle from "@/components/Toggle";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -328,6 +329,14 @@ const MyPage = () => {
 
     setQuestionsData(combined);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (profileId) {
+        fetchProfile();
+      }
+    }, [profileId])
+  );
 
   useEffect(() => {
     if (profileId) {
@@ -674,7 +683,7 @@ const ProfileSection = ({
               style={styles.profileImage}
             />
           ) : (
-            <View style={styles.profilePlaceholder} />
+            <DefaultAvatar size={50} style={{ marginRight: 12 }} />  
           )}
           <View
             style={{
