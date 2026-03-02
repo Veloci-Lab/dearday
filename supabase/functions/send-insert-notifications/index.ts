@@ -24,7 +24,6 @@ serve(async (req) => {
       .select(`
         notification_id,
         type,
-        emoji,
         user_profile_id,
         actor:actor_profile_id (
           nickname
@@ -63,12 +62,13 @@ serve(async (req) => {
 
     /* 3️⃣ 메시지 생성 */
     const message = buildPushMessage(notification)
+    const title = buildPushTitle(notification.type)
 
     /* 4️⃣ Expo Push payload */
     const payloads = tokens.map((t) => ({
       to: t.expo_push_token,
       sound: 'default',
-      title: 'Dearday',
+      title: title,
       body: message,
       data: {
         notification_id: notification.notification_id,
@@ -96,19 +96,29 @@ serve(async (req) => {
 })
 
 /* ---------------- helpers ---------------- */
+function buildPushTitle(type: string): string {
+  switch (type) {
+    case 'emoji':
+      return '알림 도착!🔔'
+    case 'follow':
+      return '새로운 팔로워'
+    case 'follow_request':
+      return '팔로우 요청'
+    default:
+      return 'Dearday'
+  }
+}
 
 function buildPushMessage(notification: any): string {
   const actor = notification.actor?.nickname ?? '알 수 없음'
 
   switch (notification.type) {
     case 'follow':
-      return `${actor}님이 나를 팔로우했어요`
+      return `${actor}님이 회원님을 팔로우하기 시작했습니다.`
     case 'follow_request':
-      return `${actor}님이 팔로우 요청을 보냈어요`
-    case 'follow_back':
-      return `${actor}님이 팔로우 요청을 수락했어요`
+      return `${actor}님이 회원님을 팔로우하고 싶어 해요. 확인해보세요.`
     case 'emoji':
-      return `${actor}님이 ${notification.emoji ?? '이모지'}를 남겼어요`
+      return `${actor}님이 사진에 반응했어요.❤️`
     default:
       return `${actor}님의 새로운 알림`
   }
