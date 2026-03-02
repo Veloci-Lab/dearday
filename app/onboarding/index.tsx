@@ -1,3 +1,4 @@
+import DefaultAvatar from "@/components/avatar/DefaultAvatar";
 import { commonStyles } from "@/styles/common";
 import { checkNicknameAvailability } from "@/utils/api/profiles";
 import { useOnboardingStore } from "@/utils/onboardingStore";
@@ -91,7 +92,7 @@ export default function OnboardingScreen() {
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
-              <View style={styles.profilePlaceholder} />
+              <DefaultAvatar size={100} />
             )}
             <View style={styles.cameraIcon}>
               <Ionicons name="camera" size={14} color="#FFFFFF" />
