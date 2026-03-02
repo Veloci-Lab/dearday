@@ -335,18 +335,12 @@ const MyPage = () => {
     useCallback(() => {
       if (profileId) {
         fetchProfile();
+        setPage(0);
+        fetchAnswers(0);
+        fetchQuestions();
       }
     }, [profileId])
   );
-
-  useEffect(() => {
-    if (profileId) {
-      fetchProfile();
-      setPage(0);
-      fetchAnswers(0);
-      fetchQuestions();
-    }
-  }, [profileId]);
 
   /* ---------------- handlers ---------------- */
 
