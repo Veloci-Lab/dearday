@@ -1,14 +1,15 @@
 import PhotoFrame from "@/components/PhotoFrame";
 import Popup from "@/components/Popup";
+import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import * as Sharing from "expo-sharing";
 import LottieView from "lottie-react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppState,
@@ -313,6 +314,7 @@ export default function HomeScreen() {
   const HomeGradient = require("@/assets/images/backgrounds/home_gradient.png");
   const viewShotRef = useRef<ViewShot>(null);
   const lottieRef = useRef<LottieView>(null);
+  const { profileId } = useAuthStore();
 
   // State
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -358,6 +360,24 @@ export default function HomeScreen() {
       subscription.remove();
     };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkUnread = async () => {
+        if (!profileId) return
+
+        const { count } = await supabase
+          .from("follow_notifications")
+          .select("*", { count: "exact", head: true })
+          .eq("user_profile_id", profileId)
+          .eq("is_read", false)
+          .eq("type", "emoji")
+
+        setHasUnreadNotifications((count ?? 0) > 0)
+      }
+      checkUnread()
+    }, [profileId])
+  )
 
   const loadInitialData = async () => {
     try {
