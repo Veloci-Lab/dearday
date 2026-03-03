@@ -154,7 +154,9 @@ export default function FriendProfileCard({
         onPress={onSendRequest}
         disabled={isProcessing}
       >
-        <Text style={styles.primaryButtonText}>친구 요청</Text>
+        <Text style={styles.primaryButtonText}>
+          {isTargetPublic ? "친구 추가" : "친구 요청"}
+        </Text>
       </Pressable>
     );
   };

@@ -150,13 +150,14 @@ function NotificationItem({
           <Animated.View style={[styles.cardWrapper, animatedStyle]}>
             {!item.is_read && <View style={styles.unreadDot} />}
             <View style={styles.item}>
-              {item.actor.avatar_url ?(
+              {item.actor.avatar_url ? (
                 <Image
                   source={{ uri: item.actor.avatar_url }}
                   style={styles.avatar}
                 />
-                ) : <DefaultAvatar size={36}/>
-              }
+              ) : (
+                <DefaultAvatar size={36} />
+              )}
               <View style={styles.content}>
                 <Text
                   style={[styles.text, item.is_read && { color: "#929292" }]}
@@ -167,8 +168,13 @@ function NotificationItem({
                   {renderMessage(item.type)}
                   {item.type === "emoji" && item.emoji && (
                     <Image
-                      source={{ uri: `${SUPABASE_URL}/storage/v1/object/public/emoji/${item.emoji}`}}
-                      style={{ width: 20, height: 20, marginLeft: 4}}
+                      source={{
+                        uri: `${SUPABASE_URL}/storage/v1/object/public/emoji/${item.emoji}`,
+                      }}
+                      style={{
+                        width: 10,
+                        height: 10,
+                      }}
                       cachePolicy={"disk"}
                     />
                   )}
@@ -186,18 +192,16 @@ function NotificationItem({
   );
 }
 
-function renderMessage(
-  type: Notification["type"]
-) {
+function renderMessage(type: Notification["type"]) {
   switch (type) {
     // case "follow_request":
-    //   return "님이 팔로우 요청을 보냈어요.";
+    //   return "님이 팔로우 요청을 보냈어요. ";
     // case "follow_back":
-    //   return "님이 팔로우 요청을 보냈어요.";
+    //   return "님이 팔로우 요청을 보냈어요. ";
     // case "follow":
-    //   return "님이 나를 팔로우하기 시작했어요.";
+    //   return "님이 나를 팔로우하기 시작했어요. ";
     case "emoji":
-      return "님이 회원님의 사진에 반응했어요.";
+      return "님이  사진에 반응했어요. ";
   }
 }
 
@@ -299,9 +303,7 @@ export default function NotificationsScreen() {
     }
 
     // UI 반영
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, is_read: true }))
-    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
   useEffect(() => {
@@ -382,7 +384,7 @@ export default function NotificationsScreen() {
         // 화면 나갈 때 실행
         markAllAsRead();
       };
-    }, [])
+    }, []),
   );
 
   const handleConfirmFollow = async (item: Notification) => {
@@ -580,6 +582,7 @@ export default function NotificationsScreen() {
             />
           )}
           style={{ flex: 1 }}
+          contentContainerStyle={{ paddingVertical: 9 }}
         />
       )}
     </SafeAreaView>
@@ -636,20 +639,21 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 
-  text: { 
-    fontFamily: 'Pretendard-Regular',
+  text: {
+    fontFamily: "Pretendard-Regular",
     fontSize: 13,
     fontWeight: 400,
     lineHeight: 20,
+    justifyContent: "center",
   },
   bold: { fontWeight: "700" },
-  time: 
-  { fontSize: 12, 
-    color: "#929292", 
-    marginTop: 4, 
-    fontFamily: 'Pretendard-Regular',
+  time: {
+    fontSize: 12,
+    color: "#929292",
+    marginTop: 4,
+    fontFamily: "Pretendard-Regular",
     fontWeight: 400,
-    lineHeight: 16
+    lineHeight: 16,
   },
   actions: {
     display: "flex",
