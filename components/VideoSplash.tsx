@@ -12,11 +12,17 @@ export default function VideoSplash({ onFinish }: { onFinish: () => void }) {
     (player) => {
       player.loop = false;
       player.play();
-    }
+    },
   );
 
   useEffect(() => {
     console.log("VideoSplash 마운트!");
+
+    // 개발 모드에서는 즉시 스킵
+    if (__DEV__) {
+      onFinish();
+      return;
+    }
 
     const timer = setTimeout(() => {
       if (!hasFinished.current) {
