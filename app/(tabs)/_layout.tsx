@@ -159,20 +159,17 @@ function CustomTabBar({ state, navigation }: any) {
               {t.type === "home" && <HomeIcon color={iconColor} />}
               {t.type === "social" && <SocialIcon color={iconColor} />}
               {t.type === "profile" && (
-                <View
-                  style={[
-                    styles.profileWrapper,
-                    focused && styles.profileWrapperActive,
-                  ]}
-                >
-                  <Image
-                    source={
-                      profile?.avatar_url
-                        ? { uri: profile.avatar_url }
-                        : require("@/assets/images/avatar.png")
-                    }
-                    style={styles.profileImage}
-                  />
+                <View style={[styles.profileRing, focused && styles.profileRingActive]}>
+                  <View style={styles.profileWrapper}>
+                    <Image
+                      source={
+                        profile?.avatar_url
+                          ? { uri: profile.avatar_url }
+                          : require("@/assets/images/avatar.png")
+                      }
+                      style={styles.profileImage}
+                    />
+                  </View>
                 </View>
               )}
             </TabButton>
@@ -238,16 +235,24 @@ const styles = StyleSheet.create({
     letterSpacing: -0.36,
     alignSelf: "stretch",
   },
+  profileRing: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileRingActive: {
+    borderColor: "#5B8DEF",
+  },
   profileWrapper: {
     width: 30,
     height: 30,
     borderRadius: 15,
     overflow: "hidden",
     backgroundColor: "#C3C3C3",
-  },
-  profileWrapperActive: {
-    borderColor: "#5B8DEF",
-    borderWidth: 2,
   },
   profileImage: {
     width: 30,
