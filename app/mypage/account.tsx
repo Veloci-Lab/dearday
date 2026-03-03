@@ -15,7 +15,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { Path, Svg } from "react-native-svg";
 
@@ -29,19 +29,17 @@ export default function AccountScreen() {
   useEffect(() => {
     navigation.setOptions({
       ...commonHeaderOptions,
-      headerTitle: () => (
-        <Text style={styles.headerTitle}>
-          내 계정 관리
-        </Text>
-      ),
-      headerLeft: () => <Pressable onPress={() => router.replace('/settings')}>
-        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      headerTitle: () => <Text style={styles.headerTitle}>내 계정 관리</Text>,
+      headerLeft: () => (
+        <Pressable onPress={() => router.back()}>
+          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
             <Path
-            d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
-            fill="#0D0D0D"
+              d="M12.5659 19.4344C12.8783 19.7468 12.8783 20.2533 12.5659 20.5657C12.2535 20.8782 11.7469 20.8782 11.4345 20.5657L3.43451 12.5657C3.12209 12.2533 3.12209 11.7468 3.43451 11.4344L11.4345 3.43436C11.7469 3.12194 12.2535 3.12194 12.5659 3.43436C12.8783 3.74678 12.8783 4.25331 12.5659 4.56573L5.93157 11.2L19.9998 11.2C20.4416 11.2 20.7998 11.5582 20.7998 12C20.7998 12.4419 20.4416 12.8 19.9998 12.8L5.93157 12.8L12.5659 19.4344Z"
+              fill="#0D0D0D"
             />
-        </Svg>
-        </Pressable>,
+          </Svg>
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
@@ -111,10 +109,10 @@ export default function AccountScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
-  
+
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -126,7 +124,6 @@ export default function AccountScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.list}>
-
         {/* 연결된 이메일 주소 (비활성, 오른쪽 정렬) */}
         <View style={styles.row}>
           <Text style={styles.rowTitle}>연결된 이메일 주소</Text>
@@ -150,15 +147,15 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: { 
-    fontFamily: "Pretendard-Bold", 
+  headerTitle: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 17,
   },
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: "#fff",
     borderTopWidth: 2,
-    borderTopColor: "#f2f2f2"
+    borderTopColor: "#f2f2f2",
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   list: { paddingHorizontal: 16, paddingTop: 5 },
@@ -171,14 +168,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#EFEFF0",
   },
-  rowTitle: { 
+  rowTitle: {
     fontFamily: "Pretendard-SemiBold",
-    fontSize: 15, 
+    fontSize: 15,
     color: "#111",
   },
   rowValue: {
     fontFamily: "Pretendard-Regular",
     fontSize: 14,
-    color: "#8E8E93"
+    color: "#8E8E93",
   },
 });
