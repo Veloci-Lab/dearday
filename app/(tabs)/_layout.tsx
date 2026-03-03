@@ -243,16 +243,14 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "transparent",
     backgroundColor: "#C3C3C3",
   },
   profileWrapperActive: {
     borderColor: "#5B8DEF",
   },
   profileImage: {
-    width: "100%",
-    height: "100%",
+    width: 30,
+    height: 30,
     resizeMode: "cover",
   },
 });
