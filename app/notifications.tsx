@@ -6,6 +6,7 @@ import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -172,8 +173,9 @@ function NotificationItem({
                         uri: `${SUPABASE_URL}/storage/v1/object/public/emoji/${item.emoji}`,
                       }}
                       style={{
-                        width: 10,
-                        height: 10,
+                        width: 12,
+                        height: 12,
+                        transform: [{ translateY: 2 }],
                       }}
                       cachePolicy={"disk"}
                     />
@@ -201,7 +203,7 @@ function renderMessage(type: Notification["type"]) {
     // case "follow":
     //   return "님이 나를 팔로우하기 시작했어요. ";
     case "emoji":
-      return "님이  사진에 반응했어요. ";
+      return "님이 회원님의 사진에 반응했어요. ";
   }
 }
 
@@ -582,7 +584,9 @@ export default function NotificationsScreen() {
             />
           )}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingVertical: 9 }}
+          contentContainerStyle={{
+            paddingVertical: Platform.OS === "ios" ? 9 : 0,
+          }}
         />
       )}
     </SafeAreaView>
