@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
   },
   profileWrapperActive: {
     borderColor: "#5B8DEF",
+    borderWidth: 2,
   },
   profileImage: {
     width: 30,
