@@ -341,12 +341,18 @@ export default function UserFeedScreen() {
       .eq("follower_profile_id", profileId)
       .eq("followee_profile_id", myProfileId);
     if (error) Alert.alert("오류", "친구 요청 수락에 실패했어요.");
-    else
+    else{
       setReceivedFollow({
         follower_profile_id: profileId,
         followee_profile_id: myProfileId,
         status: "accepted",
       });
+      await supabase.from("follower_notifications").insert({
+        type: "follow_allow",
+        user_profile_id: profileId,   
+        actor_profile_id: myProfileId, 
+      });
+    }
     setIsProcessing(false);
   };
 
