@@ -49,7 +49,7 @@ serve(async (req) => {
       return new Response('no push tokens', { status: 200 })
     }
 
-    if (!tokens[0].follow_enabled && notification.type === 'follow_request') {
+    if (!tokens[0].follow_enabled && ['follow_request', 'follow', 'follow_allow'].includes(notification.type)) {
       console.log('[send-push] follow notifications disabled')
       console.log('[send-push] notification:', tokens[0].follow_enabled)
       return new Response('follow notifications disabled', { status: 200 })
@@ -104,6 +104,8 @@ function buildPushTitle(type: string): string {
       return '새로운 팔로워'
     case 'follow_request':
       return '팔로우 요청'
+    case 'follow_allow':
+      return '팔로우 수락'
     default:
       return 'Dearday'
   }
@@ -117,8 +119,10 @@ function buildPushMessage(notification: any): string {
       return `${actor}님이 회원님을 팔로우하기 시작했습니다.`
     case 'follow_request':
       return `${actor}님이 회원님을 팔로우하고 싶어 해요. 확인해보세요.`
+    case 'follow_allow':
+      return `${actor}님이 팔로우 요청을 수락했어요. 이제 피드를 볼 수 있어요.`
     case 'emoji':
-      return `${actor}님이 사진에 반응했어요.❤️`
+      return `${actor}님이 사진에 반응했어요.🤍`
     default:
       return `${actor}님의 새로운 알림`
   }
