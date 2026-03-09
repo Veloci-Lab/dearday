@@ -198,9 +198,9 @@ function HomeHeader({ hasUnread }: { hasUnread: boolean }) {
           cachePolicy="disk"
         />
         <View style={styles.rightIcons}>
-          <Pressable onPress={() => console.log("캘린더")}>
+          {/* <Pressable onPress={() => console.log("캘린더")}>
             <CalendarIcon />
-          </Pressable>
+          </Pressable> */}
           <Pressable
             onPress={() => {
               console.log("알림");
@@ -364,20 +364,20 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const checkUnread = async () => {
-        if (!profileId) return
+        if (!profileId) return;
 
         const { count } = await supabase
           .from("follow_notifications")
           .select("*", { count: "exact", head: true })
           .eq("user_profile_id", profileId)
           .eq("is_read", false)
-          .eq("type", "emoji")
+          .eq("type", "emoji");
 
-        setHasUnreadNotifications((count ?? 0) > 0)
-      }
-      checkUnread()
-    }, [profileId])
-  )
+        setHasUnreadNotifications((count ?? 0) > 0);
+      };
+      checkUnread();
+    }, [profileId]),
+  );
 
   const loadInitialData = async () => {
     try {
@@ -785,7 +785,7 @@ export default function HomeScreen() {
             {selectedImage ? (
               <PhotoFrame
                 imageUri={selectedImage}
-                onShare={handleShare}
+                // onShare={handleShare}
                 onEdit={handleEdit}
               />
             ) : (

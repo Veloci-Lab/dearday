@@ -75,15 +75,17 @@ export default function PhotoFrame({
         {/* 버튼 영역 */}
         <View style={styles.buttonContainer}>
           {/* 공유 버튼 */}
-          <Pressable
-            style={styles.iconButton}
-            onPress={() => {
-              console.log("공유 버튼 클릭됨!");
-              onShare?.();
-            }}
-          >
-            <ShareIcon />
-          </Pressable>
+          {/* {onShare && (
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => {
+                console.log("공유 버튼 클릭됨!");
+                onShare?.();
+              }}
+            >
+              <ShareIcon />
+            </Pressable>
+          )} */}
 
           {/* 편집 버튼 */}
           <Pressable style={styles.iconButton} onPress={onEdit}>
