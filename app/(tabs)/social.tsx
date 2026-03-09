@@ -32,15 +32,6 @@ const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SEEN_FRIENDS_KEY = "@seen_friend_ids";
 
-const getAppLaunchDate = (): Date => {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
-
-const APP_LAUNCH_DATE = getAppLaunchDate();
-
 /* ====== 타입 ====== */
 interface DailyQuestion {
   question_date: string;
@@ -299,6 +290,7 @@ interface DayScrollerProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   canGoNext: boolean;
+  earliestDate: Date | null;
 }
 
 function DayScroller({
@@ -308,6 +300,7 @@ function DayScroller({
   onPrevMonth,
   onNextMonth,
   canGoNext,
+  earliestDate,
 }: DayScrollerProps) {
   const flatListRef = useRef<FlatList>(null);
   const today = useMemo(() => {
@@ -332,7 +325,9 @@ function DayScroller({
   const isDayDisabled = (date: Date): boolean => {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
-    return normalized < APP_LAUNCH_DATE || normalized > today;
+    // earliestDate가 없으면 모든 날짜 비활성화
+    if (!earliestDate) return true;
+    return normalized < earliestDate || normalized > today;
   };
 
   const handleScrollEndDrag = (event: any) => {
@@ -449,6 +444,7 @@ export default function SocialScreen() {
   const [hasUploadedForDate, setHasUploadedForDate] = useState(false);
   const [hasFriendNotification, setHasFriendNotification] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [earliestDate, setEarliestDate] = useState<Date | null>(null);
 
   // ✅ friendProfileIds를 ref로 관리 → 변경돼도 사진 fetch useEffect 재트리거 안 함
   const friendProfileIdsRef = useRef<number[]>([]);
@@ -618,7 +614,29 @@ export default function SocialScreen() {
       }
     };
 
+    // DB에서 가장 빠른 question_date 가져오기
+    const fetchEarliestDate = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("daily_questions")
+          .select("question_date")
+          .order("question_date", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (!error && data) {
+          const [year, month, day] = data.question_date.split("-").map(Number);
+          const earliest = new Date(year, month - 1, day);
+          earliest.setHours(0, 0, 0, 0);
+          setEarliestDate(earliest);
+        }
+      } catch (error) {
+        console.error("가장 빠른 날짜 로드 오류:", error);
+      }
+    };
+
     loadMyProfileAndFriends();
+    fetchEarliestDate();
   }, []);
 
   // 날짜 변경 시 사진 fetch (최초 로드는 위 useEffect에서 처리)
@@ -848,6 +866,7 @@ export default function SocialScreen() {
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
           canGoNext={canGoNext}
+          earliestDate={earliestDate}
         />
 
         <QuestionDisplay
