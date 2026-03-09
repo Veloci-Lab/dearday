@@ -26,7 +26,6 @@ import {
 } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
-/** 로고 비율 고정 (textmark_white.png 기준) */
 const LOGO_AR = 253 / 53;
 const LOGO_H = 44;
 const LOGO_W = Math.round(LOGO_H * LOGO_AR);
@@ -65,7 +64,6 @@ const DeardayTextLogo = () => (
   </Svg>
 );
 
-
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const REMOTE_DD_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/emoji/default.png`;
 
@@ -92,7 +90,7 @@ export default function SignInScreen() {
       p.muted = true;
       p.loop = false;
       p.play();
-    }
+    },
   );
 
   useEffect(() => {
@@ -140,7 +138,9 @@ export default function SignInScreen() {
     setLoadingGoogle(true);
     try {
       if (Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        await GoogleSignin.hasPlayServices({
+          showPlayServicesUpdateDialog: true,
+        });
       }
       const userInfo = await GoogleSignin.signIn();
       const idToken =
@@ -230,9 +230,13 @@ export default function SignInScreen() {
                 style={s.socialIcon}
                 resizeMode="contain"
               />
-              <Text style={[s.socialText, s.googleText]}>Google로 계속하기</Text>
+              <Text style={[s.socialText, s.googleText]}>
+                Google로 계속하기
+              </Text>
               <View style={s.rightArea}>
-                {loadingGoogle && <ActivityIndicator size="small" color="#5B8DEF" />}
+                {loadingGoogle && (
+                  <ActivityIndicator size="small" color="#5B8DEF" />
+                )}
               </View>
             </Pressable>
 
@@ -253,9 +257,13 @@ export default function SignInScreen() {
                   style={s.socialIcon}
                   resizeMode="contain"
                 />
-                <Text style={[s.socialText, s.appleText]}>Apple로 계속하기</Text>
+                <Text style={[s.socialText, s.appleText]}>
+                  Apple로 계속하기
+                </Text>
                 <View style={s.rightArea}>
-                  {loadingApple && <ActivityIndicator size="small" color="#5B8DEF" />}
+                  {loadingApple && (
+                    <ActivityIndicator size="small" color="#5B8DEF" />
+                  )}
                 </View>
               </Pressable>
             )}
