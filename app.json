@@ -77,12 +77,8 @@
       ["expo-apple-authentication"],
       ["expo-image-picker"],
       ["expo-video"],
-      [
-        "expo-apple-authentication"
-      ],
-      [
-        "expo-image-picker"
-      ],
+      ["expo-apple-authentication"],
+      ["expo-image-picker"],
       [
         "expo-video",
         {
@@ -101,7 +97,7 @@
       }
     },
     "owner": "dearday",
-    "runtimeVersion": "2.0",
+    "runtimeVersion": "3.0",
     "updates": {
       "url": "https://u.expo.dev/ad8392b2-46a3-4856-ae38-28e46bb436b6"
     }
